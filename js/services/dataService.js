@@ -1,0 +1,727 @@
+/**
+ * Enhanced Data Service Layer for Multi-Year School Schedule System
+ * Features: Multi-year data management, Context-aware loading, Export support, Rooms integration
+ */
+
+import { mockData } from '../data/index.js';
+import * as academicYearsAPI from '../api/academicYears.js';
+import * as semestersAPI from '../api/semesters.js';
+import * as teachersAPI from '../api/teachers.js';
+import * as classesAPI from '../api/classes.js';
+import * as roomsAPI from '../api/rooms.js';
+import * as subjectsAPI from '../api/subjects.js';
+import * as schedulesAPI from '../api/schedules.js';
+import * as substitutionsAPI from '../api/substitutions.js';
+import { getThaiDayName, getDayName, generateTimeSlots } from '../utils.js';
+
+// =============================================================================
+// SERVICE CONFIGURATION & CONTEXT
+// =============================================================================
+
+let serviceConfig = {
+  mode: 'mock', // 'mock' | 'api'
+  enableCache: true,
+  cacheTimeout: 300000, // 5 minutes
+  maxCacheSize: 50
+};
+
+let currentContext = {
+  year: null,
+  semesterId: null,
+  semester: null,
+  academicYear: null
+};
+
+// Cache Strategy
+const cache = {
+  years: null,
+  semesters: {},
+  byYear: {
+    // 2567: { teachers, classes, rooms, subjects, schedules, substitutions }
+  },
+  exportCache: {},
+  timestamps: {},
+  
+  set(key, data) {
+    if (!serviceConfig.enableCache) return;
+    this.timestamps[key] = Date.now();
+    if (key.includes('.')) {
+      const [section, subKey] = key.split('.');
+      if (!this[section]) this[section] = {};
+      this[section][subKey] = data;
+    } else {
+      this[key] = data;
+    }
+    this.cleanup();
+  },
+  
+  get(key) {
+    if (!serviceConfig.enableCache) return null;
+    const timestamp = this.timestamps[key];
+    if (!timestamp || Date.now() - timestamp > serviceConfig.cacheTimeout) {
+      this.delete(key);
+      return null;
+    }
+    if (key.includes('.')) {
+      const [section, subKey] = key.split('.');
+      return this[section]?.[subKey] || null;
+    }
+    return this[key] || null;
+  },
+  
+  delete(key) {
+    delete this.timestamps[key];
+    if (key.includes('.')) {
+      const [section, subKey] = key.split('.');
+      if (this[section]) delete this[section][subKey];
+    } else {
+      delete this[key];
+    }
+  },
+  
+  clear() {
+    this.years = null;
+    this.semesters = {};
+    this.byYear = {};
+    this.exportCache = {};
+    this.timestamps = {};
+  },
+  
+  cleanup() {
+    const now = Date.now();
+    const expired = Object.entries(this.timestamps)
+      .filter(([key, time]) => now - time > serviceConfig.cacheTimeout)
+      .map(([key]) => key);
+    expired.forEach(key => this.delete(key));
+  }
+};
+
+// =============================================================================
+// CORE FUNCTIONS
+// =============================================================================
+
+/**
+ * Initialize Data Service
+ */
+export function initDataService(config = {}) {
+  serviceConfig = { ...serviceConfig, ...config };
+  console.log('[DataService] Initialized with config:', serviceConfig);
+  if (config.mode) {
+    cache.clear();
+  }
+  return { ok: true };
+}
+
+/**
+ * Set Global Context
+ */
+export async function setGlobalContext(year, semesterId) {
+  try {
+    const academicYear = await getAcademicYearByNumber(year);
+    const semester = semesterId ? await getSemesterById(semesterId) : null;
+    
+    currentContext = { year, semesterId, semester, academicYear };
+    console.log('[DataService] Context set:', currentContext);
+    return { ok: true, context: currentContext };
+  } catch (error) {
+    console.error('[DataService] Failed to set context:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Switch to Year
+ */
+export async function switchToYear(year) {
+  try {
+    const semesters = await loadSemesters(year);
+    let newSemesterId = null;
+    
+    if (currentContext.semester) {
+      const sameSemester = semesters.data?.find(s => 
+        s.semester_number === currentContext.semester.semester_number
+      );
+      newSemesterId = sameSemester?.id || semesters.data?.[0]?.id;
+    } else {
+      newSemesterId = semesters.data?.[0]?.id;
+    }
+    
+    return await setGlobalContext(year, newSemesterId);
+  } catch (error) {
+    console.error('[DataService] Failed to switch year:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Switch to Semester
+ */
+export async function switchToSemester(semesterId) {
+  try {
+    const semester = await getSemesterById(semesterId);
+    if (!semester.ok) throw new Error('Semester not found');
+    
+    const year = semester.data.academic_year_id || currentContext.year;
+    return await setGlobalContext(year, semesterId);
+  } catch (error) {
+    console.error('[DataService] Failed to switch semester:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+// =============================================================================
+// DATA LOADING FUNCTIONS
+// =============================================================================
+
+/**
+ * Load Academic Years
+ */
+export async function loadAcademicYears() {
+  const cacheKey = 'years';
+  let cached = cache.get(cacheKey);
+  if (cached) return { ok: true, data: cached };
+  
+  try {
+    let result;
+    if (serviceConfig.mode === 'mock') {
+      result = { ok: true, data: mockData.academicYears };
+    } else {
+      result = await academicYearsAPI.getAcademicYears();
+    }
+    
+    if (result.ok) {
+      cache.set(cacheKey, result.data);
+    }
+    return result;
+  } catch (error) {
+    console.error('[DataService] Failed to load academic years:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Load Semesters for Year
+ */
+export async function loadSemesters(yearId) {
+  const cacheKey = `semesters.${yearId}`;
+  let cached = cache.get(cacheKey);
+  if (cached) return { ok: true, data: cached };
+  
+  try {
+    let result;
+    if (serviceConfig.mode === 'mock') {
+      const semesterData = mockData.semesters.filter(s => 
+        s.academic_year_id === yearId || s.academic_year_id === yearId
+      );
+      result = { ok: true, data: semesterData };
+    } else {
+      result = await semestersAPI.getSemesters(yearId);
+    }
+    
+    if (result.ok) {
+      cache.set(cacheKey, result.data);
+    }
+    return result;
+  } catch (error) {
+    console.error('[DataService] Failed to load semesters:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Load Complete Year Data (including rooms)
+ */
+export async function loadYearData(year) {
+  const cacheKey = `byYear.${year}`;
+  let cached = cache.get(cacheKey);
+  if (cached) return { ok: true, data: cached };
+  
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const yearData = mockData[year];
+      if (!yearData) {
+        throw new Error(`No data available for year ${year}`);
+      }
+      
+      const completeData = {
+        teachers: yearData.teachers || [],
+        classes: yearData.classes || [],
+        rooms: yearData.rooms || [], // ใหม่
+        subjects: yearData.subjects || [],
+        schedules: yearData.schedules || [],
+        substitutions: yearData.substitutions || [],
+        substitution_schedules: yearData.substitution_schedules || []
+      };
+      
+      cache.set(cacheKey, completeData);
+      return { ok: true, data: completeData };
+      
+    } else {
+      const results = await Promise.all([
+        teachersAPI.getTeachers(year),
+        classesAPI.getClasses(year),
+        roomsAPI.getRooms(year), // ใหม่
+        subjectsAPI.getSubjects(year),
+        schedulesAPI.getSchedules(year),
+        substitutionsAPI.getSubstitutions(year)
+      ]);
+      
+      const [teachers, classes, rooms, subjects, schedules, substitutions] = results;
+      
+      if (!results.every(r => r.ok)) {
+        const errors = results.filter(r => !r.ok).map(r => r.error);
+        throw new Error(`Failed to load some data: ${errors.join(', ')}`);
+      }
+      
+      const completeData = {
+        teachers: teachers.data,
+        classes: classes.data,
+        rooms: rooms.data, // ใหม่
+        subjects: subjects.data,
+        schedules: schedules.data,
+        substitutions: substitutions.data,
+        substitution_schedules: []
+      };
+      
+      cache.set(cacheKey, completeData);
+      return { ok: true, data: completeData };
+    }
+  } catch (error) {
+    console.error('[DataService] Failed to load year data:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Load Semester-Specific Data
+ */
+export async function loadSemesterData(semesterId) {
+  try {
+    const semester = await getSemesterById(semesterId);
+    if (!semester.ok) throw new Error('Semester not found');
+    
+    const year = semester.data.academic_year_id;
+    const yearData = await loadYearData(year);
+    
+    if (!yearData.ok) return yearData;
+    
+    const semesterData = {
+      ...yearData.data,
+      classes: yearData.data.classes.filter(c => c.semester_id === semesterId),
+      subjects: yearData.data.subjects.filter(s => {
+        const subject = yearData.data.subjects.find(subj => subj.id === s.id);
+        const cls = yearData.data.classes.find(c => c.id === subject?.class_id);
+        return cls?.semester_id === semesterId;
+      }),
+      schedules: yearData.data.schedules.filter(s => s.semester_id === semesterId)
+    };
+    
+    return { ok: true, data: semesterData };
+  } catch (error) {
+    console.error('[DataService] Failed to load semester data:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+// =============================================================================
+// CRUD OPERATIONS (CONTEXT-AWARE)
+// =============================================================================
+
+/**
+ * Get Teachers (using current context)
+ */
+export async function getTeachers() {
+  if (!currentContext.year) {
+    throw new Error('No active context. Call setGlobalContext first.');
+  }
+  
+  const yearData = await loadYearData(currentContext.year);
+  if (!yearData.ok) return yearData;
+  
+  return { ok: true, data: yearData.data.teachers };
+}
+
+/**
+ * Get Classes (using current context)
+ */
+export async function getClasses() {
+  if (!currentContext.semesterId) {
+    throw new Error('No active semester context. Call setGlobalContext first.');
+  }
+  
+  const semesterData = await loadSemesterData(currentContext.semesterId);
+  if (!semesterData.ok) return semesterData;
+  
+  return { ok: true, data: semesterData.data.classes };
+}
+
+/**
+ * Get Rooms (using current context) - ใหม่
+ */
+export async function getRooms() {
+  if (!currentContext.year) {
+    throw new Error('No active context. Call setGlobalContext first.');
+  }
+  
+  const yearData = await loadYearData(currentContext.year);
+  if (!yearData.ok) return yearData;
+  
+  return { ok: true, data: yearData.data.rooms };
+}
+
+/**
+ * Get Subjects (using current context)
+ */
+export async function getSubjects() {
+  if (!currentContext.semesterId) {
+    throw new Error('No active semester context. Call setGlobalContext first.');
+  }
+  
+  const semesterData = await loadSemesterData(currentContext.semesterId);
+  if (!semesterData.ok) return semesterData;
+  
+  return { ok: true, data: semesterData.data.subjects };
+}
+
+/**
+ * Get Schedules (using current context)
+ */
+export async function getSchedules() {
+  if (!currentContext.semesterId) {
+    throw new Error('No active semester context. Call setGlobalContext first.');
+  }
+  
+  const semesterData = await loadSemesterData(currentContext.semesterId);
+  if (!semesterData.ok) return semesterData;
+  
+  return { ok: true, data: semesterData.data.schedules };
+}
+
+// Helper functions
+export async function getAcademicYearByNumber(year) {
+  const years = await loadAcademicYears();
+  if (!years.ok) return years;
+  
+  const academicYear = years.data.find(y => y.year === year);
+  if (!academicYear) {
+    return { ok: false, error: `Academic year ${year} not found` };
+  }
+  return { ok: true, data: academicYear };
+}
+
+export async function getSemesterById(semesterId) {
+  const allSemesters = Object.values(cache.semesters).flat();
+  let semester = allSemesters.find(s => s.id === semesterId);
+  
+  if (!semester) {
+    if (currentContext.year) {
+      const semesters = await loadSemesters(currentContext.year);
+      if (semesters.ok) {
+        semester = semesters.data.find(s => s.id === semesterId);
+      }
+    }
+    
+    if (!semester && serviceConfig.mode === 'mock') {
+      semester = mockData.semesters.find(s => s.id === semesterId);
+    }
+  }
+  
+  if (!semester) {
+    return { ok: false, error: `Semester ${semesterId} not found` };
+  }
+  return { ok: true, data: semester };
+}
+
+// =============================================================================
+// CROSS-YEAR OPERATIONS
+// =============================================================================
+
+/**
+ * Compare Data Across Years
+ */
+export async function compareAcrossYears(dataType, years) {
+  try {
+    const promises = years.map(year => loadYearData(year));
+    const results = await Promise.all(promises);
+    
+    if (!results.every(r => r.ok)) {
+      const errors = results.filter(r => !r.ok).map(r => r.error);
+      throw new Error(`Failed to load data for comparison: ${errors.join(', ')}`);
+    }
+    
+    const comparison = {};
+    results.forEach((result, index) => {
+      const year = years[index];
+      const data = result.data[dataType] || [];
+      comparison[year] = {
+        count: data.length,
+        data: data,
+        analysis: generateDataAnalysis(dataType, data)
+      };
+    });
+    
+    comparison.insights = generateCrossYearInsights(dataType, comparison);
+    return { ok: true, data: comparison };
+  } catch (error) {
+    console.error('[DataService] Failed to compare across years:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Get Teacher History
+ */
+export async function getTeacherHistory(teacherId) {
+  try {
+    const years = await loadAcademicYears();
+    if (!years.ok) return years;
+    
+    const history = [];
+    for (const year of years.data) {
+      const yearData = await loadYearData(year.year);
+      if (yearData.ok) {
+        const teacher = yearData.data.teachers.find(t => t.id === teacherId);
+        if (teacher) {
+          history.push({ year: year.year, teacher });
+        }
+      }
+    }
+    
+    return { ok: true, data: history };
+  } catch (error) {
+    console.error('[DataService] Failed to get teacher history:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Clone Year Data
+ */
+export async function cloneYearData(fromYear, toYear) {
+  try {
+    const sourceData = await loadYearData(fromYear);
+    if (!sourceData.ok) throw new Error(`Source year ${fromYear} not found`);
+    
+    // This would clone data to new year (implementation depends on API)
+    console.log(`[DataService] Cloning data from ${fromYear} to ${toYear}`);
+    
+    return { ok: true, message: `Data cloned from ${fromYear} to ${toYear}` };
+  } catch (error) {
+    console.error('[DataService] Failed to clone year data:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+// Helper functions for analysis
+function generateDataAnalysis(dataType, data) {
+  switch(dataType) {
+    case 'teachers':
+      return {
+        bySubjectGroup: data.reduce((acc, t) => {
+          acc[t.subject_group] = (acc[t.subject_group] || 0) + 1;
+          return acc;
+        }, {})
+      };
+    case 'rooms':
+      return {
+        byType: data.reduce((acc, r) => {
+          acc[r.room_type] = (acc[r.room_type] || 0) + 1;
+          return acc;
+        }, {})
+      };
+    default:
+      return {};
+  }
+}
+
+function generateCrossYearInsights(dataType, comparison) {
+  const years = Object.keys(comparison).filter(k => k !== 'insights');
+  const trends = {};
+  
+  if (years.length >= 2) {
+    const latest = years[years.length - 1];
+    const previous = years[years.length - 2];
+    
+    trends.countChange = comparison[latest].count - comparison[previous].count;
+    trends.percentChange = ((comparison[latest].count - comparison[previous].count) / comparison[previous].count * 100).toFixed(1);
+  }
+  
+  return trends;
+}
+
+// =============================================================================
+// EXPORT HELPERS (สำคัญ)
+// =============================================================================
+
+/**
+ * Normalize Student Schedule For Export
+ */
+export async function normalizeStudentScheduleForExport({ schedules, subjects, teachers, rooms, classes, classId, semesterId }) {
+  try {
+    // Load required data if not provided
+    if (!schedules || !subjects || !teachers || !rooms || !classes) {
+      const semesterData = await loadSemesterData(semesterId);
+      if (!semesterData.ok) throw new Error('Failed to load semester data');
+      
+      schedules = schedules || semesterData.data.schedules;
+      subjects = subjects || semesterData.data.subjects;
+      teachers = teachers || semesterData.data.teachers;
+      rooms = rooms || semesterData.data.rooms;
+      classes = classes || semesterData.data.classes;
+    }
+    
+    // Filter schedules for specific class
+    const classSchedules = schedules.filter(schedule => schedule.class_id === classId);
+    
+    // Transform to export format
+    return classSchedules.map(schedule => {
+      const subject = subjects.find(s => s.id === schedule.subject_id);
+      const teacher = teachers.find(t => t.id === subject?.teacher_id);
+      const room = rooms.find(r => r.id === schedule.room_id);
+      const cls = classes.find(c => c.id === schedule.class_id);
+      
+      return {
+        'วัน': getThaiDayName(schedule.day_of_week),
+        'เวลา': getTimeSlot(schedule.period),
+        'คาบ': schedule.period,
+        'วิชา': subject?.subject_name || '',
+        'รหัสวิชา': subject?.subject_code || '',
+        'ครู': teacher?.name || '',
+        'ห้องเรียน': cls?.class_name || '',
+        'ห้อง': room ? `${room.name} (${room.room_type})` : ''
+      };
+    });
+  } catch (error) {
+    console.error('[DataService] Failed to normalize student schedule:', error);
+    throw error;
+  }
+}
+
+/**
+ * Normalize Teacher Schedule For Export
+ */
+export async function normalizeTeacherScheduleForExport({ schedules, subjects, teachers, rooms, classes, teacherId, semesterId }) {
+  try {
+    // Load required data if not provided
+    if (!schedules || !subjects || !teachers || !rooms || !classes) {
+      const semesterData = await loadSemesterData(semesterId);
+      if (!semesterData.ok) throw new Error('Failed to load semester data');
+      
+      schedules = schedules || semesterData.data.schedules;
+      subjects = subjects || semesterData.data.subjects;
+      teachers = teachers || semesterData.data.teachers;
+      rooms = rooms || semesterData.data.rooms;
+      classes = classes || semesterData.data.classes;
+    }
+    
+    // Filter subjects for specific teacher
+    const teacherSubjects = subjects.filter(subject => subject.teacher_id === teacherId);
+    const teacherSubjectIds = teacherSubjects.map(s => s.id);
+    
+    // Filter schedules for teacher's subjects
+    const teacherSchedules = schedules.filter(schedule => 
+      teacherSubjectIds.includes(schedule.subject_id)
+    );
+    
+    // Transform to export format
+    return teacherSchedules.map(schedule => {
+      const subject = subjects.find(s => s.id === schedule.subject_id);
+      const room = rooms.find(r => r.id === schedule.room_id);
+      const cls = classes.find(c => c.id === schedule.class_id);
+      
+      return {
+        'วัน': getThaiDayName(schedule.day_of_week),
+        'เวลา': getTimeSlot(schedule.period),
+        'คาบ': schedule.period,
+        'วิชา': subject?.subject_name || '',
+        'รหัสวิชา': subject?.subject_code || '',
+        'ห้องเรียน': cls?.class_name || '',
+        'ห้อง': room ? `${room.name} (${room.room_type})` : ''
+      };
+    });
+  } catch (error) {
+    console.error('[DataService] Failed to normalize teacher schedule:', error);
+    throw error;
+  }
+}
+
+/**
+ * Normalize Substitution For Export
+ */
+export async function normalizeSubstitutionForExport({ substitutions, schedules, subjects, teachers, rooms, classes, date, semesterId }) {
+  try {
+    // Load required data if not provided
+    if (!substitutions || !schedules || !subjects || !teachers || !rooms || !classes) {
+      const semesterData = await loadSemesterData(semesterId);
+      if (!semesterData.ok) throw new Error('Failed to load semester data');
+      
+      substitutions = substitutions || semesterData.data.substitutions;
+      schedules = schedules || semesterData.data.schedules;
+      subjects = subjects || semesterData.data.subjects;
+      teachers = teachers || semesterData.data.teachers;
+      rooms = rooms || semesterData.data.rooms;
+      classes = classes || semesterData.data.classes;
+    }
+    
+    // Filter substitutions by date
+    const dateSubstitutions = substitutions.filter(sub => 
+      new Date(sub.absent_date).toDateString() === new Date(date).toDateString()
+    );
+    
+    // Get substitution schedules
+    const substitutionSchedules = semesterData.data.substitution_schedules || [];
+    
+    // Transform to export format
+    const exportData = [];
+    
+    for (const substitution of dateSubstitutions) {
+      const absentTeacher = teachers.find(t => t.id === substitution.absent_teacher_id);
+      const relatedSubSchedules = substitutionSchedules.filter(ss => ss.substitution_id === substitution.id);
+      
+      for (const subSchedule of relatedSubSchedules) {
+        const originalSchedule = schedules.find(s => s.id === subSchedule.original_schedule_id);
+        const subject = subjects.find(s => s.id === originalSchedule?.subject_id);
+        const room = rooms.find(r => r.id === originalSchedule?.room_id);
+        const cls = classes.find(c => c.id === originalSchedule?.class_id);
+        const substituteTeacher = teachers.find(t => t.id === subSchedule.substitute_teacher_id);
+        
+        exportData.push({
+          'วันที่': new Date(substitution.absent_date).toLocaleDateString('th-TH'),
+          'ครูที่ขาด': absentTeacher?.name || '',
+          'เหตุผล': substitution.reason || '',
+          'คาบ': originalSchedule?.period || '',
+          'เวลา': originalSchedule ? getTimeSlot(originalSchedule.period) : '',
+          'วิชา': subject?.subject_name || '',
+          'ห้องเรียน': cls?.class_name || '',
+          'ห้อง': room ? `${room.name} (${room.room_type})` : '',
+          'ครูสอนแทน': substituteTeacher?.name || ''
+        });
+      }
+    }
+    
+    return exportData;
+  } catch (error) {
+    console.error('[DataService] Failed to normalize substitution data:', error);
+    throw error;
+  }
+}
+
+// Helper function for time slots
+function getTimeSlot(period) {
+  const timeSlots = generateTimeSlots();
+  return timeSlots[period - 1] || `คาบ ${period}`;
+}
+
+// Export current context
+export function getCurrentContext() {
+  return { ...currentContext };
+}
+
+// Additional exports for substitutions
+export async function getSubstitutions() {
+  return await substitutionsAPI.getSubstitutions(currentContext.currentYear);
+}
+
+export async function getSubstitutionSchedules() {
+  return await substitutionsAPI.getSubstitutionSchedules(currentContext.currentYear);
+}

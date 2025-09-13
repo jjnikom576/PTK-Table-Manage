@@ -1,0 +1,1812 @@
+Complete Claude Desktop MCP Prompts - Multi-Year School Schedule System
+📋 Setup เบื้องต้น
+Prompt 1: Project Structure (Multi-Year Architecture)
+สร้าง project structure สำหรับระบบจัดตารางสอนโรงเรียน แบบ Multi-Year:
+
+school-schedule/
+├── index.html
+├── css/
+│   ├── main.css
+│   ├── components.css
+│   └── responsive.css
+├── js/
+│   ├── app.js
+│   ├── navigation.js
+│   ├── utils.js
+│   ├── context/
+│   │   └── globalContext.js
+│   ├── api/
+│   │   ├── config.js
+│   │   ├── academicYears.js
+│   │   ├── semesters.js
+│   │   ├── teachers.js
+│   │   ├── classes.js
+│   │   ├── subjects.js
+│   │   ├── schedules.js
+│   │   └── substitutions.js
+│   ├── data/
+│   │   ├── academicYears.mock.js
+│   │   ├── semesters.mock.js
+│   │   ├── teachers.mock.js
+│   │   ├── classes.mock.js
+│   │   ├── subjects.mock.js
+│   │   ├── schedules.mock.js
+│   │   ├── substitutions.mock.js
+│   │   └── index.js
+│   ├── services/
+│   │   ├── dataService.js
+│   │   └── yearService.js
+│   └── pages/
+│       ├── studentSchedule.js
+│       ├── teacherSchedule.js
+│       ├── substitution.js
+│       └── admin.js
+└── README.md
+
+สร้างโฟลเดอร์และไฟล์เปล่าทั้งหมด 
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+Prompt 2: Enhanced HTML Structure
+สร้างไฟล์ index.html พร้อม Global Context UI:
+
+Requirements:
+- HTML5 semantic structure
+- Meta tags สำหรับ Thai language และ responsive
+- Global context bar: "📅 ปีการศึกษา: [2567 ▼] | ภาคเรียน: [ภาคเรียนที่ 1 ▼]"
+- Main navigation (4 หน้าหลัก)
+- Sub navigation containers
+- Page containers สำหรับแต่ละหน้า
+- Loading states และ error messages containers
+
+Title: "ระบบจัดตารางสอน - โรงเรียนมัธยมศึกษา"
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+🎨 CSS Development
+Prompt 3: Enhanced Global Styles (css/main.css)
+สร้าง CSS global styles สำหรับระบบ Multi-Year:
+
+Design Requirements:
+- CSS Reset และ box-sizing
+- Thai-friendly fonts: Sarabun (primary), Kanit (backup)
+- Enhanced color scheme:
+  - Primary: #4299e1
+  - Secondary: #3182ce  
+  - Dark: #2d3748
+  - Light: #f7fafc
+  - Success: #48bb78
+  - Warning: #ed8936
+  - Danger: #f56565
+  - Academic: #805ad5
+- Gradient background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+- Typography scale และ spacing system
+- Button base styles พร้อม variants
+- Form elements base styles
+- Global context bar styling
+- Container และ layout utilities
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+Prompt 4: Enhanced Component Styles (css/components.css)
+สร้าง component-specific CSS สำหรับ Multi-Year System:
+
+Components ที่ต้องการ:
+1. Global Context Bar (academic year + semester selectors)
+2. Enhanced Navigation (main nav + sub nav)
+3. Multi-Year Cards (year-specific data cards)
+4. Enhanced Tables (schedule tables พร้อม year headers)
+5. Admin Management UI (form components สำหรับ CRUD)
+6. Academic Context Indicators (year badges, semester indicators)
+7. Enhanced Ranking/Achievement UI (Hall of Fame displays)
+8. Loading & State Management components
+
+แต่ละ component ต้องมี:
+- Context-aware styling
+- Smooth transitions
+- Accessibility compliance
+- Mobile optimization
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 5: Enhanced Responsive Design (css/responsive.css)
+สร้าง responsive CSS สำหรับ Multi-Year System:
+
+Breakpoints:
+- Mobile: 320px-768px
+- Tablet: 768px-1024px  
+- Desktop: 1024px+
+
+Mobile-first Enhancements:
+- Global context bar responsive behavior
+- Collapsible academic year/semester selectors
+- Touch-friendly admin management UI
+- Responsive multi-year data displays
+
+Context-Aware Responsive:
+- Different layouts based on selected year/semester
+- Historical data vs current data displays
+- Admin mode responsive behaviors
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+📊 Enhanced Data Layer
+
+
+Prompt 6: API Configuration (js/api/config.js)
+สร้าง enhanced API configuration สำหรับ Multi-Year System:
+
+Features:
+- Environment detection (development/production)
+- Multi-year table naming convention
+- Dynamic API endpoints based on academic year
+
+API Endpoints Structure:
+Fixed Tables:
+- GET /academic-years
+- GET /semesters/:yearId
+
+Dynamic Tables (ตามปี):
+- GET /teachers-:year, POST /teachers-:year
+- GET /classes-:year, POST /classes-:year  
+- GET /subjects-:year, POST /subjects-:year
+- GET /schedules-:year, POST /schedules-:year
+- GET /substitutions-:year, POST /substitutions-:year
+
+Helper Functions:
+- getTableName(baseTable, year)
+- getYearBasedEndpoint(endpoint, year)
+- validateYearAccess(year)
+- getCurrentAcademicContext()
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 7: Academic Years & Semesters Mock Data
+สร้าง mock data สำหรับ Academic Years และ Semesters:
+
+1. js/data/academicYears.mock.js:
+ข้อมูลปีการศึกษา:
+- 2566 (2023-2024) - เก่า, ไม่ active
+- 2567 (2024-2025) - ปัจจุบัน, active
+- 2568 (2025-2026) - อนาคต, ไม่ active yet
+
+Field structure: id, year, start_date, end_date, is_active, created_at
+
+2. js/data/semesters.mock.js:
+ภาคเรียนสำหรับแต่ละปี:
+ปี 2567:
+- ภาคเรียนที่ 1: พ.ค. 2024 - ก.ย. 2024 (active)
+- ภาคเรียนที่ 2: ต.ค. 2024 - ก.พ. 2025
+- ภาคฤดูร้อน: มี.ค. 2025 - เม.ย. 2025
+
+Field structure: id, academic_year_id, semester_number, semester_name, start_date, end_date, is_active, created_at
+
+Export เป็น ES6 modules พร้อม helper functions:
+- getCurrentAcademicYear()
+- getCurrentSemester()
+- getActiveSemester(yearId)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+
+Prompt 8: Multi-Year Teachers Mock Data
+สร้าง mock data สำหรับครู แบบ Multi-Year:
+
+js/data/teachers.mock.js:
+
+สร้างข้อมูลครูสำหรับแต่ละปี:
+teachers_2566: ครู 12 คน (historical data)
+teachers_2567: ครู 10 คน (current year)
+teachers_2568: ครู 8 คน (future planning)
+
+กลุ่มสาระครอบคลุม:
+- วิทยาศาสตร์: 3-4 คน
+- คณิตศาสตร์: 2-3 คน
+- ภาษาไทย: 2 คน
+- ภาษาอังกฤษ: 1-2 คน
+- สังคมศึกษา: 1-2 คน
+- ศิลปะ/กิจกรรม: 1-2 คน
+
+Field structure: id, name, email, phone, subject_group, role, created_at
+
+ความแตกต่างระหว่างปี:
+- บางครูเกษียณ/ย้าย
+- ครูใหม่เข้ามา
+- เปลี่ยนกลุ่มสาระ
+
+Export structure:
+export const teachersData = {
+  teachers_2566: [...],
+  teachers_2567: [...], 
+  teachers_2568: [...]
+};
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 9: Classes Mock Data
+สร้าง mock data สำหรับห้องเรียน (แยกจาก subjects):
+
+js/data/classes.mock.js:
+
+สร้างข้อมูลห้องเรียนสำหรับแต่ละปี:
+
+classes_2567 (ปีปัจจุบัน):
+ม.1: 4 ห้อง (ม.1/1, ม.1/2, ม.1/3, ม.1/4)
+ม.2: 4 ห้อง
+ม.3: 3 ห้อง  
+ม.4: 3 ห้อง
+ม.5: 3 ห้อง
+ม.6: 2 ห้อง
+
+Field structure: id, semester_id, class_name, grade_level, section, student_count, created_at
+
+Helper Functions:
+- getClassesByYear(year)
+- getClassesBySemester(semesterId)  
+- getClassesByGradeLevel(gradeLevel, year)
+- generateClassName(gradeLevel, section)
+
+Export structure:
+export const classesData = {
+  classes_2566: [...],
+  classes_2567: [...],
+  classes_2568: [...]
+};
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+
+Prompt 10: Enhanced Subjects Mock Data
+สร้าง mock data สำหรับวิชา (เชื่อมกับ teachers และ classes):
+
+js/data/subjects.mock.js:
+
+สร้างข้อมูลวิชาที่เชื่อมโยงระหว่าง teachers, classes, semesters
+
+subjects_2567 (ปีปัจจุบัน):
+ม.1-ม.3: วิทยาศาสตร์, คณิตศาสตร์, ภาษาไทย, ภาษาอังกฤษ, สังคมศึกษา, ศิลปะ, ลูกเสือ
+ม.4-ม.6: ฟิสิกส์, เคมี, ชีววิทยา, คณิตศาสตร์ (พื้นฐาน + เพิ่มเติม), ภาษาไทย, ภาษาอังกฤษ, สังคมศึกษา
+
+Field structure: id, semester_id, teacher_id, class_id, subject_name, subject_code, periods_per_week, constraints, created_at
+
+ความซับซ้อนที่ต้องจัดการ:
+- ครู 1 คนสอนหลายห้อง
+- ห้อง 1 ห้องมีหลายวิชา
+- วิชาเดียวกันแต่ครูต่างกัน
+
+Helper Functions:
+- getSubjectsByYear(year)
+- getSubjectsByTeacher(teacherId, year)
+- getSubjectsByClass(classId, year)
+- calculateTeacherWorkload(teacherId, semesterId)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+
+Prompt 11: Enhanced Schedules Mock Data
+สร้าง mock data สำหรับตารางสอน (เชื่อมกับ subjects):
+
+js/data/schedules.mock.js:
+
+สร้างตารางสอนสำหรับแต่ละปี โดยเชื่อมกับ subjects:
+
+schedules_2567 (ปีปัจจุบัน):
+ตารางสอนจันทร์-ศุกร์:
+- day_of_week: 1=จันทร์, 2=อังคาร, 3=พุธ, 4=พฤหัสบดี, 5=ศุกร์
+- period: 1-8 คาบ
+- เวลาแต่ละคาบ: 08:20-09:10, 09:10-10:00, 10:20-11:10, 11:10-12:00, 13:00-13:50, 13:50-14:40, 14:40-15:30, 15:30-16:20
+
+Field structure: id, semester_id, subject_id, day_of_week, period, created_at
+
+Logic สำหรับสร้างตาราง:
+- ใช้ข้อมูลจาก subjects_2567 เป็นฐาน
+- กระจาย periods_per_week ของแต่ละวิชา
+- ตรวจสอบ conflicts
+- วิชาหลักควรอยู่คาบ 1-6
+
+Helper Functions:
+- getSchedulesByYear(year)
+- getSchedulesBySemester(semesterId)
+- getSchedulesByClass(classId, semesterId)
+- validateScheduleConflict(newSchedule, existingSchedules)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 12: Enhanced Substitutions Mock Data
+สร้าง mock data สำหรับการสอนแทน แบบ Multi-Year:
+
+js/data/substitutions.mock.js:
+
+สร้างข้อมูลการสอนแทนสำหรับแต่ละปี:
+
+substitutions_2567 + substitution_schedules_2567:
+
+1. substitutions_2567:
+Field structure: id, semester_id, absent_teacher_id, absent_date, reason, status, created_by, created_at
+
+การลาในภาคเรียนปัจจุบัน:
+- ลาป่วย: 40%, ประชุม: 25%, อบรม: 20%, ลาพักผ่อน: 10%, ไปราชการ: 5%
+
+2. substitution_schedules_2567:
+Field structure: id, substitution_id, original_schedule_id, substitute_teacher_id, periods_count, completed_at
+
+สถิติสำหรับ Hall of Fame (ภาคเรียนปัจจุบัน):
+- นายชีววิทยา: 25 คาบ
+- นางเคมี: 18 คาบ
+- นายคณิต B: 15 คาบ
+- นายภาษาไทย: 12 คาบ
+- นางสังคม: 8 คาบ
+
+Helper Functions:
+- getSubstitutionsByYear(year)
+- getSubstitutionsBySemester(semesterId)
+- calculateSubstituteStats(semesterId)
+- getTopSubstituteTeachers(semesterId, limit)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+
+Prompt 13: Enhanced Data Index
+สร้างไฟล์รวม mock data แบบ Multi-Year:
+
+js/data/index.js:
+
+Features:
+- Import ทุกไฟล์ mock data
+- Export combined data object แยกตามปี
+- Multi-year utility functions
+- Cross-year data analysis functions
+
+Main Export Structure:
+export const mockData = {
+  // Fixed tables
+  academicYears: [...],
+  semesters: [...],
+  
+  // Dynamic tables by year
+  2566: {
+    teachers: teachers_2566,
+    classes: classes_2566,
+    subjects: subjects_2566,
+    schedules: schedules_2566,
+    substitutions: substitutions_2566,
+    substitution_schedules: substitution_schedules_2566
+  },
+  2567: { ... },
+  2568: { ... }
+};
+
+Multi-Year Functions:
+- getDataByYear(year)
+- getDataBySemester(semesterId)
+- getCurrentYearData()
+- validateCrossYearData()
+
+Context Management:
+- setGlobalContext(year, semesterId)
+- getGlobalContext()
+- switchContext(newYear, newSemester)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+🌐 Enhanced API Services
+
+
+Prompt 14: Multi-Year API Services
+สร้าง API services สำหรับ Multi-Year System:
+
+1. js/api/academicYears.js - Academic Year API
+2. js/api/semesters.js - Semester API
+3. js/api/teachers.js - Enhanced Teacher API
+4. js/api/classes.js - Classes API
+5. js/api/subjects.js - Enhanced Subject API
+6. js/api/schedules.js - Context-aware Schedule API
+7. js/api/substitutions.js - Enhanced Substitution API
+
+แต่ละไฟล์ต้องมี:
+- Year-aware API calls
+- Automatic table name generation
+- Context-aware error handling
+- CRUD operations with consistent interface
+
+Example for teachers.js:
+- getTeachers(year)
+- getTeacherById(id, year)
+- createTeacher(teacherData, year)
+- copyTeacherToNewYear(teacherId, fromYear, toYear)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 15: Enhanced Data Service Layer
+สร้าง enhanced data service layer สำหรับ Multi-Year:
+
+js/services/dataService.js:
+
+Features:
+- Multi-year data management
+- Context-aware data loading
+- Factory pattern สำหรับ mock/real API switching
+- Cross-year data operations
+- Intelligent caching system
+
+Core Functions:
+- initDataService(config)
+- setGlobalContext(year, semesterId)
+- switchToYear(year)
+- switchToSemester(semesterId)
+
+Data Loading Functions:
+- loadAcademicYears()
+- loadSemesters(yearId)
+- loadYearData(year)
+- loadSemesterData(semesterId)
+
+CRUD Operations (Context-Aware):
+- getTeachers() // uses current context
+- getClasses() // uses current context
+- getSubjects() // uses current context
+
+Cross-Year Operations:
+- compareAcrossYears(dataType, years)
+- getTeacherHistory(teacherId)
+- cloneYearData(fromYear, toYear)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 16: Year Service Layer
+สร้าง dedicated year service สำหรับ academic year management:
+
+js/services/yearService.js:
+
+Features:
+- Academic year และ semester management
+- Context switching logic
+- Year transition workflows
+- Data migration helpers
+
+Core Functions:
+- initYearService()
+- getCurrentAcademicYear()
+- getCurrentSemester()
+- setActiveContext(year, semesterId)
+
+Year Operations:
+- createNewAcademicYear(yearData)
+- setupSemestersForYear(year, semesterConfig)
+- cloneYearStructure(fromYear, toYear)
+
+Table Management:
+- createYearTables(year)
+- getTableName(baseTable, year)
+- validateTableExists(tableName)
+
+Event System:
+- onYearChange(callback)
+- onSemesterChange(callback)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+Prompt 17: Global Context Management
+สร้าง global context management system:
+
+js/context/globalContext.js:
+
+Features:
+- Centralized context state management
+- Context persistence (localStorage)
+- UI synchronization
+- Context-aware component updates
+
+Context State:
+const globalContext = {
+  currentYear: null,
+  currentSemester: null,
+  availableYears: [],
+  availableSemesters: [],
+  userRole: 'teacher',
+  isLoading: false,
+  error: null
+};
+
+Core Functions:
+- initGlobalContext()
+- setContext(year, semesterId)
+- getContext()
+- updateContext(partialContext)
+- resetContext()
+
+Context Persistence:
+- saveContextToStorage()
+- loadContextFromStorage()
+- clearStoredContext()
+- isContextValid(storedContext)
+
+Context Validation:
+- validateYear(year)
+- validateSemester(semesterId, year)
+- validateUserAccess(year, userRole)
+- checkContextIntegrity()
+
+UI Synchronization:
+- updateContextUI()
+- updateYearSelector(availableYears)
+- updateSemesterSelector(availableSemesters)
+- showContextSwitchLoading()
+- hideContextSwitchLoading()
+
+Event Management:
+- onContextChange(callback)
+- onYearChange(callback)
+- onSemesterChange(callback)
+- onContextError(callback)
+
+Context Switching Logic:
+async function switchContext(newYear, newSemesterId) {
+  try {
+    showContextSwitchLoading();
+    
+    // Validate new context
+    await validateContext(newYear, newSemesterId);
+    
+    // Update context
+    setContext(newYear, newSemesterId);
+    
+    // Clear relevant caches
+    await clearContextCaches();
+    
+    // Reload data for new context
+    await loadContextData();
+    
+    // Update UI
+    updateContextUI();
+    
+    // Notify listeners
+    notifyContextChange();
+    
+  } catch (error) {
+    handleContextError(error);
+  } finally {
+    hideContextSwitchLoading();
+  }
+}
+
+Error Handling:
+- handleContextError(error)
+- recoverFromContextError()
+- fallbackToDefaultContext()
+- showContextErrorMessage(message)
+
+Integration with Components:
+- contextAwareComponent(component)
+- useGlobalContext() // hook-like function
+- withContext(component) // HOC pattern
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+⚙️ Enhanced Core Functionality
+
+Prompt 18: Enhanced Utility Functions
+สร้าง enhanced utility functions สำหรับ Multi-Year System:
+
+js/utils.js:
+
+Academic Year Functions:
+- formatAcademicYear(year) - "ปีการศึกษา 2567"
+- parseAcademicYear(yearString) - แปลงกลับเป็น number
+- getThaiAcademicYear(gregorianYear) - แปลง คศ เป็น พศ
+- getGregorianYear(thaiYear) - แปลง พศ เป็น คศ
+- isValidAcademicYear(year) - ตรวจสอบปีที่ถูกต้อง
+- getYearRange(startYear, endYear) - สร้าง array ของปี
+
+Semester Functions:
+- formatSemester(semesterData) - "ภาคเรียนที่ 1 ปีการศึกษา 2567"
+- getSemesterName(semesterNumber) - "ภาคเรียนที่ 1", "ภาคฤดูร้อน"
+- isActiveSemester(semesterData) - ตรวจสอบ semester ปัจจุบัน
+- getSemesterDateRange(semesterData) - ช่วงวันที่
+- calculateSemesterWeeks(semesterData) - คำนวณจำนวนสัปดาห์
+
+Date & Time Functions (Enhanced):
+- formatThaiDate(date) - "15 ก.ย. 2567"
+- formatThaiDateTime(date) - "15 ก.ย. 2567 เวลา 14:30"
+- getThaiYear(date) - แปลงเป็นปี พศ
+- isInSemester(date, semesterData) - วันที่อยู่ในภาคเรียนหรือไม่
+- getAcademicWeek(date, semesterData) - สัปดาห์ที่ของภาคเรียน
+- generateTimeSlots() - ช่วงเวลาคาบเรียน
+- getDayName(dayNumber) - จ.-อา.
+- getThaiDayName(dayNumber) - วันจันทร์-วันอาทิตย์
+
+Class & Teacher Functions:
+- parseClassName(className) - แยก "ม.1/1" เป็น {grade: "ม.1", section: 1}
+- generateClassName(grade, section) - สร้าง "ม.1/1"
+- getGradeLevel(className) - "ม.1"
+- getSectionNumber(className) - 1
+- formatTeacherName(teacher) - "นายคอด เอไอ (วิทยาศาสตร์)"
+- getTeacherSubjectGroup(teacher) - "วิทยาศาสตร์"
+
+Data Processing Functions (Enhanced):
+- filterByContext(data, year, semesterId) - filter ตาม context
+- groupByProperty(array, property) - group with null handling
+- sortByMultipleProperties(array, properties) - multi-field sorting
+- calculateWorkloadByContext(teacherId, semesterId) - คำนวณภาระงาน
+- findAvailableTeachers(day, period, semesterId) - หาครูว่าง
+- validateScheduleConflict(newSchedule, existingSchedules, semesterId)
+
+Multi-Year Analysis Functions:
+- compareDataAcrossYears(dataType, teacherId, years) - เปรียบเทียบข้ามปี
+- calculateYearlyTrends(dataType, years) - แนวโน้มประจำปี
+- getDataDifferences(year1Data, year2Data) - ความแตกต่างระหว่างปี
+- generateYearReport(year) - รายงานสรุปประจำปี
+
+Table Name Helpers:
+- getTableName(baseTable, year) - "teachers_2567"
+- getYearFromTableName(tableName) - 2567
+- isYearSpecificTable(tableName) - true/false
+- getAvailableYearTables(baseTable) - ["teachers_2566", "teachers_2567"]
+
+Context Helpers:
+- getCurrentContext() - ดึง context ปัจจุบัน
+- isCurrentYear(year) - ปีปัจจุบันหรือไม่
+- isCurrentSemester(semesterId) - ภาคเรียนปัจจุบันหรือไม่
+- formatContextDisplay(year, semesterId) - "ภาคเรียนที่ 1/2567"
+
+DOM & UI Functions:
+- createTableHTML(data, columns) - สร้าง table HTML
+- showNotification(message, type) - แสดง toast notification
+- showLoading(elementId) - แสดง loading state
+- hideLoading(elementId) - ซ่อน loading state
+- toggleElement(elementId) - show/hide element
+- setElementText(elementId, text) - update text content
+
+Validation Functions:
+- validateEmail(email) - validate email format
+- validatePhone(phone) - validate Thai phone number
+- validateRequired(value) - check required fields
+- validateScheduleConflict(newSchedule, existingSchedules)
+
+Storage Functions (localStorage):
+- saveToStorage(key, data)
+- loadFromStorage(key)
+- removeFromStorage(key)
+- clearAllStorage()
+
+Export ทุก function เป็น ES6 modules
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 19: Enhanced Navigation System
+สร้าง enhanced navigation system สำหรับ Multi-Year:
+
+js/navigation.js:
+
+Features:
+- Context-aware navigation
+- Global context bar management
+- URL routing with year/semester parameters
+- Navigation state persistence
+- Breadcrumb navigation
+
+Global Context Bar:
+- renderContextBar()
+- updateYearSelector(availableYears, currentYear)
+- updateSemesterSelector(availableSemesters, currentSemester)
+- handleYearChange(newYear)
+- handleSemesterChange(newSemesterId)
+- showContextLoading()
+- hideContextLoading()
+
+Main Navigation:
+- initNavigation()
+- showPage(pageId, context)
+- updateActiveNavItem(pageId)
+- setPageContext(pageId, year, semesterId)
+- getPageContext(pageId)
+
+Sub Navigation (Enhanced):
+- initSubNavigation(pageId)
+- showSubPage(subPageId, context)
+- updateSubNavigation(pageId, availableSubPages)
+- setSubPageContext(subPageId, context)
+
+URL Management:
+- updateURL(pageId, subPageId, year, semesterId)
+- parseURL() - แยก parameters จาก URL
+- handleURLChange() - จัดการเมื่อ URL เปลี่ยน
+- generatePageURL(pageId, subPageId, context)
+
+Context Navigation:
+- navigateWithContext(pageId, subPageId)
+- preservePageContext(pageId)
+- restorePageContext(pageId)
+- clearPageContext(pageId)
+
+Breadcrumb System:
+- generateBreadcrumb(currentPage, context)
+- updateBreadcrumb()
+- handleBreadcrumbClick(item)
+
+Teacher Tab Management (Enhanced):
+- createTeacherTabs(teachers, currentContext)
+- switchTeacherTab(teacherId, context)
+- updateTeacherTabsForContext(context)
+- preserveTeacherTabState()
+
+Mobile Navigation (Enhanced):
+- initMobileNavigation()
+- toggleMobileMenu()
+- handleMobileContextChange()
+- optimizeMobileNavigation()
+
+Navigation Events:
+- onNavigationChange(callback)
+- onContextNavigationChange(callback)
+- onPageLoad(pageId, callback)
+- onSubPageLoad(subPageId, callback)
+
+Navigation State:
+const navigationState = {
+  currentPage: null,
+  currentSubPage: null,
+  pageHistory: [],
+  contextHistory: [],
+  teacherTabStates: {},
+  mobileMenuOpen: false
+};
+
+Context Integration:
+- loadPageWithContext(pageId, context)
+- updatePageForNewContext(pageId, newContext)
+- handleContextSwitchNavigation(oldContext, newContext)
+- validatePageContextAccess(pageId, context)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule📱 Enhanced Page Implementation
+
+
+Prompt 20: Enhanced Student Schedule Page
+สร้าง enhanced student schedule page สำหรับ Multi-Year:
+
+js/pages/studentSchedule.js:
+
+Features:
+- Context-aware schedule loading
+- Semester selector integration
+- Class selector with year context
+- Historical schedule viewing
+- Schedule comparison across semesters
+
+Context Integration:
+- initStudentSchedulePage(context)
+- updatePageForContext(newContext)
+- loadScheduleForContext(className, context)
+- validateContextAccess(context)
+
+UI Components:
+- renderContextControls(context)
+- renderClassSelector(availableClasses, selectedClass)
+- renderScheduleTable(scheduleData, context)
+- renderScheduleHeader(className, context)
+- renderEmptyScheduleState(className, context)
+
+Class Management:
+- loadAvailableClasses(semesterId)
+- filterClassesBySemester(classes, semesterId)
+- handleClassSelectionChange(newClassName)
+- validateClassExists(className, semesterId)
+
+Schedule Display:
+- generateScheduleTable(scheduleData, className, context)
+- formatScheduleCell(subject, teacher, context)
+- highlightCurrentPeriod(context) // only for current semester
+- addScheduleMetadata(table, context)
+
+Enhanced Features:
+- showScheduleLoading(className)
+- hideScheduleLoading()
+- handleScheduleError(error, className, context)
+- exportSchedule(format, className, context)
+- printSchedule(className, context)
+
+Multi-Year Functionality:
+- compareScheduleAcrossSemesters(className, semester1, semester2)
+- showScheduleHistory(className, yearRange)
+- detectScheduleChanges(oldSchedule, newSchedule)
+
+Context Display:
+function renderScheduleHeader(className, context) {
+  return `
+    <div class="schedule-header">
+      <h3>ตารางเรียน ${className}</h3>
+      <p class="context-info">
+        ${formatSemester(context.semester)} 
+        ปีการศึกษา ${context.year}
+      </p>
+    </div>
+  `;
+}
+
+Functions:
+- initStudentSchedulePage()
+- loadStudentSchedule(className, context)
+- renderScheduleTable(scheduleData, context)
+- populateClassDropdown(availableClasses)
+- handleClassChange(newClass)
+- handleContextChange(newContext)
+- showScheduleLoading()
+- hideScheduleLoading()
+- exportScheduleData(format)
+
+Event Handlers:
+- onClassSelectionChange(callback)
+- onContextChange(callback)
+- onScheduleLoad(callback)
+- onScheduleError(callback)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 21: Enhanced Teacher Schedule Page
+สร้าง enhanced teacher schedule page สำหรับ Multi-Year:
+
+js/pages/teacherSchedule.js:
+
+Features:
+- Context-aware teacher data loading
+- Multi-year workload analysis
+- Historical comparison tools
+- Semester-specific rankings
+- Teacher evolution tracking
+
+Context Integration:
+- initTeacherSchedulePage(context)
+- updatePageForContext(newContext)
+- loadTeacherDataForContext(context)
+- validateTeacherContextAccess(teacherId, context)
+
+Sub Navigation Enhanced:
+- initTeacherSubNavigation(context)
+- switchToWorkloadSummary(context)
+- switchToTeacherDetails(context)
+- updateSubNavForContext(newContext)
+
+Workload Summary (Context-Aware):
+- renderWorkloadSummary(context)
+- calculateSubjectGroupHours(context)
+- generateTeacherRanking(context)
+- renderWorkloadCharts(context)
+- compareWorkloadAcrossSemesters(teacherId, semesters)
+
+Teacher Details View:
+- createTeacherTabs(availableTeachers, context)
+- loadTeacherSchedule(teacherId, context)
+- renderTeacherInfo(teacher, context)
+- calculateTeacherWorkload(teacherId, context)
+- showTeacherHistory(teacherId, yearRange)
+
+Multi-Year Analysis:
+- compareTeacherAcrossYears(teacherId, years)
+- showWorkloadTrends(teacherId, yearRange)
+- analyzeTeacherEvolution(teacherId)
+- generateTeacherReport(teacherId, context)
+
+Enhanced Features:
+- exportTeacherData(teacherId, context, format)
+- printTeacherSchedule(teacherId, context)
+- showTeacherAvailability(teacherId, context)
+- detectScheduleConflicts(teacherId, context)
+
+Context Display Components:
+function renderWorkloadHeader(context) {
+  return `
+    <div class="workload-header">
+      <h3>📊 สรุปภาระงานสอน</h3>
+      <p class="context-info">
+        ${formatSemester(context.semester)} 
+        ปีการศึกษา ${context.year}
+      </p>
+    </div>
+  `;
+}
+
+Functions:
+- initTeacherSchedulePage(context)
+- renderWorkloadSummary(context)
+- renderTeacherRanking(teachers, context)
+- loadTeacherSchedule(teacherId, context)
+- calculateSubjectGroupHours(context)
+- showTeacherDetails(teacherId, context)
+- createTeacherTabs(teachers, context)
+- switchTeacherTab(teacherId, context)
+- handleContextChange(newContext)
+- exportWorkloadData(context, format)
+
+Event Handlers:
+- onTeacherTabChange(callback)
+- onWorkloadCalculation(callback)
+- onContextSwitch(callback)
+- onTeacherDataLoad(callback)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+Prompt 22: Enhanced Substitution Page
+สร้าง enhanced substitution page สำหรับ Multi-Year:
+
+js/pages/substitution.js:
+
+Features:
+- Context-aware substitution data
+- Semester-specific Hall of Fame
+- Historical substitution analysis
+- Cross-semester comparison tools
+- Substitution trend tracking
+
+Context Integration:
+- initSubstitutionPage(context)
+- updatePageForContext(newContext)
+- loadSubstitutionDataForContext(context)
+- validateSubstitutionAccess(context)
+
+Sub Navigation Enhanced:
+- initSubstitutionSubNav(context)
+- switchToHallOfFame(context)
+- switchToSubstitutionSchedule(context)
+- updateSubNavForContext(newContext)
+
+Hall of Fame (Context-Aware):
+- renderHallOfFame(context)
+- calculateSubstituteStats(context)
+- generateSubstituteRanking(context)
+- showSemesterAchievements(context)
+- compareHallOfFameAcrossSemesters(semesters)
+
+Substitution Schedule View:
+- renderDatePicker(context)
+- loadSubstitutionByDate(date, context)
+- renderAbsentTeacherCards(absences, context)
+- renderSubstituteAssignments(assignments, context)
+- showSubstitutionSummary(date, context)
+
+Enhanced Date Handling:
+- validateDateInSemester(date, context)
+- getAvailableDatesForContext(context)
+- handleDateSelection(date, context)
+- showDateOutOfRangeWarning(date, context)
+
+Multi-Year Analysis:
+- compareSubstitutionAcrossYears(teacherId, years)
+- showSubstitutionTrends(yearRange)
+- analyzeSubstitutionPatterns(context)
+- generateSubstitutionReport(context)
+
+Context Display:
+function renderHallOfFameHeader(context) {
+  return `
+    <div class="hall-of-fame-header">
+      <h3>🏅 Hall of Fame - ครูสอนแทน</h3>
+      <p class="context-info">
+        ${formatSemester(context.semester)} 
+        ปีการศึกษา ${context.year}
+      </p>
+    </div>
+  `;
+}
+
+Enhanced Features:
+- exportSubstitutionData(context, format)
+- printSubstitutionReport(date, context)
+- showSubstitutionStatistics(context)
+- detectSubstitutionTrends(context)
+
+Date Navigation:
+- handleTodayClick(context)
+- handleYesterdayClick(context)
+- handleLastWeekClick(context)
+- validateDateRange(date, context)
+
+Functions:
+- initSubstitutionPage(context)
+- loadSubstituteRanking(context)
+- loadSubstitutionByDate(date, context)
+- renderAbsentTeacherCards(absences, context)
+- renderSubstituteAssignments(assignments, context)
+- handleDateSelection(date, context)
+- updateSubstitutionTitle(date, context)
+- formatSubstitutionData(rawData, context)
+- calculateSubstituteStats(context)
+- handleContextChange(newContext)
+
+Event Handlers:
+- onDateSelection(callback)
+- onSubstitutionLoad(callback)
+- onHallOfFameUpdate(callback)
+- onContextSwitch(callback)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 23: Enhanced Admin Page
+สร้าง enhanced admin page สำหรับ Multi-Year System:
+
+js/pages/admin.js:
+
+Features:
+- Multi-year data management
+- Context-aware CRUD operations
+- Year transition workflows
+- Data migration tools
+- Advanced admin functions
+
+Context-Aware Admin:
+- initAdminPage(context)
+- setAdminContext(year, semesterId)
+- validateAdminContextAccess(context)
+- updateAdminUIForContext(context)
+
+Enhanced Authentication:
+- showAdminLogin()
+- handleAdminLogin(credentials)
+- validateAdminRole(user)
+- checkContextPermissions(context, user)
+- handleSessionTimeout()
+
+Data Management UI:
+- renderDataManagementSection(context)
+- showTeacherManagement(context)
+- showClassManagement(context)
+- showSubjectManagement(context)
+- renderContextSelector(availableContexts)
+
+CRUD Operations (Context-Aware):
+// Teacher Management
+async function addTeacher(teacherData, context) {
+  const tableName = getTableName('teachers', context.year);
+  return await teacherAPI.create(teacherData, tableName);
+}
+
+// Class Management  
+async function addClass(classData, context) {
+  classData.semester_id = context.semesterId;
+  return await classAPI.create(classData);
+}
+
+// Subject Management
+async function addSubject(subjectData, context) {
+  subjectData.semester_id = context.semesterId;
+  return await subjectAPI.create(subjectData);
+}
+
+Year Management:
+- createNewAcademicYear(yearData)
+- setupSemestersForYear(year, semesterConfig)
+- cloneYearData(fromYear, toYear)
+- archiveYear(year)
+- purgeOldYearData(year)
+
+Data Migration Tools:
+- showMigrationInterface()
+- migrateTeachersToNewYear(fromYear, toYear, selectedTeachers)
+- cloneSubjectStructure(fromSemester, toSemester)
+- validateMigrationData(data)
+- executeMigration(migrationPlan)
+
+Enhanced AI Generation:
+- mockAIGenerationForContext(context)
+- showGenerationProgress(context)
+- previewGeneratedSchedule(scheduleData, context)
+- validateGeneratedSchedule(scheduleData, context)
+- saveGeneratedSchedule(scheduleData, context)
+
+Enhanced Substitute Algorithm:
+- findSubstituteTeacherForContext(targetDay, targetPeriod, absentTeachers, context)
+- displaySubstituteRecommendations(recommendations, context)
+- submitSubstituteAssignments(assignments, context)
+- validateSubstituteAvailability(teacherId, schedule, context)
+
+Bulk Operations:
+- bulkAddTeachers(teachersData, context)
+- bulkUpdateClasses(classUpdates, context)
+- bulkDeleteSubjects(subjectIds, context)
+- importDataFromFile(fileData, dataType, context)
+
+Advanced Admin Functions:
+- generateSystemReport(context)
+- auditDataIntegrity(context)
+- optimizeScheduleDistribution(context)
+- analyzeWorkloadBalance(context)
+
+Context Display:
+function renderAdminHeader(context) {
+  return `
+    <div class="admin-header">
+      <h2>⚙️ จัดการระบบ (Admin Only)</h2>
+      <div class="admin-context">
+        <p>กำลังจัดการข้อมูล:</p>
+        <p><strong>${formatSemester(context.semester)} ปีการศึกษา ${context.year}</strong></p>
+      </div>
+    </div>
+  `;
+}
+
+Functions:
+- initAdminPage(context)
+- checkAdminAuth()
+- showAdminLogin()
+- handleAdminLogin(credentials)
+- showTeacherManagement(context)
+- showClassManagement(context)
+- showSubjectManagement(context)
+- addTeacher(teacherData, context)
+- addClass(classData, context)
+- addSubject(subjectData, context)
+- mockAIGeneration(context)
+- findSubstituteAlgorithm(targetDay, targetPeriod, context)
+- exportData(dataType, context, format)
+- importData(fileData, dataType, context)
+- handleContextChange(newContext)
+
+Event Handlers:
+- onDataChange(callback)
+- onContextSwitch(callback)
+- onBulkOperation(callback)
+- onMigrationComplete(callback)
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+🎯 Enhanced Integration & Polish
+Prompt 24: Enhanced Main App Integration
+สร้าง enhanced main application สำหรับ Multi-Year System:
+
+js/app.js:
+
+Features:
+- Multi-year application initialization
+- Global context management integration
+- Enhanced error handling and recovery
+- Performance optimization for large datasets
+- Advanced state management
+
+Application Architecture:
+class SchoolScheduleApp {
+  constructor() {
+    this.context = null;
+    this.modules = {};
+    this.initialized = false;
+    this.errorState = null;
+  }
+
+  async init() {
+    try {
+      await this.initializeCore();
+      await this.loadInitialContext();
+      await this.initializeModules();
+      await this.setupEventListeners();
+      await this.loadInitialData();
+      this.initialized = true;
+    } catch (error) {
+      await this.handleInitializationError(error);
+    }
+  }
+}
+
+Core Initialization:
+- initializeCore() - setup core services
+- loadInitialContext() - โหลด context เริ่มต้น
+- initializeModules() - setup page modules
+- setupGlobalEventListeners() - global events
+- loadInitialData() - โหลดข้อมูลพื้นฐาน
+
+Context Management Integration:
+- setupContextManagement()
+- handleGlobalContextChange(newContext)
+- updateAllModulesForContext(context)
+- validateContextSwitch(oldContext, newContext)
+- recoverFromContextError(error)
+
+Module Management:
+- registerModule(name, module)
+- initializeModule(name, context)
+- updateModuleForContext(name, newContext)
+- unloadModule(name)
+- getModuleState(name)
+
+Enhanced Data Loading:
+- loadApplicationData(context)
+- preloadContextData(contexts)
+- cacheManagement(operation, key, data)
+- optimizeDataLoading(context)
+- handleDataLoadingError(error, context)
+
+State Management:
+const applicationState = {
+  currentContext: null,
+  modules: {},
+  dataCache: {},
+  userSession: null,
+  performance: {
+    loadTimes: {},
+    cacheHitRates: {},
+    errorCounts: {}
+  },
+  ui: {
+    isLoading: false,
+    activeModule: null,
+    breadcrumb: []
+  }
+};
+
+Performance Optimization:
+- lazyLoadModules() - โหลด modules เมื่อต้องการ
+- optimizeMemoryUsage() - จัดการ memory
+- debounceContextSwitches() - ป้องกัน context switching ถี่
+- preloadCriticalData() - โหลดข้อมูลสำคัญล่วงหน้า
+
+Error Handling & Recovery:
+- setupGlobalErrorHandler()
+- handleApplicationError(error, context)
+- recoverFromDataError(error)
+- fallbackToSafeMode()
+- reportErrorToConsole(error, context)
+
+Event Coordination:
+- setupInterModuleCommunication()
+- broadcastContextChange(newContext)
+- handleModuleEvent(event, data)
+- coordinateAsyncOperations()
+
+Lifecycle Management:
+- onApplicationStart()
+- onContextSwitch(oldContext, newContext)
+- onModuleLoad(moduleName)
+- onDataUpdate(dataType, context)
+- onApplicationShutdown()
+
+Integration Functions:
+- initApp() - main initialization
+- setGlobalContext(year, semesterId) - update global context
+- loadModuleData(moduleName, context) - โหลดข้อมูลสำหรับ module
+- updateAllModules(context) - update ทุก modules
+- handleError(error, context) - error handling
+- getApplicationState() - ดึง state ปัจจุบัน
+- cleanup() - ทำความสะอาดเมื่อปิดแอป
+
+Import Structure:
+import globalContext from './context/globalContext.js';
+import yearService from './services/yearService.js';
+import dataService from './services/dataService.js';
+import { initNavigation } from './navigation.js';
+import * as utils from './utils.js';
+import studentSchedulePage from './pages/studentSchedule.js';
+import teacherSchedulePage from './pages/teacherSchedule.js';
+import substitutionPage from './pages/substitution.js';
+import adminPage from './pages/admin.js';
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 25: Final Polish & Testing
+Review และปรับแต่ง Multi-Year System ให้สมบูรณ์:
+
+1. Multi-Year Accessibility (a11y):
+   - ARIA labels สำหรับ context selectors
+   - Screen reader announcements เมื่อเปลี่ยน context
+   - Keyboard navigation for year/semester switching
+   - Context change confirmations
+   - Year/semester information in page titles
+
+2. Performance Optimization:
+   - Context-aware data caching strategies
+   - Lazy loading of historical data
+   - Efficient year table switching
+   - Memory management for large datasets
+   - Optimized context switching animations
+
+3. Multi-Year User Experience:
+   - Smooth context transitions
+   - Loading states during year switching
+   - Context change confirmations for unsaved work
+   - Breadcrumb navigation with context
+   - Intuitive year/semester selectors
+
+4. Data Integrity & Validation:
+   - Cross-year data validation
+   - Foreign key constraint checking
+   - Academic year boundary validation
+   - Semester date range validation
+   - Context permission validation
+
+5. Error Handling Enhancement:
+   - Context-specific error messages
+   - Graceful fallback for missing year data
+   - Recovery from context switching failures
+   - Data migration error handling
+   - User-friendly multi-year error displays
+
+6. Testing Preparation:
+   - Multi-year data consistency testing
+   - Context switching functionality testing
+   - Year transition workflow testing
+   - Cross-semester data integrity testing
+   - Performance testing with multiple years
+
+Enhanced Testing Checklist:
+- ✅ Context selectors work correctly
+- ✅ Data loads properly for each year/semester
+- ✅ Year switching preserves user state
+- ✅ Cross-year comparisons function correctly
+- ✅ Admin operations work in all contexts
+- ✅ Historical data displays accurately
+- ✅ Migration tools function properly
+- ✅ Performance remains good with multiple years
+- ✅ Error handling works across contexts
+- ✅ Mobile responsiveness with context UI
+
+Multi-Year Specific Bug Fixes:
+- Context switching race conditions
+- Memory leaks from cached year data
+- Foreign key validation across years
+- Date range boundary issues
+- Permission checking for historical data
+
+Advanced Features Testing:
+- Year-over-year comparison accuracy
+- Data migration integrity
+- Context-aware caching effectiveness
+- Cross-year search functionality
+- Historical trend analysis accuracy
+
+Security Considerations:
+- Context-based access control
+- Year data isolation
+- Admin permission validation
+- Historical data protection
+- Audit trail for year operations
+
+⚠️ STRICT TOKEN LIMIT:
+- หยุดเมื่อใกล้ 80% token limit
+- หยุดที่จุดเหมาะสม (จบ function, จบ section)
+- เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+- บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+- ทำทีละส่วน เพื่อรักษา Token Limit
+- ทำตาม Token Limit Rule
+
+
+Prompt 26: Enhanced Documentation
+สร้าง comprehensive README.md สำหรับ Multi-Year System:
+
+# ระบบจัดตารางสอนแบบ Multi-Year (Multi-Year School Schedule Management System)
+
+## 📋 Project Overview
+ระบบจัดการตารางสอนสำหรับโรงเรียนมัธยมศึกษา รองรับการจัดการข้อมูลหลายปีการศึกษา พัฒนาด้วย HTML, CSS, JavaScript แบบ Pure Frontend
+
+## ✨ Enhanced Features
+
+### 🗓️ Multi-Year Support
+- **Academic Year Management**: จัดการปีการศึกษา 2566-2568+
+- **Semester Flexibility**: รองรับ 2-3 ภาคเรียนต่อปี
+- **Context Switching**: เปลี่ยนปี/ภาคเรียนได้ทันที
+- **Historical Data**: ดูข้อมูลย้อนหลังและเปรียบเทียบ
+
+### 📚 Enhanced Student Schedule
+- เลือกดูตารางตามห้องเรียนและภาคเรียน
+- แสดงวิชาและครูผู้สอนตาม context
+- เปรียบเทียบตารางข้ามภาคเรียน
+
+### 👨‍🏫 Advanced Teacher Management  
+- สรุปภาระงานสอนตามปี/ภาคเรียน
+- Ranking ครูตามจำนวนชั่วโมงใน context
+- ตารางสอนรายครูพร้อม historical view
+- วิเคราะห์แนวโน้มภาระงานข้ามปี
+
+### 🔄 Intelligent Substitution System
+- Hall of Fame ครูสอนแทนแยกตามภาคเรียน
+- ดูการสอนแทนตามวันที่ใน context
+- เปรียบเทียบสถิติการสอนแทนข้ามปี
+
+### ⚙️ Advanced Admin Panel
+- **Multi-Year Data Management**: จัดการข้อมูลครู/ห้อง/วิชาตามปี
+- **Context-Aware Operations**: CRUD operations ตาม context
+- **Data Migration Tools**: ย้ายข้อมูลระหว่างปีการศึกษา
+- **Year Transition Workflows**: เตรียมข้อมูลปีใหม่
+- **AI Schedule Generation**: สร้างตารางตาม context
+- **Advanced Analytics**: วิเคราะห์ข้อมูลข้ามปี
+
+## 🏗️ Enhanced Architecture
+
+### Database Design
+Fixed Tables (ไม่เปลี่ยนตามปี):
+
+academic_years: ปีการศึกษา
+semesters: ภาคเรียน
+
+Dynamic Tables (สร้างใหม่ทุกปี):
+
+teachers_2567, teachers_2568, ...
+classes_2567, classes_2568, ...
+subjects_2567, subjects_2568, ...
+schedules_2567, schedules_2568, ...
+substitutions_2567, substitutions_2568, ...
+
+
+### Frontend Architecture
+school-schedule/
+├── index.html                     # Enhanced multi-year UI
+├── css/                          # Enhanced styling
+├── js/
+│   ├── app.js                   # Enhanced main app
+│   ├── navigation.js            # Context-aware navigation
+│   ├── utils.js                 # Multi-year utilities
+│   ├── context/
+│   │   └── globalContext.js     # Global context management
+│   ├── api/                     # Enhanced API layer
+│   ├── data/                    # Enhanced mock data
+│   ├── services/
+│   │   ├── dataService.js      # Enhanced data service
+│   │   └── yearService.js      # Year management service
+│   └── pages/                   # Context-aware pages
+└── README.md
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+💡 การใช้งาน Prompts เหล่านี้:
+🎯 วิธีใช้งาน:
+
+Copy prompt ทีละอัน ไปใส่ใน Claude Desktop MCP
+ตรวจสอบผลลัพธ์ แต่ละไฟล์ก่อนไปขั้นต่อไป
+ใช้ "continue" เมื่อ Claude หยุดกลางทาง
+Test ระหว่างทาง เปิดไฟล์ดูใน Live Server
+
+📋 ลำดับแนะนำ:
+Phase 1: Foundation (Prompts 1-5)
+
+1→2→3→4→5 (Structure + CSS)
+
+Phase 2: Data Layer (Prompts 6-13)
+
+6→7→8→9→10→11→12→13 (API + Mock Data + Services)
+
+Phase 3: Services (Prompts 14-17)
+
+14→15→16→17 (API Services + Context Management)
+
+Phase 4: Core Logic (Prompts 18-19)
+
+18→19 (Utils + Navigation)
+
+Phase 5: Features (Prompts 20-23)
+
+20→21→22→23 (Page Features)
+
+Phase 6: Integration (Prompts 24-26)
+
+24→25→26 (Integration + Polish + Docs)
+
+🗃️ Database Architecture:
+Fixed Tables (ไม่เปลี่ยนตามปี):
+
+academic_years: ปีการศึกษา (2566, 2567, 2568)
+semesters: ภาคเรียน (ภาคเรียนที่ 1, 2, ฤดูร้อน)
+
+Dynamic Tables (สร้างใหม่ทุกปี):
+
+teachers_2567, teachers_2568, ...: ข้อมูลครูประจำปี
+classes_2567, classes_2568, ...: ห้องเรียนแยกตามภาคเรียน
+subjects_2567, subjects_2568, ...: วิชาที่สอนในปีนั้น
+schedules_2567, schedules_2568, ...: ตารางสอนประจำปี
+substitutions_2567, substitutions_2568, ...: การสอนแทนในปีนั้น
+
+🏗️ Frontend Architecture:
+school-schedule/
+├── index.html                     # Enhanced multi-year UI
+├── css/                          # Enhanced styling
+│   ├── main.css                 # Global + context styles
+│   ├── components.css           # Multi-year components
+│   └── responsive.css           # Context-aware responsive
+├── js/
+│   ├── app.js                   # Enhanced main app
+│   ├── navigation.js            # Context-aware navigation
+│   ├── utils.js                 # Multi-year utilities
+│   ├── context/
+│   │   └── globalContext.js     # Global context management
+│   ├── api/                     # Enhanced API layer
+│   │   ├── config.js           # Multi-year API config
+│   │   ├── academicYears.js    # Academic year API
+│   │   ├── semesters.js        # Semester API
+│   │   └── ...                 # Other API services
+│   ├── data/                    # Enhanced mock data
+│   │   ├── academicYears.mock.js
+│   │   ├── semesters.mock.js
+│   │   ├── teachers.mock.js     # Multi-year teacher data
+│   │   └── ...                 # Other mock data
+│   ├── services/
+│   │   ├── dataService.js      # Enhanced data service
+│   │   └── yearService.js      # Year management service
+│   └── pages/                   # Context-aware pages
+│       ├── studentSchedule.js   # Enhanced student page
+│       ├── teacherSchedule.js   # Enhanced teacher page
+│       ├── substitution.js      # Enhanced substitution page
+│       └── admin.js            # Advanced admin page
+└── README.md
+🚀 Setup & Configuration:
+Development Setup:
+
+Clone the project
+Setup local server:
+
+bash   # Live Server (VS Code Extension) - แนะนำ
+   # หรือ Python
+   python -m http.server 8000
+   
+   # หรือ Node.js
+   npx serve .
+
+Open http://localhost:8000
+Select academic year and semester from context bar
+
+Production Setup:
+
+Database: Supabase PostgreSQL
+API Configuration: แก้ไข js/api/config.js
+
+javascriptconst API_CONFIG = {
+  baseURL: 'https://your-supabase-project.supabase.co/rest/v1',
+  fixedEndpoints: {
+    academicYears: '/academic_years',
+    semesters: '/semesters'
+  },
+  dynamicEndpoints: {
+    teachers: '/teachers_{year}',
+    classes: '/classes_{year}',
+    subjects: '/subjects_{year}',
+    schedules: '/schedules_{year}',
+    substitutions: '/substitutions_{year}'
+  }
+};
+💻 Technology Stack:
+Core Technologies:
+
+HTML5: Semantic markup with multi-year support
+CSS3: Context-aware styling and animations
+JavaScript (ES6+): Advanced async/await, modules
+
+Advanced Architecture:
+
+Multi-Year Data Management: Dynamic table handling
+Context-Aware Components: Automatic context switching
+Intelligent Caching: Year/semester-specific caching
+Performance Optimization: Lazy loading and memory management
+
+🔧 Development Guide:
+Context-Aware Development:
+javascript// Always use current context
+const context = globalContext.getContext();
+const teachers = await dataService.getTeachers(context.year);
+
+// Handle context changes
+globalContext.onContextChange((newContext) => {
+  updatePageForNewContext(newContext);
+});
+Adding New Academic Years:
+
+Update academicYears.mock.js with new year data
+Create corresponding semester data in semesters.mock.js
+Generate mock data for new year tables
+Test context switching to new year
+
+Total: 26 Prompts พร้อมใช้งาน 🚀

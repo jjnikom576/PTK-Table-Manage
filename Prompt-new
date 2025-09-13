@@ -1,0 +1,2262 @@
+Prompt 1: Enhanced Project Structure (Multi-Year + Rooms + Export)
+สร้าง project structure สำหรับระบบจัดตารางสอนโรงเรียน แบบ Multi-Year พร้อม Rooms Management และ Export System:
+school-schedule/
+├── index.html
+├── css/
+│   ├── main.css
+│   ├── components.css
+│   └── responsive.css
+├── js/
+│   ├── app.js
+│   ├── navigation.js
+│   ├── utils.js
+│   ├── utils/
+│   │   └── export.js            # ← Export utilities (CSV/XLSX/Sheets)
+│   ├── context/
+│   │   └── globalContext.js
+│   ├── api/
+│   │   ├── config.js
+│   │   ├── academicYears.js
+│   │   ├── semesters.js
+│   │   ├── teachers.js
+│   │   ├── classes.js
+│   │   ├── rooms.js            # ← Rooms API
+│   │   ├── subjects.js
+│   │   ├── schedules.js
+│   │   └── substitutions.js
+│   ├── data/
+│   │   ├── academicYears.mock.js
+│   │   ├── semesters.mock.js
+│   │   ├── teachers.mock.js
+│   │   ├── classes.mock.js
+│   │   ├── rooms.mock.js       # ← Rooms mock data
+│   │   ├── subjects.mock.js
+│   │   ├── schedules.mock.js
+│   │   ├── substitutions.mock.js
+│   │   └── index.js
+│   ├── services/
+│   │   ├── dataService.js
+│   │   └── yearService.js
+│   └── pages/
+│       ├── studentSchedule.js
+│       ├── teacherSchedule.js
+│       ├── substitution.js
+│       └── admin.js
+└── README.md
+
+สร้างโฟลเดอร์และไฟล์เปล่าทั้งหมด
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ function, จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 2: Enhanced HTML Structure (+ Export UI)
+สร้างไฟล์ index.html พร้อม Global Context UI และ Export Controls:
+Requirements:
+
+HTML5 semantic structure
+Meta tags สำหรับ Thai language และ responsive
+Global context bar: "📅 ปีการศึกษา: [2567 ▼] | ภาคเรียน: [ภาคเรียนที่ 1 ▼]"
+Main navigation (4 หน้าหลัก)
+Sub navigation containers
+Page containers พร้อม Export UI สำหรับแต่ละหน้า
+Export bars สำหรับหน้า Student และ Teacher
+Loading states และ error messages containers
+
+Title: "ระบบจัดตารางสอน - โรงเรียนมัธยมศึกษา"
+Export UI Requirements:
+
+#page-student: dropdown เลือกห้องเรียน + Export bar (CSV, XLSX, Google Sheets)
+#page-teacher: เลือกครู + Export bar เช่นกัน
+ปุ่มต้องมี data-export-type="csv|xlsx|gsheets" และ data-target="student|teacher"
+Export bars มี responsive design
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 3: Enhanced Global Styles (css/main.css)
+สร้าง CSS global styles สำหรับระบบ Multi-Year พร้อม Export UI:
+Design Requirements:
+
+CSS Reset และ box-sizing
+Thai-friendly fonts: Sarabun (primary), Kanit (backup)
+Enhanced color scheme:
+
+Primary: #4299e1
+Secondary: #3182ce
+Dark: #2d3748
+Light: #f7fafc
+Success: #48bb78
+Warning: #ed8936
+Danger: #f56565
+Academic: #805ad5
+Room-Tech: #805ad5 (สำหรับห้องเทคโนโลยี)
+Room-Class: #3182ce (สำหรับห้องเรียนทั่วไป)
+
+
+Gradient background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)
+Typography scale และ spacing system
+Button base styles พร้อม variants (.btn--primary, .btn--outline, .btn--ghost, .btn--sm)
+Export button styling (.btn--export, .export-bar)
+Form elements base styles
+Global context bar styling
+Container และ layout utilities
+Room type badges styling
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 4: Enhanced Component Styles (css/components.css)
+สร้าง component-specific CSS สำหรับ Multi-Year System พร้อม Export และ Rooms:
+Components ที่ต้องการ:
+
+Global Context Bar (academic year + semester selectors)
+Enhanced Navigation (main nav + sub nav)
+Export Bar Components (ใหม่)
+
+.export-bar - flex container
+.btn--export - export button styling
+Export loading states
+
+
+Multi-Year Cards (year-specific data cards)
+Enhanced Tables (schedule tables พร้อม year headers และ room info)
+
+3-line cells: วิชา / ครู / ห้อง
+Room type badges (.badge--tech, .badge--classroom)
+
+
+Room Management UI (ใหม่)
+
+Room type indicators
+Capacity displays
+Room conflict warnings
+
+
+Admin Management UI (form components สำหรับ CRUD rooms)
+Academic Context Indicators (year badges, semester indicators)
+Enhanced Ranking/Achievement UI (Hall of Fame displays)
+Loading & State Management components
+
+แต่ละ component ต้องมี:
+
+Context-aware styling
+Export-ready states
+Room-aware displays
+Smooth transitions
+Accessibility compliance
+Mobile optimization
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ component section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 5: Enhanced Responsive Design (css/responsive.css)
+สร้าง responsive CSS สำหรับ Multi-Year System พร้อม Export UI และ Rooms:
+Breakpoints:
+
+Mobile: 320px-768px
+Tablet: 768px-1024px
+Desktop: 1024px+
+
+Mobile-first Enhancements:
+
+Global context bar responsive behavior
+Collapsible academic year/semester selectors
+Export bar responsive: wrap เป็น 2 แถว, ปุ่ม .btn--sm
+Touch-friendly admin management UI
+Responsive multi-year data displays
+Table responsive: ตัวอักษรเล็กลง, ซ่อนคอลัมน์ว่าง, คงบรรทัด "ห้อง" ไว้
+Room type badges ขนาดเล็ก
+
+Tablet (768px-1024px):
+
+Export bar ชิดขวา, คงขนาดปุ่มปกติ
+ตาราง: คอลัมน์ 1-6 ชัด, ถ้าเกิน wrap
+Room management UI optimized
+
+Desktop (1024px+):
+
+ทุกอย่างเต็มที่, ใช้ spacing ปกติ
+Export bar full width
+Advanced room displays
+
+Context-Aware Responsive:
+
+Different layouts based on selected year/semester
+Historical data vs current data displays
+Admin mode responsive behaviors
+Export context-aware: ซ่อนปุ่ม Google Sheets สำหรับ historical data (.is-historical .btn--gsheets { display:none })
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 6: Enhanced API Configuration (js/api/config.js)
+สร้าง enhanced API configuration สำหรับ Multi-Year System พร้อม Rooms และ Export constants:
+Features:
+
+Environment detection (development/production)
+Multi-year table naming convention รวม rooms
+Dynamic API endpoints based on academic year
+Export MIME types และ filename helpers
+
+API Endpoints Structure:
+Fixed Tables:
+
+GET /academic-years
+GET /semesters/:yearId
+GET /periods (optional - คาบเรียน)
+
+Dynamic Tables (ตามปี):
+
+GET/POST /teachers-:year
+GET/POST /classes-:year
+GET/POST /rooms-:year ← ใหม่
+GET/POST /subjects-:year
+GET/POST /schedules-:year
+GET/POST /substitutions-:year
+
+Helper Functions:
+
+getTableName(baseTable, year) - "rooms_2567"
+getYearBasedEndpoint(endpoint, year)
+validateYearAccess(year)
+getCurrentAcademicContext()
+isYearSpecificTable(tableName)
+getYearFromTableName(tableName)
+
+Export Constants (ใหม่):
+javascriptexport const EXPORT_CONST = {
+  MIME: {
+    csv: 'text/csv',
+    xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  },
+  defaultFilename: (base, {year, semester}) =>
+    `${base}_y${year}_s${semester ?? 'all'}_${new Date().toISOString().slice(0,10)}`
+};
+Error Handling:
+
+apiError(message, code, detail) - มาตรฐานเดียวกัน
+Year validation
+Table existence checking
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 7: Academic Years & Semesters Mock Data
+สร้าง mock data สำหรับ Academic Years และ Semesters:
+1. js/data/academicYears.mock.js:
+ข้อมูลปีการศึกษา:
+
+2566 (2023-2024) - เก่า, ไม่ active
+2567 (2024-2025) - ปัจจุบัน, active
+2568 (2025-2026) - อนาคต, ไม่ active yet
+
+Field structure: id, year, start_date, end_date, is_active, created_at
+2. js/data/semesters.mock.js:
+ภาคเรียนสำหรับแต่ละปี:
+ปี 2567:
+
+ภาคเรียนที่ 1: พ.ค. 2024 - ก.ย. 2024 (active)
+ภาคเรียนที่ 2: ต.ค. 2024 - ก.พ. 2025
+ภาคฤดูร้อน: มี.ค. 2025 - เม.ย. 2025
+
+Field structure: id, academic_year_id, semester_number, semester_name, start_date, end_date, is_active, created_at
+Export เป็น ES6 modules พร้อม helper functions:
+
+getCurrentAcademicYear()
+getCurrentSemester()
+getActiveSemester(yearId)
+getSemestersByYear(yearId)
+getYearByNumber(year)
+listAvailableYears()
+
+Integration Notes:
+
+ใช้สำหรับ validate context switching
+Export filename generation
+Room table name mapping
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 8: Multi-Year Teachers Mock Data
+สร้าง mock data สำหรับครู แบบ Multi-Year:
+js/data/teachers.mock.js:
+สร้างข้อมูลครูสำหรับแต่ละปี:
+
+teachers_2566: ครู 12 คน (historical data)
+teachers_2567: ครู 10 คน (current year)
+teachers_2568: ครู 8 คน (future planning)
+
+กลุ่มสาระครอบคลุม:
+
+วิทยาศาสตร์: 3-4 คน
+คณิตศาสตร์: 2-3 คน
+ภาษาไทย: 2 คน
+ภาษาอังกฤษ: 1-2 คน
+สังคมศึกษา: 1-2 คน
+ศิลปะ/กิจกรรม: 1-2 คน
+
+Field structure: id, name, email, phone, subject_group, role, created_at
+ความแตกต่างระหว่างปี:
+
+บางครูเกษียณ/ย้าย
+ครูใหม่เข้ามา
+เปลี่ยนกลุ่มสาระ
+การพัฒนาตำแหน่ง
+
+Export structure:
+javascriptexport const teachersData = {
+  teachers_2566: [...],
+  teachers_2567: [...], 
+  teachers_2568: [...]
+};
+Helper Functions:
+
+getTeachersByYear(year)
+findTeacherByName(name, year)
+getTeacherSubjectGroup(teacher)
+calculateTeacherEvolution(teacherId, years) - ติดตามการเปลี่ยนแปลง
+
+Export Integration:
+
+ใช้สำหรับ export ตารางครู
+Teacher schedule normalization
+Workload analysis across years
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 9: Enhanced Classes Mock Data
+สร้าง mock data สำหรับห้องเรียน (กลุ่มนักเรียน - แยกจาก rooms):
+js/data/classes.mock.js:
+สร้างข้อมูลห้องเรียนสำหรับแต่ละปี:
+classes_2567 (ปีปัจจุบัน):
+
+ม.1: 4 ห้อง (ม.1/1, ม.1/2, ม.1/3, ม.1/4)
+ม.2: 4 ห้อง
+ม.3: 3 ห้อง
+ม.4: 3 ห้อง
+ม.5: 3 ห้อง
+ม.6: 2 ห้อง
+
+Field structure: id, semester_id, class_name, grade_level, section, student_count, created_at
+Helper Functions:
+
+getClassesByYear(year)
+getClassesBySemester(semesterId)
+getClassesByGradeLevel(gradeLevel, year)
+generateClassName(gradeLevel, section)
+parseClassName(className) - แยก "ม.1/1" เป็น {grade: "ม.1", section: 1}
+
+Export Structure:
+javascriptexport const classesData = {
+  classes_2566: [...],
+  classes_2567: [...],
+  classes_2568: [...]
+};
+Export Integration:
+
+ใช้สำหรับ student schedule export
+Class selection dropdown
+Schedule normalization with room mapping
+
+Notes:
+
+แยกจาก rooms (กายภาพ) ชัดเจน
+classes = กลุ่มนักเรียน
+rooms = ห้องที่ใช้เรียน
+schedules จะเชื่อม class_id + room_id
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 10: Enhanced Rooms Mock Data (ใหม่)
+สร้าง mock data สำหรับห้องเรียน (กายภาพ) แบบ Multi-Year:
+js/data/rooms.mock.js:
+สร้างข้อมูลห้องสำหรับแต่ละปี:
+rooms_2567 (ปีปัจจุบัน):
+ห้องเรียนทั่วไป (CLASS):
+
+ห้อง 101, 102, 103, 104 (ชั้น 1)
+ห้อง 201, 202, 203, 204 (ชั้น 2)
+ห้อง 301, 302, 303 (ชั้น 3)
+
+ห้องเทคโนโลยี (TECH):
+
+ห้องคอมพิวเตอร์ 1, 2
+ห้องวิทยาศาสตร์ 1, 2
+ห้องปฏิบัติการเคมี
+ห้องปฏิบัติการฟิสิกส์
+
+Field structure: id, name, room_type ('CLASS'|'TECH'), capacity, location, available, created_at
+Room Types:
+
+'CLASS': ห้องเรียนทั่วไป (สีน้ำเงิน #3182ce)
+'TECH': ห้องเทคโนโลยี/ปฏิบัติการ (สีม่วง #805ad5)
+
+Helper Functions:
+
+getRoomsByYear(year)
+getRoomsByType(roomType, year)
+findAvailableRooms(day, period, roomType, year)
+validateRoomConflict(newSchedule, existingSchedules, year)
+getRoomDisplayName(room) - รวม type badge
+
+Export Structure:
+javascriptexport const roomsData = {
+  rooms_2566: [...],
+  rooms_2567: [...],
+  rooms_2568: [...]
+};
+Export Integration:
+
+ใช้สำหรับ schedule export (แสดงชื่อห้อง + type)
+Room conflict detection
+Schedule normalization
+Admin room management
+
+Integration with Subjects:
+
+subjects จะมี subject_constraints: { requires_room_type: 'TECH' }
+schedules จะเลือก room_id ตาม constraint
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+นี่คือ Prompts 11-15 ที่ปรับปรุงแล้ว:
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 11: Enhanced Subjects Mock Data
+สร้าง mock data สำหรับวิชา (เชื่อมกับ teachers, classes, rooms) พร้อม subject_constraints:
+js/data/subjects.mock.js:
+สร้างข้อมูลวิชาที่เชื่อมโยงระหว่าง teachers, classes, semesters, และ rooms:
+subjects_2567 (ปีปัจจุบัน):
+ม.1-ม.3: วิทยาศาสตร์, คณิตศาสตร์, ภาษาไทย, ภาษาอังกฤษ, สังคมศึกษา, ศิลปะ, ลูกเสือ
+ม.4-ม.6: ฟิสิกส์, เคมี, ชีววิทยา, คณิตศาสตร์ (พื้นฐาน + เพิ่มเติม), ภาษาไทย, ภาษาอังกฤษ, สังคมศึกษา
+Field structure: id, semester_id, teacher_id, class_id, subject_name, subject_code, periods_per_week, subject_constraints (JSON), default_room_id (optional), created_at
+Subject Constraints Examples:
+javascript// วิทยาศาสตร์ ม.1 - ต้องใช้ห้องปฏิบัติการ
+subject_constraints: { requires_room_type: 'TECH' }
+
+// คณิตศาสตร์ - ใช้ห้องเรียนทั่วไป
+subject_constraints: { requires_room_type: 'CLASS' }
+
+// เคมี ม.5 - ต้องใช้ห้องเคมีเฉพาะ + มี default room
+subject_constraints: { requires_room_type: 'TECH', preferred_rooms: ['ห้องปฏิบัติการเคมี'] }
+ความซับซ้อนที่ต้องจัดการ:
+
+ครู 1 คนสอนหลายห้อง
+ห้อง 1 ห้องมีหลายวิชา
+วิชาเดียวกันแต่ครูต่างกัน
+วิชาที่ต้องใช้ห้องเฉพาะ
+
+Helper Functions:
+
+getSubjectsByYear(year)
+getSubjectsByTeacher(teacherId, year)
+getSubjectsByClass(classId, year)
+getSubjectsByRoomType(roomType, year)
+calculateTeacherWorkload(teacherId, semesterId)
+validateSubjectRoomConstraints(subject, room)
+
+Export Structure:
+javascriptexport const subjectsData = {
+  subjects_2566: [...],
+  subjects_2567: [...],
+  subjects_2568: [...]
+};
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 12: Enhanced Schedules Mock Data
+สร้าง mock data สำหรับตารางสอน (เชื่อมกับ subjects, classes, rooms) พร้อม conflict detection:
+js/data/schedules.mock.js:
+สร้างตารางสอนสำหรับแต่ละปี โดยเชื่อมกับ subjects และตรวจสอบ room constraints:
+schedules_2567 (ปีปัจจุบัน):
+ตารางสอนจันทร์-ศุกร์:
+
+day_of_week: 1=จันทร์, 2=อังคาร, 3=พุธ, 4=พฤหัสบดี, 5=ศุกร์
+period: 1-8 คาบ
+เวลาแต่ละคาบ: 08:20-09:10, 09:10-10:00, 10:00-10:50, 10:50-11:40, 13:00-13:50, 13:50-14:40, 14:40-15:30, 15:30-16:20
+
+Field structure: id, semester_id, subject_id, class_id, day_of_week, period, room_id, created_at
+Logic สำหรับสร้างตาราง:
+
+ใช้ข้อมูลจาก subjects_2567 เป็นฐาน
+กระจาย periods_per_week ของแต่ละวิชา
+ตรวจสอบ subject_constraints.requires_room_type
+เลือก room_id ที่เหมาะสม
+ตรวจสอบ conflicts ครบ 3 มิติ:
+
+Teacher conflict (จาก subject_id → teacher_id)
+Class conflict (class_id + time)
+Room conflict (room_id + time)
+
+
+วิชาหลักควรอยู่คาบ 1-6
+
+Conflict Detection Logic:
+javascriptfunction validateScheduleConflict(newSchedule, existing, { subjects, rooms }) {
+  // Check teacher conflict
+  const subject = subjects.find(s => s.id === newSchedule.subject_id);
+  const teacherConflict = existing.find(e => {
+    const eSubject = subjects.find(s => s.id === e.subject_id);
+    return eSubject.teacher_id === subject.teacher_id &&
+           e.day_of_week === newSchedule.day_of_week &&
+           e.period === newSchedule.period;
+  });
+  
+  // Check class conflict
+  const classConflict = existing.find(e => 
+    e.class_id === newSchedule.class_id &&
+    e.day_of_week === newSchedule.day_of_week &&
+    e.period === newSchedule.period
+  );
+  
+  // Check room conflict
+  const roomConflict = existing.find(e => 
+    e.room_id === newSchedule.room_id &&
+    e.day_of_week === newSchedule.day_of_week &&
+    e.period === newSchedule.period
+  );
+  
+  return { ok: !teacherConflict && !classConflict && !roomConflict };
+}
+Helper Functions:
+
+getSchedulesByYear(year)
+getSchedulesBySemester(semesterId)
+getSchedulesByClass(classId, semesterId)
+validateScheduleConflict(newSchedule, existingSchedules, context)
+normalizeScheduleRowForExport(scheduleData)
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 13: Enhanced Substitutions Mock Data
+สร้าง mock data สำหรับการสอนแทน แบบ Multi-Year พร้อม room information:
+js/data/substitutions.mock.js:
+สร้างข้อมูลการสอนแทนสำหรับแต่ละปี:
+substitutions_2567 + substitution_schedules_2567:
+1. substitutions_2567:
+Field structure: id, semester_id, absent_teacher_id, absent_date, reason, status, created_by, created_at
+การลาในภาคเรียนปัจจุบัน:
+
+ลาป่วย: 40%, ประชุม: 25%, อบรม: 20%, ลาพักผ่อน: 10%, ไปราชการ: 5%
+
+2. substitution_schedules_2567:
+Field structure: id, substitution_id, original_schedule_id, substitute_teacher_id, periods_count, completed_at
+สถิติสำหรับ Hall of Fame (ภาคเรียนปัจจุบัน):
+
+นายชีววิทยา: 25 คาบ
+นางเคมี: 18 คาบ
+นายคณิต B: 15 คาบ
+นายภาษาไทย: 12 คาบ
+นางสังคม: 8 คาบ
+
+Room Integration:
+
+substitution export รวม room information
+original_schedule_id → room_id mapping
+room conflict checking for substitute assignments
+
+Helper Functions:
+
+getSubstitutionsByYear(year)
+getSubstitutionsBySemester(semesterId)
+calculateSubstituteStats(semesterId)
+getTopSubstituteTeachers(semesterId, limit)
+normalizeSubstitutionRowForExport(substitutionData, includeRoom = true)
+
+Export Integration:
+javascriptfunction normalizeSubstitutionRowForExport({ substitution, assignment, teacher, originalSchedule, room }) {
+  return {
+    date: substitution.absent_date,
+    absent_teacher: substitution.absent_teacher_name,
+    reason: substitution.reason,
+    period: originalSchedule.period,
+    subject: originalSchedule.subject_name,
+    class: originalSchedule.class_name,
+    room: room ? `${room.name} (${room.room_type})` : '',
+    substitute_teacher: teacher.name
+  };
+}
+Export structure:
+javascriptexport const substitutionsData = {
+  substitutions_2566: [...],
+  substitutions_2567: [...],
+  substitutions_2568: [...],
+  substitution_schedules_2566: [...],
+  substitution_schedules_2567: [...],
+  substitution_schedules_2568: [...]
+};
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 14: Enhanced Data Index
+สร้างไฟล์รวม mock data แบบ Multi-Year พร้อม Rooms และ Export utilities:
+js/data/index.js:
+Features:
+
+Import ทุกไฟล์ mock data รวม rooms
+Export combined data object แยกตามปี
+Multi-year utility functions
+Cross-year data analysis functions
+Export preparation functions
+
+Main Export Structure:
+javascriptexport const mockData = {
+  // Fixed tables
+  academicYears: [...],
+  semesters: [...],
+  
+  // Dynamic tables by year
+  2566: {
+    teachers: teachersData.teachers_2566,
+    classes: classesData.classes_2566,
+    rooms: roomsData.rooms_2566,
+    subjects: subjectsData.subjects_2566,
+    schedules: schedulesData.schedules_2566,
+    substitutions: substitutionsData.substitutions_2566,
+    substitution_schedules: substitutionsData.substitution_schedules_2566
+  },
+  2567: { ... },
+  2568: { ... }
+};
+Multi-Year Functions:
+
+getDataByYear(year)
+getDataBySemester(semesterId)
+getCurrentYearData()
+validateCrossYearData() - ตรวจ FK relationships รวม rooms
+
+Context Management:
+javascriptlet __CONTEXT__ = { year: null, semesterId: null };
+export function setGlobalContext(year, semesterId);
+export function getGlobalContext();
+export function switchContext(newYear, newSemesterId);
+Export Preparation Functions:
+
+prepareStudentScheduleExport(classId, semesterId)
+prepareTeacherScheduleExport(teacherId, semesterId)
+prepareSubstitutionExport(date, semesterId)
+normalizeDataForExport(data, type)
+
+Room Integration Functions:
+
+getRoomsForYear(year)
+validateRoomAvailability(roomId, day, period, year)
+getRoomDisplayInfo(roomId, year) - รวม name + type badge
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 15: Export Utilities (js/utils/export.js)
+สร้าง export utilities สำหรับ CSV/XLSX/Google Sheets:
+js/utils/export.js:
+Core Export Functions:
+javascriptexport function exportTableToCSV(tableData, filename);
+export function exportTableToXLSX(tableData, filename); // รองรับ SheetJS
+export function exportTableToGoogleSheets(tableData, filename); // โหมดเบา
+CSV Export (UTF-8 + BOM):
+
+รองรับภาษาไทยเต็มรูปแบบ
+Auto-download ไฟล์
+Proper escaping สำหรับ Excel
+
+XLSX Export (SheetJS):
+
+Column types ถูกต้อง (text, number, date)
+Thai-friendly encoding
+Professional formatting
+
+Google Sheets Export:
+
+สร้าง CSV formatted data
+เปิดลิงก์ upload/import ไป Google Sheets
+แนะนำขั้นตอนการ import
+
+Helper Functions:
+javascriptexport function normalizeScheduleForExport(rows, context) {
+  // แปลง schedule data ให้พร้อม export
+  return rows.map(row => ({
+    'วัน': getThaiDayName(row.day_of_week),
+    'เวลา': getTimeSlot(row.period),
+    'คาบ': row.period,
+    'วิชา': row.subject_name,
+    'รหัสวิชา': row.subject_code,
+    'ครู': row.teacher_name,
+    'ห้องเรียน': row.class_name,
+    'ห้อง': `${row.room_name} (${row.room_type})`
+  }));
+}
+
+export function generateExportFilename(base, context) {
+  // ใช้ EXPORT_CONST.defaultFilename
+  const semester = context.semester?.semester_number || 'all';
+  return `${base}_${context.year}_ภาค${semester}_${new Date().toISOString().slice(0,10)}`;
+}
+Integration Functions:
+
+bindExportButtons(container, exportData, context)
+handleExportClick(type, data, filename)
+showExportProgress(type)
+hideExportProgress()
+
+Error Handling:
+
+Export failure recovery
+File size validation
+Browser compatibility checks
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+นี่คือ Prompts 16-20 ที่ปรับปรุงแล้ว:
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 16: Multi-Year API Services
+สร้าง API services สำหรับ Multi-Year System พร้อม Rooms:
+1. js/api/academicYears.js - Academic Year API
+2. js/api/semesters.js - Semester API
+3. js/api/teachers.js - Enhanced Teacher API
+4. js/api/classes.js - Classes API
+5. js/api/rooms.js - Rooms API (ใหม่)
+6. js/api/subjects.js - Enhanced Subject API
+7. js/api/schedules.js - Context-aware Schedule API
+8. js/api/substitutions.js - Enhanced Substitution API
+แต่ละไฟล์ต้องมี:
+
+Year-aware API calls สำหรับ dynamic tables
+Automatic table name generation
+Context-aware error handling
+CRUD operations with consistent interface
+คืนค่า { ok, data, error } เสมอ
+
+Example for rooms.js:
+javascriptimport { getYearBasedEndpoint, getTableName, apiError } from './config.js';
+
+export async function getRooms(year) {
+  try {
+    const url = getYearBasedEndpoint('rooms', year);
+    // fetch หรือ mock-resolver
+    return { ok: true, data: roomsData };
+  } catch (e) { 
+    return apiError('GET rooms failed', 500, e); 
+  }
+}
+
+export async function getRoomsByType(roomType, year);
+export async function createRoom(roomData, year);
+export async function updateRoom(roomId, roomData, year);
+export async function deleteRoom(roomId, year);
+export async function validateRoomAvailability(roomId, day, period, year);
+Example for teachers.js:
+
+getTeachers(year)
+getTeacherById(id, year)
+createTeacher(teacherData, year)
+copyTeacherToNewYear(teacherId, fromYear, toYear)
+
+Integration with Export:
+
+API responses พร้อมสำหรับ export normalization
+Include related data for efficient export queries
+
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 17: Enhanced Data Service Layer
+สร้าง enhanced data service layer สำหรับ Multi-Year พร้อม Rooms และ Export support:
+js/services/dataService.js:
+Features:
+
+Multi-year data management รวม rooms
+Context-aware data loading
+Factory pattern สำหรับ mock/real API switching
+Cross-year data operations
+Intelligent caching system
+Export data preparation
+
+Core Functions:
+javascriptexport function initDataService(config); // { mode:'mock'|'api' }
+export function setGlobalContext(year, semesterId);
+export function switchToYear(year);
+export function switchToSemester(semesterId);
+Data Loading Functions:
+javascriptexport async function loadAcademicYears();
+export async function loadSemesters(yearId);
+export async function loadYearData(year); // รวม rooms
+export async function loadSemesterData(semesterId);
+CRUD Operations (Context-Aware):
+javascriptexport async function getTeachers(); // ใช้ current context
+export async function getClasses();
+export async function getRooms(); // ใหม่
+export async function getSubjects();
+export async function getSchedules();
+Cross-Year Operations:
+javascriptexport function compareAcrossYears(dataType, years);
+export function getTeacherHistory(teacherId);
+export async function cloneYearData(fromYear, toYear);
+Export Helpers (สำคัญ):
+javascriptexport function normalizeStudentScheduleForExport({ schedules, subjects, teachers, rooms, classes, classId, semesterId }) {
+  // รวมข้อมูลเป็น rows: วัน/คาบ/วิชา/ครู/ห้อง/รหัสวิชา
+  return schedules.map(schedule => {
+    const subject = subjects.find(s => s.id === schedule.subject_id);
+    const teacher = teachers.find(t => t.id === subject.teacher_id);
+    const room = rooms.find(r => r.id === schedule.room_id);
+    const cls = classes.find(c => c.id === schedule.class_id);
+    
+    return {
+      day: schedule.day_of_week,
+      period: schedule.period,
+      subject_name: subject.subject_name,
+      subject_code: subject.subject_code,
+      teacher_name: teacher.name,
+      class_name: cls.class_name,
+      room_name: room.name,
+      room_type: room.room_type
+    };
+  });
+}
+
+export function normalizeTeacherScheduleForExport({ schedules, subjects, teachers, rooms, teacherId, semesterId });
+export function normalizeSubstitutionForExport({ substitutions, schedules, subjects, teachers, rooms, date });
+Cache Strategy:
+javascriptconst cache = {
+  years: null,
+  semesters: {},
+  byYear: {
+    // 2567: { teachers, classes, rooms, subjects, schedules, substitutions }
+  }
+};
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 18: Year Service Layer
+สร้าง dedicated year service สำหรับ academic year management พร้อม rooms:
+js/services/yearService.js:
+Features:
+
+Academic year และ semester management
+Context switching logic
+Year transition workflows
+Data migration helpers รวม rooms
+Table management สำหรับ rooms
+
+Core Functions:
+javascriptexport function initYearService();
+export function getCurrentAcademicYear();
+export function getCurrentSemester();
+export function setActiveContext(year, semesterId);
+Year Operations:
+javascriptexport async function createNewAcademicYear(yearData);
+export async function setupSemestersForYear(year, semesterConfig);
+export async function cloneYearStructure(fromYear, toYear, { includeRooms = true });
+export async function archiveYear(year);
+Table Management (รวม rooms):
+javascriptexport function createYearTables(year, { rooms = true });
+// สร้าง: teachers_YEAR, classes_YEAR, rooms_YEAR, subjects_YEAR, schedules_YEAR, substitutions_YEAR
+
+export function getTableName(baseTable, year); // rooms_2567
+export async function validateTableExists(tableName);
+export function getAvailableYearTables(baseTable);
+Room-Specific Operations:
+javascriptexport async function cloneRoomsToNewYear(fromYear, toYear);
+export async function validateRoomIntegrity(year);
+export async function migrateRoomAssignments(fromYear, toYear);
+Event System:
+javascriptexport function onYearChange(callback);
+export function onSemesterChange(callback);
+export function onRoomDataChange(callback);
+Migration Helpers:
+javascriptexport async function migrateDataToNewYear(fromYear, toYear, options = {}) {
+  const { includeTeachers, includeRooms, includeSubjects } = options;
+  
+  if (includeTeachers) await migrateTeachers(fromYear, toYear);
+  if (includeRooms) await migrateRooms(fromYear, toYear);
+  if (includeSubjects) await migrateSubjects(fromYear, toYear);
+}
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 19: Global Context Management
+สร้าง global context management system พร้อม rooms integration:
+js/context/globalContext.js:
+Features:
+
+Centralized context state management
+Context persistence (localStorage)
+UI synchronization
+Context-aware component updates
+Rooms data integration
+
+Context State:
+javascriptconst globalContext = {
+  currentYear: null,
+  currentSemester: null,
+  availableYears: [],
+  availableSemesters: [],
+  currentRooms: [], // ใหม่ - rooms สำหรับปีปัจจุบัน
+  userRole: 'teacher',
+  isLoading: false,
+  error: null
+};
+Core Functions:
+javascriptexport async function initGlobalContext();
+export function setContext(year, semesterId);
+export function getContext();
+export function updateContext(partialContext);
+export function resetContext();
+Context Persistence:
+javascriptexport function saveContextToStorage();
+export function loadContextFromStorage();
+export function clearStoredContext();
+export function isContextValid(storedContext);
+Context Validation:
+javascriptexport function validateYear(year);
+export function validateSemester(semesterId, year);
+export function validateUserAccess(year, userRole);
+export function checkContextIntegrity();
+UI Synchronization:
+javascriptexport function updateContextUI();
+export function updateYearSelector(availableYears);
+export function updateSemesterSelector(availableSemesters);
+export function showContextSwitchLoading();
+export function hideContextSwitchLoading();
+Context Switching Logic:
+javascriptexport async function switchContext(newYear, newSemesterId) {
+  try {
+    showContextSwitchLoading();
+    
+    // Validate new context
+    await validateContext(newYear, newSemesterId);
+    
+    // Update context
+    setContext(newYear, newSemesterId);
+    
+    // Load rooms for new year
+    const rooms = await dataService.getRooms(newYear);
+    updateContext({ currentRooms: rooms.data });
+    
+    // Clear relevant caches
+    await clearContextCaches();
+    
+    // Reload data for new context
+    await loadContextData();
+    
+    // Update UI
+    updateContextUI();
+    
+    // Notify listeners
+    notifyContextChange();
+    
+  } catch (error) {
+    handleContextError(error);
+  } finally {
+    hideContextSwitchLoading();
+  }
+}
+Event Management:
+javascriptexport function onContextChange(callback);
+export function onYearChange(callback);
+export function onSemesterChange(callback);
+export function onContextError(callback);
+Integration Helpers:
+javascriptexport function contextAwareComponent(component);
+export function useGlobalContext();
+export function withContext(component);
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 20: Enhanced Utility Functions
+สร้าง enhanced utility functions สำหรับ Multi-Year System พร้อม Rooms และ Export:
+js/utils.js:
+Academic Year Functions:
+javascriptexport const formatAcademicYear = (year) => `ปีการศึกษา ${year}`;
+export const parseAcademicYear = (yearString) => Number(String(yearString).replace(/\D/g,''));
+export const getThaiAcademicYear = (gregorianYear) => gregorianYear + 543;
+export const getGregorianYear = (thaiYear) => thaiYear - 543;
+export const isValidAcademicYear = (year) => Number.isInteger(year) && year >= 2500 && year <= 3000;
+export const getYearRange = (startYear, endYear) => Array.from({length: endYear-startYear+1}, (_,i)=>startYear+i);
+Semester Functions:
+javascriptexport const getSemesterName = (semesterNumber) => {
+  switch(semesterNumber) {
+    case 1: return 'ภาคเรียนที่ 1';
+    case 2: return 'ภาคเรียนที่ 2';
+    case 3: return 'ภาคฤดูร้อน';
+    default: return `ภาคเรียนที่ ${semesterNumber}`;
+  }
+};
+export const formatSemester = (semesterData) => `${getSemesterName(semesterData.semester_number)} ปีการศึกษา ${semesterData.year ?? ''}`;
+export const isActiveSemester = (semesterData) => !!semesterData.is_active;
+export const getSemesterDateRange = (semesterData) => ({ start: semesterData.start_date, end: semesterData.end_date });
+export const calculateSemesterWeeks = (semesterData) => /* คำนวณจำนวนสัปดาห์ */;
+Date & Time Functions:
+javascriptexport const formatThaiDate = (date) => /* "15 ก.ย. 2567" */;
+export const formatThaiDateTime = (date) => /* "15 ก.ย. 2567 เวลา 14:30" */;
+export const getThaiYear = (date) => getThaiAcademicYear(new Date(date).getFullYear());
+export const isInSemester = (date, semesterData) => /* ตรวจสอบวันที่อยู่ในภาคเรียน */;
+export const getAcademicWeek = (date, semesterData) => /* สัปดาห์ที่ของภาคเรียน */;
+export const generateTimeSlots = () => [
+  '08:20-09:10', '09:10-10:00', '10:00-10:50', '10:50-11:40',
+  '13:00-13:50', '13:50-14:40', '14:40-15:30', '15:30-16:20'
+];
+export const getDayName = (dayNumber) => ['จ','อ','พ','พฤ','ศ','ส','อา'][dayNumber-1] || '';
+export const getThaiDayName = (dayNumber) => ['วันจันทร์','วันอังคาร','วันพุธ','วันพฤหัสบดี','วันศุกร์','วันเสาร์','วันอาทิตย์'][dayNumber-1] || '';
+Class & Teacher Functions:
+javascriptexport const parseClassName = (className) => {
+  const parts = className.split('/');
+  return { grade: parts[0], section: parseInt(parts[1]) };
+};
+export const generateClassName = (grade, section) => `${grade}/${section}`;
+export const getGradeLevel = (className) => className.split('/')[0];
+export const getSectionNumber = (className) => Number(className.split('/')[1] || 1);
+export const formatTeacherName = (teacher) => teacher ? `${teacher.name} (${teacher.subject_group})` : '';
+export const getTeacherSubjectGroup = (teacher) => teacher?.subject_group ?? '';
+Room Functions (ใหม่):
+javascriptexport const formatRoomName = (room) => room ? `${room.name} (${room.room_type})` : '';
+export const getRoomTypeBadgeClass = (roomType) => {
+  switch(roomType) {
+    case 'TECH': return 'badge--tech';
+    case 'CLASS': return 'badge--classroom';
+    default: return 'badge--default';
+  }
+};
+export const isRoomAvailable = (room, day, period, existingSchedules) => /* ตรวจสอบห้องว่าง */;
+export const getRoomCapacityStatus = (room, studentCount) => /* ตรวจสอบความจุ */;
+Conflict Validation (สำคัญ):
+javascriptexport function validateScheduleConflict(newItem, existingSchedules, { subjects, rooms, semesterId }) {
+  // ตรวจครบ 3 มิติ: teacher/class/room
+  const conflicts = {
+    teacher: false,
+    class: false,
+    room: false
+  };
+  
+  // Teacher conflict check
+  const subject = subjects.find(s => s.id === newItem.subject_id);
+  const teacherConflict = existingSchedules.find(existing => {
+    const existingSubject = subjects.find(s => s.id === existing.subject_id);
+    return existingSubject.teacher_id === subject.teacher_id &&
+           existing.day_of_week === newItem.day_of_week &&
+           existing.period === newItem.period;
+  });
+  
+  // Class conflict check
+  const classConflict = existingSchedules.find(existing =>
+    existing.class_id === newItem.class_id &&
+    existing.day_of_week === newItem.day_of_week &&
+    existing.period === newItem.period
+  );
+  
+  // Room conflict check
+  const roomConflict = existingSchedules.find(existing =>
+    existing.room_id === newItem.room_id &&
+    existing.day_of_week === newItem.day_of_week &&
+    existing.period === newItem.period
+  );
+  
+  return {
+    ok: !teacherConflict && !classConflict && !roomConflict,
+    conflicts: {
+      teacher: !!teacherConflict,
+      class: !!classConflict,
+      room: !!roomConflict
+    },
+    details: { teacherConflict, classConflict, roomConflict }
+  };
+}
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 21: Enhanced Navigation System
+สร้าง enhanced navigation system สำหรับ Multi-Year พร้อม Export integration:
+js/navigation.js:
+Features:
+
+Context-aware navigation
+Global context bar management
+URL routing with year/semester parameters
+Navigation state persistence
+Export button integration
+Breadcrumb navigation
+
+Global Context Bar:
+javascriptexport function renderContextBar();
+export function updateYearSelector(availableYears, currentYear);
+export function updateSemesterSelector(availableSemesters, currentSemester);
+export function handleYearChange(newYear);
+export function handleSemesterChange(newSemesterId);
+export function showContextLoading();
+export function hideContextLoading();
+Main Navigation:
+javascriptexport function initNavigation();
+export function showPage(pageId, context);
+export function updateActiveNavItem(pageId);
+export function setPageContext(pageId, year, semesterId);
+export function getPageContext(pageId);
+Sub Navigation (Enhanced):
+javascriptexport function initSubNavigation(pageId);
+export function showSubPage(subPageId, context);
+export function updateSubNavigation(pageId, availableSubPages);
+export function setSubPageContext(subPageId, context);
+URL Management:
+javascriptexport function updateURL(pageId, subPageId, year, semesterId);
+export function parseURL(); // return {pageId, subPageId, year, semesterId}
+export function handleURLChange(); // on hashchange/popstate
+export function generatePageURL(pageId, subPageId, context);
+Export Integration:
+javascriptexport function renderExportBar(pageId, context);
+export function bindExportButtons(pageId, exportData);
+export function updateExportButtonsForContext(context);
+export function hideExportForHistorical(context); // ซ่อน Google Sheets สำหรับข้อมูลเก่า
+Context Navigation:
+javascriptexport function navigateWithContext(pageId, subPageId);
+export function preservePageContext(pageId);
+export function restorePageContext(pageId);
+export function clearPageContext(pageId);
+Navigation State:
+javascriptconst navigationState = {
+  currentPage: null,
+  currentSubPage: null,
+  pageHistory: [],
+  contextHistory: [],
+  teacherTabStates: {},
+  mobileMenuOpen: false,
+  exportStates: {} // ใหม่ - สำหรับจำสถานะ export
+};
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 22: Enhanced Student Schedule Page
+สร้าง enhanced student schedule page สำหรับ Multi-Year พร้อม Export และ Rooms:
+js/pages/studentSchedule.js:
+Features:
+
+Context-aware schedule loading
+Class selector integration
+Room information display
+Export functionality (CSV/XLSX/Google Sheets)
+Historical schedule viewing
+
+Context Integration:
+javascriptexport async function initStudentSchedulePage(context);
+export function updatePageForContext(newContext);
+export async function loadScheduleForContext(className, context);
+export function validateContextAccess(context);
+UI Components:
+javascriptexport function renderContextControls(context);
+export function renderClassSelector(availableClasses, selectedClass);
+export function renderScheduleHeader(className, context); // ชื่อห้อง + ภาคเรียน/ปี
+export function renderScheduleTable(scheduleData, context); // 3 บรรทัด/เซลล์: วิชา/ครู/ห้อง
+export function renderEmptyScheduleState(className, context);
+Enhanced Schedule Display:
+javascriptexport function generateScheduleTable(scheduleData, className, context) {
+  // สร้างตาราง 8 คาบ x 5 วัน
+  // แต่ละเซลล์แสดง:
+  // บรรทัด 1: วิชา (subject_name)
+  // บรรทัด 2: ครู (teacher_name)  
+  // บรรทัด 3: ห้อง (room_name + room_type badge)
+}
+
+export function formatScheduleCell(subject, teacher, room, context) {
+  return `
+    <div class="schedule-cell">
+      <div class="subject-name">${subject.subject_name}</div>
+      <div class="teacher-name">${teacher.name}</div>
+      <div class="room-info">
+        ${room.name} 
+        <span class="badge ${getRoomTypeBadgeClass(room.room_type)}">
+          ${room.room_type}
+        </span>
+      </div>
+    </div>
+  `;
+}
+
+export function highlightCurrentPeriod(context); // เฉพาะเทอมปัจจุบัน
+Export Functionality:
+javascriptimport { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '../utils/export.js';
+import { normalizeStudentScheduleForExport } from '../services/dataService.js';
+
+export function renderExportBar(context) {
+  const isHistorical = !isCurrentSemester(context.semesterId);
+  
+  return `
+    <div class="export-bar">
+      <button class="btn btn--sm btn--export" data-export-type="csv">
+        📄 Export CSV
+      </button>
+      <button class="btn btn--sm btn--export" data-export-type="xlsx">
+        📊 Export Excel
+      </button>
+      ${!isHistorical ? `
+        <button class="btn btn--sm btn--export btn--gsheets" data-export-type="gsheets">
+          📋 Google Sheets
+        </button>
+      ` : ''}
+    </div>
+  `;
+}
+
+export async function exportSchedule(format, className, context) {
+  const scheduleData = await normalizeStudentScheduleForExport({
+    classId: getClassIdByName(className),
+    semesterId: context.semesterId
+  });
+  
+  const filename = generateExportFilename(`ตารางเรียน-${className}`, context);
+  
+  switch(format) {
+    case 'csv': return exportTableToCSV(scheduleData, filename);
+    case 'xlsx': return exportTableToXLSX(scheduleData, filename);
+    case 'gsheets': return exportTableToGoogleSheets(scheduleData, filename);
+  }
+}
+Multi-Year Features:
+javascriptexport function compareScheduleAcrossSemesters(className, semester1, semester2);
+export function showScheduleHistory(className, yearRange);
+export function detectScheduleChanges(oldSchedule, newSchedule);
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 23: Enhanced Teacher Schedule Page
+สร้าง enhanced teacher schedule page สำหรับ Multi-Year พร้อม Export และ Rooms:
+js/pages/teacherSchedule.js:
+Features:
+
+Context-aware teacher data loading
+Multi-year workload analysis
+Room usage tracking
+Export functionality
+Teacher evolution tracking
+
+Context Integration:
+javascriptexport async function initTeacherSchedulePage(context);
+export function updatePageForContext(newContext);
+export async function loadTeacherDataForContext(context);
+export function validateTeacherContextAccess(teacherId, context);
+Sub Navigation Enhanced:
+javascriptexport function initTeacherSubNavigation(context);
+export function switchToWorkloadSummary(context);
+export function switchToTeacherDetails(context);
+export function updateSubNavForContext(newContext);
+Workload Summary (Context-Aware):
+javascriptexport function renderWorkloadSummary(context) {
+  return `
+    <div class="workload-header">
+      <h3>📊 สรุปภาระงานสอน</h3>
+      <p class="context-info">
+        ${formatSemester(context.semester)} ปีการศึกษา ${context.year}
+      </p>
+    </div>
+    <div class="workload-content">
+      ${renderSubjectGroupBreakdown(context)}
+      ${renderTeacherRanking(context)}
+      ${renderRoomUsageStats(context)}
+    </div>
+  `;
+}
+
+export function calculateSubjectGroupHours(context, {subjects});
+export function generateTeacherRanking(context, {subjects});
+export function renderRoomUsageStats(context); // ใหม่ - สถิติการใช้ห้อง
+Teacher Details View:
+javascriptexport function createTeacherTabs(availableTeachers, context);
+export async function loadTeacherSchedule(teacherId, context);
+
+export function renderTeacherScheduleTable(data, context) {
+  // แต่ละเซลล์แสดง:
+  // บรรทัด 1: วิชา (subject_name + subject_code)
+  // บรรทัด 2: ชั้นเรียน (class_name)
+  // บรรทัด 3: ห้อง (room_name + room_type badge)
+}
+
+export function calculateTeacherWorkload(teacherId, context);
+export function showTeacherRoomUsage(teacherId, context); // ใหม่ - การใช้ห้องของครู
+Export Functionality:
+javascriptexport function renderTeacherExportBar(context) {
+  const isHistorical = !isCurrentSemester(context.semesterId);
+  
+  return `
+    <div class="export-bar">
+      <button class="btn btn--sm btn--export" data-export-type="csv" data-target="teacher">
+        📄 Export ตารางครู CSV
+      </button>
+      <button class="btn btn--sm btn--export" data-export-type="xlsx" data-target="teacher">
+        📊 Export ตารางครู Excel
+      </button>
+      ${!isHistorical ? `
+        <button class="btn btn--sm btn--export btn--gsheets" data-export-type="gsheets" data-target="teacher">
+          📋 Google Sheets
+        </button>
+      ` : ''}
+    </div>
+  `;
+}
+
+export async function exportTeacherData(teacherId, context, format) {
+  const scheduleData = await normalizeTeacherScheduleForExport({
+    teacherId,
+    semesterId: context.semesterId
+  });
+  
+  const teacher = await getTeacherById(teacherId, context.year);
+  const filename = generateExportFilename(`ตารางสอน-${teacher.name}`, context);
+  
+  switch(format) {
+    case 'csv': return exportTableToCSV(scheduleData, filename);
+    case 'xlsx': return exportTableToXLSX(scheduleData, filename);
+    case 'gsheets': return exportTableToGoogleSheets(scheduleData, filename);
+  }
+}
+Enhanced Analysis:
+javascriptexport function analyzeTeacherRoomPreferences(teacherId, context);
+export function detectTeacherScheduleConflicts(teacherId, context);
+export function compareTeacherAcrossYears(teacherId, years);
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 24: Enhanced Substitution Page
+สร้าง enhanced substitution page สำหรับ Multi-Year พร้อม Export และ Rooms:
+js/pages/substitution.js:
+Features:
+
+Context-aware substitution data
+Semester-specific Hall of Fame
+Room information in substitution records
+Export functionality
+Historical substitution analysis
+
+Context Integration:
+javascriptexport async function initSubstitutionPage(context);
+export function updatePageForContext(newContext);
+export async function loadSubstitutionDataForContext(context);
+export function validateSubstitutionAccess(context);
+Sub Navigation Enhanced:
+javascriptexport function initSubstitutionSubNav(context);
+export function switchToHallOfFame(context);
+export function switchToSubstitutionSchedule(context);
+export function updateSubNavForContext(newContext);
+Hall of Fame (Context-Aware):
+javascriptexport function renderHallOfFame(context) {
+  return `
+    <div class="hall-of-fame-header">
+      <h3>🏅 Hall of Fame - ครูสอนแทน</h3>
+      <p class="context-info">
+        ${formatSemester(context.semester)} ปีการศึกษา ${context.year}
+      </p>
+    </div>
+    <div class="hall-of-fame-content">
+      ${renderSubstituteRanking(context)}
+      ${renderSubstituteStats(context)}
+    </div>
+  `;
+}
+
+export function calculateSubstituteStats(context);
+export function generateSubstituteRanking(context);
+export function showSemesterAchievements(context);
+Substitution Schedule View:
+javascriptexport function renderDatePicker(context);
+export async function loadSubstitutionByDate(date, context);
+
+export function renderAbsentTeacherCards(absences, context) {
+  return absences.map(absence => `
+    <div class="absent-card">
+      <h4>${absence.teacher_name}</h4>
+      <p class="reason">${absence.reason}</p>
+      <div class="affected-classes">
+        ${absence.affected_schedules.map(schedule => `
+          <div class="schedule-item">
+            <span class="period">คาบ ${schedule.period}</span>
+            <span class="subject">${schedule.subject_name}</span>
+            <span class="class">${schedule.class_name}</span>
+            <span class="room">
+              ${schedule.room_name} 
+              <span class="badge ${getRoomTypeBadgeClass(schedule.room_type)}">
+                ${schedule.room_type}
+              </span>
+            </span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+export function renderSubstituteAssignments(assignments, context);
+Export Functionality:
+javascriptexport function renderSubstitutionExportBar(context) {
+  return `
+    <div class="export-bar">
+      <button class="btn btn--sm btn--export" data-export-type="csv" data-target="substitution">
+        📄 Export รายวัน CSV
+      </button>
+      <button class="btn btn--sm btn--export" data-export-type="xlsx" data-target="substitution">
+        📊 Export รายวัน Excel
+      </button>
+      <button class="btn btn--sm btn--export" data-export-type="monthly">
+        📅 Export รายเดือน
+      </button>
+    </div>
+  `;
+}
+
+export async function exportSubstitutionData(context, format, dateRange = 'daily') {
+  const substitutionData = await normalizeSubstitutionForExport({
+    date: context.selectedDate,
+    semesterId: context.semesterId,
+    dateRange
+  });
+  
+  const filename = generateExportFilename(
+    `สอนแทน-${context.selectedDate || 'รายเดือน'}`, 
+    context
+  );
+  
+  switch(format) {
+    case 'csv': return exportTableToCSV(substitutionData, filename);
+    case 'xlsx': return exportTableToXLSX(substitutionData, filename);
+    case 'monthly': return exportMonthlySubstitutionReport(context);
+  }
+}
+Enhanced Features:
+javascriptexport function analyzeSubstitutionPatterns(context);
+export function showRoomImpactAnalysis(context); // วิเคราะห์ผลกระทบต่อการใช้ห้อง
+export function generateSubstitutionReport(context);
+export function compareSubstitutionAcrossYears(teacherId, years);
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 25: Enhanced Admin Page
+สร้าง enhanced admin page สำหรับ Multi-Year System พร้อม Rooms Management และ Export:
+js/pages/admin.js:
+Features:
+
+Multi-year data management รวม rooms
+Context-aware CRUD operations
+Room management system
+Export/Import functionality
+Year transition workflows
+Advanced admin functions
+
+Context-Aware Admin:
+javascriptexport async function initAdminPage(context);
+export function setAdminContext(year, semesterId);
+export function validateAdminContextAccess(context, user);
+export function updateAdminUIForContext(context);
+Enhanced Data Management UI:
+javascriptexport function renderDataManagementSection(context) {
+  return `
+    <div class="admin-header">
+      <h2>⚙️ จัดการระบบ (Admin Only)</h2>
+      <div class="admin-context">
+        <p>กำลังจัดการข้อมูล: <strong>${formatSemester(context.semester)} ปีการศึกษา ${context.year}</strong></p>
+      </div>
+    </div>
+    <div class="admin-tabs">
+      <button class="tab-btn active" data-tab="teachers">ครู</button>
+      <button class="tab-btn" data-tab="classes">ห้องเรียน</button>
+      <button class="tab-btn" data-tab="rooms">ห้อง</button>
+      <button class="tab-btn" data-tab="subjects">วิชา</button>
+      <button class="tab-btn" data-tab="schedules">ตาราง</button>
+    </div>
+  `;
+}
+
+export function showTeacherManagement(context);
+export function showClassManagement(context);
+export function showRoomManagement(context); // ใหม่
+export function showSubjectManagement(context);
+export function showScheduleManagement(context);
+Room Management (ใหม่):
+javascriptexport function showRoomManagement(context) {
+  return `
+    <div class="room-management">
+      <h3>จัดการห้อง - ${context.year}</h3>
+      
+      <div class="room-controls">
+        <button class="btn btn--primary" onclick="showAddRoomForm()">
+          ➕ เพิ่มห้องใหม่
+        </button>
+        <button class="btn btn--export" onclick="exportRooms('csv')">
+          📄 Export รายการห้อง
+        </button>
+      </div>
+      
+      <div class="room-grid">
+        <div class="room-type-section">
+          <h4>ห้องเรียนทั่วไป (CLASS)</h4>
+          <div id="class-rooms-list"></div>
+        </div>
+        <div class="room-type-section">
+          <h4>ห้องเทคโนโลยี (TECH)</h4>
+          <div id="tech-rooms-list"></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export async function addRoom(roomData, context) {
+  roomData.year = context.year;
+  return await roomAPI.create(roomData, context.year);
+}
+
+export function validateRoomData(roomData) {
+  // ตรวจสอบ name, room_type, capacity
+}
+Enhanced AI Generation:
+javascriptexport async function mockAIGenerationForContext(context) {
+  return `
+    <div class="ai-generation">
+      <h3>🤖 สร้างตารางสอนอัตโนมัติ</h3>
+      <p>สำหรับ ${formatSemester(context.semester)} ปีการศึกษา ${context.year}</p>
+      
+      <div class="ai-options">
+        <label>
+          <input type="checkbox" checked> ตรวจสอบ Conflict ครู
+        </label>
+        <label>
+          <input type="checkbox" checked> ตรวจสอบ Conflict ห้องเรียน
+        </label>
+        <label>
+          <input type="checkbox" checked> ตรวจสอบ Conflict ห้อง
+        </label>
+        <label>
+          <input type="checkbox" checked> ปฏิบัติตาม subject_constraints
+        </label>
+      </div>
+      
+      <button class="btn btn--primary" onclick="generateSchedule()">
+        ⚡ สร้างตารางสอน
+      </button>
+    </div>
+  `;
+}
+
+export function validateGeneratedSchedule(scheduleData, context) {
+  // ตรวจสอบ conflict ครบ 3 มิติ + subject_constraints
+}
+Bulk Operations & Export:
+javascriptexport async function bulkAddRooms(roomsData, context);
+export async function importDataFromFile(fileData, dataType, context);
+
+export function renderAdminExportBar(context) {
+  return `
+    <div class="admin-export-bar">
+      <h4>📤 Export ข้อมูลระบบ</h4>
+      <div class="export-buttons">
+        <button class="btn btn--export" onclick="exportAllData('teachers')">
+          Export ครูทั้งหมด
+        </button>
+        <button class="btn btn--export" onclick="exportAllData('rooms')">
+          Export ห้องทั้งหมด
+        </button>
+        <button class="btn btn--export" onclick="exportAllData('schedules')">
+          Export ตารางสอนทั้งหมด
+        </button>
+        <button class="btn btn--export" onclick="exportSystemReport()">
+          📊 Export รายงานระบบ
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+export async function exportSystemReport(context) {
+  // รายงานครอบคลุม: teachers, rooms, subjects, schedules, conflicts
+}
+⚠️ STRICT TOKEN LIMIT:
+
+หยุดเมื่อใกล้ 80% token limit
+หยุดที่จุดเหมาะสม (จบ section)
+เขียน: "🔄 [CONTINUE_NEEDED] - พิมพ์ 'continue' เพื่อทำต่อส่วนที่เหลือ"
+บอกว่าหยุดตรงไหน เพื่อจะได้ทำต่อถูกจุด
+
+⚠️ rule
+
+ทำทีละส่วนเท่านั้นนนน
+ทำทีละส่วน เพื่อรักษา Token Limit
+ทำตาม Token Limit Rule
+
+
+
+
+** อย่าให้มันเกิน Token โธ่เว่ยย
+** ห้ามทำนอกเหนือพรอมพ์เด็ดขาด
+** rate limit สำคัญทีสุด ทำทีละส่วนเท่านั้น
+Prompt 26: Enhanced Main App Integration & Documentation
+สร้าง enhanced main application และ comprehensive documentation:
+
+js/app.js:
+
+Application Architecture:
+
+javascript
+class SchoolScheduleApp {
+  constructor() {
+    this.context = null;
+    this.modules = {};
+    this.initialized = false;
+    this.errorState = null;
+    this.exportHandlers = {}; // ใหม่ - จัดการ export
+  }
+
+  async init() {
+    try {
+      await this.initializeCore();
+      await this.loadInitialContext();
+      await this.initializeModules();
+      await this.setupEventListeners();
+      await this.setupExportHandlers(); // ใหม่
+      await this.loadInitialData();
+      this.initialized = true;
+    } catch (error) {
+      await this.handleInitializationError(error);
+    }
+  }
+}
+Core Initialization:
+
+javascript
+export async function initializeCore() {
+  // Setup services
+  await dataService.init({ mode: 'mock' }); // หรือ 'api'
+  await yearService.init();
+  await globalContext.init();
+}
+
+export async function loadInitialContext() {
+  // Load from storage or default to current active year/semester
+  const stored = globalContext.loadContextFromStorage();
+  if (stored && globalContext.isContextValid(stored)) {
+    await globalContext.setContext(stored.year, stored.semesterId);
+  } else {
+    const currentYear = getCurrentAcademicYear();
+    const currentSemester = getCurrentSemester();
+    if (currentYear && currentSemester) {
+      await globalContext.setContext(currentYear.year, currentSemester.id);
+    }
+  }
+}
+
+export async function loadInitialData() {
+  const context = globalContext.getContext();
+  if (context.currentYear) {
+    // โหลดข้อมูลพื้นฐาน รวม rooms
+    await dataService.loadYearData(context.currentYear);
+  }
+}
+Export Integration:
+
+javascript
+export function setupExportHandlers() {
+  // Bind export buttons across all pages
+  document.addEventListener('click', async (e) => {
+    if (e.target.matches('[data-export-type]')) {
+      const type = e.target.dataset.exportType;
+      const target = e.target.dataset.target;
+      
+      await handleExportClick(type, target, e.target);
+    }
+  });
+}
+
+export async function handleExportClick(exportType, target, button) {
+  try {
+    showExportProgress(button);
+    
+    const context = globalContext.getContext();
+    let exportData;
+    
+    switch(target) {
+      case 'student':
+        const selectedClass = document.getElementById('class-selector').value;
+        exportData = await dataService.normalizeStudentScheduleForExport({
+          classId: getClassIdByName(selectedClass),
+          semesterId: context.semesterId
+        });
+        break;
+        
+      case 'teacher':
+        const selectedTeacher = getActiveTeacherId();
+        exportData = await dataService.normalizeTeacherScheduleForExport({
+          teacherId: selectedTeacher,
+          semesterId: context.semesterId
+        });
+        break;
+        
+      case 'substitution':
+        const selectedDate = getSelectedDate();
+        exportData = await dataService.normalizeSubstitutionForExport({
+          date: selectedDate,
+          semesterId: context.semesterId
+        });
+        break;
+    }
+    
+    const filename = generateExportFilename(`${target}-export`, context);
+    
+    switch(exportType) {
+      case 'csv':
+        await exportTableToCSV(exportData, filename);
+        break;
+      case 'xlsx':
+        await exportTableToXLSX(exportData, filename);
+        break;
+      case 'gsheets':
+        await exportTableToGoogleSheets(exportData, filename);
+        break;
+    }
+    
+    showNotification('Export สำเร็จ!', 'success');
+    
+  } catch (error) {
+    console.error('Export failed:', error);
+    showNotification('Export ล้มเหลว: ' + error.message, 'error');
+  } finally {
+    hideExportProgress(button);
+  }
+}
+README.md Documentation:
+
+markdown
+# ระบบจัดตารางสอนแบบ Multi-Year (Enhanced School Schedule Management System)
+
+## 📋 Project Overview
+ระบบจัดการตารางสอนสำหรับโรงเรียนมัธยมศึกษา รองรับการจัดการข้อมูลหลายปีการศึกษา พร้อมระบบ Export ครบครัน และการจัดการห้องเรียน
+
+## ✨ Enhanced Features
+
+### 🗓️ Multi-Year Support
+- จัดการปีการศึกษา 2566-2568+
+- ภาคเรียน 2-3 ภาคต่อปี พร้อมภาคฤดูร้อน
+- Context Switching แบบ Real-time
+- Historical Data Analysis และ Cross-year Comparison
+
+### 🏫 Rooms Management System
+- **Room Types**: ห้องเรียนทั่วไป (CLASS) และห้องเทคโนโลยี (TECH)
+- **Subject Constraints**: วิชาสามารถกำหนดประเภทห้องที่ต้องการ
+- **Conflict Detection**: ตรวจสอบการชนกันของ ครู/ชั้นเรียน/ห้อง
+- **Room Analytics**: วิเคราะห์การใช้ห้องและประสิทธิภาพ
+
+### 📤 Advanced Export System
+- **3 Formats**: CSV (UTF-8+BOM), XLSX, Google Sheets Integration
+- **Student Export**: ตารางเรียนรายห้อง พร้อมครู/วิชา/ห้อง
+- **Teacher Export**: ตารางสอนรายครู พร้อมภาระงานสรุป
+- **Substitution Export**: รายงานการสอนแทน รายวัน/รายเดือน
+- **Admin Export**: รายงานระบบครบครัน
+
+### 👨‍🏫 Enhanced Teacher Management
+- ตารางสอนรายครู พร้อม Room Information
+- วิเคราะห์ภาระงานข้ามปี/ข้ามภาคเรียน
+- Hall of Fame ครูสอนแทน (แยกตามภาคเรียน)
+- Teacher Evolution Tracking
+
+### ⚙️ Advanced Admin Panel
+- **Multi-Year CRUD**: ครู/ห้องเรียน/ห้อง/วิชา/ตาราง
+- **Data Migration Tools**: ย้าย/โคลนข้อมูลระหว่างปี
+- **AI Schedule Generation**: สร้างตารางอัตโนมัติ (กันชนครบ 3 มิติ)
+- **Substitute Algorithm**: แนะนำครูสอนแทนอัตโนมัติ
+- **Bulk Operations**: Import/Export จำนวนมาก
+
+## 🏗️ Enhanced Architecture
+
+### Database Schema
+**Fixed Tables:**
+- `academic_years`: ปีการศึกษา
+- `semesters`: ภาคเรียน
+
+**Dynamic Tables (per year):**
+- `teachers_{year}`: ครูประจำปี
+- `classes_{year}`: ห้องเรียน (กลุ่มนักเรียน)
+- `rooms_{year}`: ห้อง (กายภาพ) ⭐️
+- `subjects_{year}`: วิชาที่สอน + subject_constraints ⭐️
+- `schedules_{year}`: ตารางสอน (เชื่อม class_id + room_id)
+- `substitutions_{year}`: การลา
+- `substitution_schedules_{year}`: การสอนแทน
+
+### Frontend Structure
+school-schedule/
+├── index.html                     # Multi-year + Export UI
+├── css/                          # Enhanced styling
+├── js/
+│   ├── app.js                   # Main app + Export handlers
+│   ├── utils/
+│   │   └── export.js            # Export utilities ⭐️
+│   ├── context/
+│   │   └── globalContext.js     # Context + Rooms integration
+│   ├── api/
+│   │   ├── rooms.js             # Rooms API ⭐️
+│   │   └── ...                  # Other APIs
+│   ├── data/
+│   │   ├── rooms.mock.js        # Rooms mock data ⭐️
+│   │   └── ...                  # Other mock data
+│   └── pages/                   # Export-enabled pages
+└── README.md
+
+## 🔧 Setup & Usage
+
+### Development:
+```bash
+# ใช้ Live Server (VS Code) หรือ
+python -m http.server 8000
+# เปิด http://localhost:8000
+Production (Supabase):
+javascript
+// js/api/config.js
+const API_CONFIG = {
+  baseURL: 'https://your-project.supabase.co/rest/v1',
+  // ... other config
+};
+📊 Export Specifications
+Student Schedule Export
+Columns: วัน, เวลา, คาบ, วิชา, รหัสวิชา, ครู, ห้องเรียน, ห้อง (ประเภท)
+
+Teacher Schedule Export
+Columns: วัน, เวลา, คาบ, วิชา, ห้องเรียน, ห้อง, ภาระงานรวม
+
+Substitution Export
+Columns: วันที่, ครูที่ขาด, เหตุผล, คาบ, วิชา, ห้อง, ครูสอนแทน
+
+🧪 Testing Checklist
+✅ Context switching → Load data ตรงปี/ภาคเรียน
+✅ Rooms → แสดงประเภทและตรวจ conflict
+✅ Export → ทุกรูปแบบ ภาษาไทยถูกต้อง
+✅ Subject constraints → ห้องตรงตามที่กำหนด
+✅ Multi-year comparison → ข้อมูลสอดคล้อง
+✅ Admin operations → CRUD ครบทุก entity
+✅ Migration tools → โคลนข้อมูลสำเร็จ
+✅ Mobile responsive → Export UI ใช้งานได้
+
+🚀 Technology Stack
+Frontend: HTML5, CSS3, JavaScript ES6+
+Architecture: Multi-year context-aware design
+Export: CSV/XLSX/Google Sheets integration
+Database: Supabase PostgreSQL (production)
+Development: Pure frontend, no build process required
+🔒 Security & Performance
+Year-based data isolation
+Context-aware access control
+Intelligent caching per year/semester
+Lazy loading for historical data
+Memory management for large datasets
+📈 Future Enhancements
+PDF Export รายงานสวยงาม
+Room Booking System แยกต่างหาก
+Dashboard: Workload heatmaps
+Advanced Analytics: Trend analysis
+Mobile App version
+พัฒนาโดย: Multi-Year School Schedule System
+เวอร์ชัน: 2.0 Enhanced (พร้อม Rooms + Export)
+อัปเดต: มกราคม 2025
+
+
+⚠️ **COMPLETION NOTE:**
+✅ **สำเร็จแล้ว! ครบ 26 Prompts Enhanced**
+
+**สรุปการปรับปรุง:**
+1. ✅ เพิ่ม Rooms Management System
+2. ✅ Export System ครบครัน (CSV/XLSX/Sheets)  
+3. ✅ Subject Constraints สำหรับห้อง
+4. ✅ 3-Dimensional Conflict Detection
+5. ✅ Context-aware Export UI
+6. ✅ Enhanced Documentation
+7. ✅ คงความละเอียดจากไฟล์เดิม
+8. ✅ Integration ระหว่าง Rooms + Export + Multi-Year
+
+**พร้อมใช้งาน:** ทั้ง 26 prompts สามารถนำไปใช้ใน Claude Desktop MCP ได้ทันที ทีละ prompt ตามลำดับ 1→2→3...→26
+
+**Token Management:** แต่ละ prompt มี token limit control และ continue mechanism ครบถ้วน
+
+---
+
+เสร็จสิ้น! 🎉
+
+
+
+
+
+
+

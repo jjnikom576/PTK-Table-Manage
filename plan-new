@@ -1,0 +1,488 @@
+📋 แผนงานเว็บไซต์จัดตารางสอน (Final Complete Plan)
+🗃️ Database Structure
+
+-- ======================================
+-- FIXED TABLES (ใช้ทุกปี)
+-- ======================================
+CREATE TABLE IF NOT EXISTS academic_years (
+  id BIGSERIAL PRIMARY KEY,
+  year INT NOT NULL UNIQUE,                  -- 2567, 2568, ...
+  start_date DATE NOT NULL,
+  end_date   DATE NOT NULL,
+  is_active  BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS semesters (
+  id BIGSERIAL PRIMARY KEY,
+  academic_year_id BIGINT NOT NULL REFERENCES academic_years(id) ON DELETE CASCADE,
+  semester_number INT NOT NULL CHECK (semester_number IN (1,2,3)),
+  semester_name   TEXT NOT NULL,
+  start_date DATE NOT NULL,
+  end_date   DATE NOT NULL,
+  is_active  BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE (academic_year_id, semester_number)
+);
+
+-- (ทางเลือก) ตารางคาบเวลา ช่วยเรนเดอร์/ตรวจช่วงคาบ
+CREATE TABLE IF NOT EXISTS periods (
+  period_no INT PRIMARY KEY,                 -- 1..12
+  start_time TIME NOT NULL,
+  end_time   TIME NOT NULL
+);
+
+INSERT INTO periods(period_no, start_time, end_time) VALUES
+(1,'08:20','09:10'),(2,'09:10','10:00'),
+(3,'10:00','10:50'),(4,'10:50','11:40'),
+(5,'13:00','13:50'),(6,'13:50','14:40'),
+(7,'14:40','15:30'),(8,'15:30','16:20')
+ON CONFLICT (period_no) DO NOTHING;
+
+-- ======================================
+-- ENUMS
+-- ======================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'room_type_t') THEN
+    CREATE TYPE room_type_t AS ENUM ('CLASS','TECH','LAB_SCI','LAB_COMP');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'teacher_role_t') THEN
+    CREATE TYPE teacher_role_t AS ENUM ('teacher','admin');
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'sub_status_t') THEN
+    CREATE TYPE sub_status_t AS ENUM ('draft','submitted','completed');
+  END IF;
+END $$;
+
+-- ======================================================
+-- DYNAMIC TABLES (ตัวอย่างสำหรับปี 2567)
+-- เปลี่ยนเลขปีแล้วรันซ้ำได้เลย
+-- ======================================================
+
+-- 1) TEACHERS
+CREATE TABLE IF NOT EXISTS teachers_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  subject_group TEXT,
+  role teacher_role_t NOT NULL DEFAULT 'teacher',
+  user_id UUID NULL,                         -- map กับ auth.users.id (ถ้าใช้)
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_teachers_email_2567
+  ON teachers_2567 (email)
+  WHERE email IS NOT NULL AND email <> '';
+
+-- 2) CLASSES
+CREATE TABLE IF NOT EXISTS classes_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  semester_id BIGINT NOT NULL REFERENCES semesters(id) ON DELETE CASCADE,
+  class_name TEXT NOT NULL,                  -- ม.1/1
+  grade_level TEXT NOT NULL,                 -- ม.1–ม.6
+  section INT,
+  student_count INT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_classes_sem_name_2567
+  ON classes_2567 (semester_id, class_name);
+
+-- 3) ROOMS (ห้องกายภาพ)
+CREATE TABLE IF NOT EXISTS rooms_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  name TEXT NOT NULL,                        -- 401, เทค-1, เทค-2, แล็บฟิสิกส์ ฯลฯ
+  room_type room_type_t NOT NULL,
+  capacity INT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_rooms_name_2567 ON rooms_2567 (name);
+CREATE INDEX IF NOT EXISTS idx_rooms_type_2567 ON rooms_2567 (room_type);
+
+-- 4) SUBJECTS
+CREATE TABLE IF NOT EXISTS subjects_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  semester_id BIGINT NOT NULL REFERENCES semesters(id) ON DELETE CASCADE,
+  teacher_id BIGINT NOT NULL REFERENCES teachers_2567(id) ON DELETE RESTRICT,
+  class_id   BIGINT NOT NULL REFERENCES classes_2567(id)  ON DELETE RESTRICT,
+  subject_name TEXT NOT NULL,
+  subject_code TEXT,
+  periods_per_week INT NOT NULL CHECK (periods_per_week > 0),
+  subject_constraints JSONB NOT NULL DEFAULT '{}'::jsonb,      -- {"requires_room_type":"TECH"}
+  default_room_id BIGINT REFERENCES rooms_2567(id),
+  room_preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+-- unique เฉพาะกรณีกรอก subject_code
+CREATE UNIQUE INDEX IF NOT EXISTS uq_subject_sem_class_code_2567
+  ON subjects_2567 (semester_id, class_id, subject_code)
+  WHERE subject_code IS NOT NULL AND subject_code <> '';
+CREATE INDEX IF NOT EXISTS idx_subj_sem_class_2567 ON subjects_2567 (semester_id, class_id);
+CREATE INDEX IF NOT EXISTS idx_subj_teacher_2567   ON subjects_2567 (teacher_id);
+
+-- 5) SCHEDULES (คาบจริง)
+CREATE TABLE IF NOT EXISTS schedules_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  semester_id BIGINT NOT NULL REFERENCES semesters(id) ON DELETE CASCADE,
+  subject_id  BIGINT NOT NULL REFERENCES subjects_2567(id) ON DELETE RESTRICT,
+  class_id    BIGINT NOT NULL REFERENCES classes_2567(id)  ON DELETE RESTRICT,
+  day_of_week INT NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+  period      INT NOT NULL CHECK (period BETWEEN 1 AND 12),
+  room_id     BIGINT REFERENCES rooms_2567(id),
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  CONSTRAINT fk_sched_period_2567 FOREIGN KEY (period) REFERENCES periods(period_no)
+);
+-- กัน class/time ซ้อน
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='uq_sched_class_time_2567') THEN
+    CREATE UNIQUE INDEX uq_sched_class_time_2567 ON schedules_2567 (class_id, day_of_week, period);
+  END IF;
+END $$;
+-- กัน room/time ซ้อน (เมื่อมี room_id)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname='uq_sched_room_time_2567') THEN
+    CREATE UNIQUE INDEX uq_sched_room_time_2567
+      ON schedules_2567 (day_of_week, period, room_id) WHERE room_id IS NOT NULL;
+  END IF;
+END $$;
+-- ดัชนีเรียกดูยอดฮิต
+CREATE INDEX IF NOT EXISTS idx_sched_sem_day_per_2567 ON schedules_2567 (semester_id, day_of_week, period);
+CREATE INDEX IF NOT EXISTS idx_sched_subject_2567     ON schedules_2567 (subject_id);
+CREATE INDEX IF NOT EXISTS idx_sched_room_2567        ON schedules_2567 (room_id);
+CREATE INDEX IF NOT EXISTS idx_sched_sem_class_2567   ON schedules_2567 (semester_id, class_id);
+
+-- 6) SUBSTITUTIONS (หัวข้อการสอนแทน)
+CREATE TABLE IF NOT EXISTS substitutions_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  semester_id BIGINT NOT NULL REFERENCES semesters(id) ON DELETE CASCADE,
+  absent_teacher_id BIGINT NOT NULL REFERENCES teachers_2567(id),
+  absent_date DATE NOT NULL,
+  reason TEXT,
+  status sub_status_t NOT NULL DEFAULT 'draft',
+  created_by TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_subs_sem_date_2567 ON substitutions_2567 (semester_id, absent_date);
+
+-- 7) SUBSTITUTION_SCHEDULES (คาบสอนแทน)
+CREATE TABLE IF NOT EXISTS substitution_schedules_2567 (
+  id BIGSERIAL PRIMARY KEY,
+  substitution_id BIGINT NOT NULL REFERENCES substitutions_2567(id) ON DELETE CASCADE,
+  original_schedule_id BIGINT NOT NULL REFERENCES schedules_2567(id) ON DELETE RESTRICT,
+  substitute_teacher_id BIGINT NOT NULL REFERENCES teachers_2567(id) ON DELETE RESTRICT,
+  periods_count INT NOT NULL CHECK (periods_count > 0),
+  completed_at TIMESTAMPTZ
+);
+
+-- ======================================
+-- TRIGGERS (กันชน extra)
+-- ======================================
+
+-- A) ครูชนคาบไม่ได้ (อิง subject_id -> teacher_id) + ข้อความ error อ่านง่าย
+CREATE OR REPLACE FUNCTION enforce_teacher_no_conflict_2567()
+RETURNS TRIGGER AS $$
+DECLARE
+  t_id BIGINT;
+  t_name TEXT;
+  subj_name TEXT;
+BEGIN
+  SELECT teacher_id, subject_name INTO t_id, subj_name
+  FROM subjects_2567 WHERE id = NEW.subject_id;
+
+  SELECT name INTO t_name FROM teachers_2567 WHERE id = t_id;
+
+  IF EXISTS (
+    SELECT 1
+    FROM schedules_2567 s
+    JOIN subjects_2567 sb ON sb.id = s.subject_id
+    WHERE s.day_of_week = NEW.day_of_week
+      AND s.period      = NEW.period
+      AND sb.teacher_id = t_id
+      AND s.id <> COALESCE(NEW.id, -1)
+  ) THEN
+    RAISE EXCEPTION '⛔ ครูชนคาบ: % (teacher_id=%) วัน=% คาบ=% วิชา=%',
+      COALESCE(t_name,'?'), t_id, NEW.day_of_week, NEW.period, COALESCE(subj_name,'?');
+  END IF;
+
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_enforce_teacher_no_conflict_2567 ON schedules_2567;
+CREATE TRIGGER trg_enforce_teacher_no_conflict_2567
+BEFORE INSERT OR UPDATE ON schedules_2567
+FOR EACH ROW EXECUTE FUNCTION enforce_teacher_no_conflict_2567();
+
+-- B) ถ้าต้องใช้ห้องประเภทเฉพาะ ต้องใส่ room_id ที่ match + ข้อความ error ระบุชื่อห้อง/วิชา
+CREATE OR REPLACE FUNCTION enforce_required_room_type_2567()
+RETURNS TRIGGER AS $$
+DECLARE
+  req_type TEXT;
+  actual_type room_type_t;
+  subj_name TEXT;
+  room_name TEXT;
+BEGIN
+  SELECT (subject_constraints->>'requires_room_type'), subject_name
+  INTO req_type, subj_name
+  FROM subjects_2567 WHERE id = NEW.subject_id;
+
+  IF req_type IS NULL OR req_type = '' THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.room_id IS NULL THEN
+    RAISE EXCEPTION '⛔ วิชา "%" ต้องการห้องประเภท % แต่ไม่ได้ระบุ room_id', COALESCE(subj_name,'?'), req_type;
+  END IF;
+
+  SELECT room_type, name INTO actual_type, room_name FROM rooms_2567 WHERE id = NEW.room_id;
+  IF actual_type::TEXT <> req_type THEN
+    RAISE EXCEPTION '⛔ ห้องไม่ตรงประเภท: วิชา "%" ต้องใช้ %, แต่เลือก "%" (room_id=%)',
+      COALESCE(subj_name,'?'), req_type, COALESCE(room_name,'?'), NEW.room_id;
+  END IF;
+
+  RETURN NEW;
+END; $$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_enforce_required_room_type_2567 ON schedules_2567;
+CREATE TRIGGER trg_enforce_required_room_type_2567
+BEFORE INSERT OR UPDATE ON schedules_2567
+FOR EACH ROW EXECUTE FUNCTION enforce_required_room_type_2567();
+
+-- ======================================
+-- SEED ROOMS (ตัวอย่าง)
+-- ======================================
+INSERT INTO rooms_2567(name, room_type)
+SELECT x.name, x.room_type
+FROM (VALUES ('เทค-1','TECH'), ('เทค-2','TECH')) AS x(name, room_type)
+WHERE NOT EXISTS (SELECT 1 FROM rooms_2567 r WHERE r.name = x.name);
+
+-- ======================================
+-- (OPTIONAL) VIEW สำหรับอ่านตารางรายห้อง/รายครู
+-- ======================================
+CREATE OR REPLACE VIEW v_class_timetable_2567 AS
+SELECT s.id AS schedule_id, s.semester_id, s.class_id, s.day_of_week, s.period,
+       sb.subject_name, sb.subject_code,
+       t.name AS teacher_name,
+       r.name AS room_name, r.room_type
+FROM schedules_2567 s
+JOIN subjects_2567 sb ON sb.id = s.subject_id
+JOIN teachers_2567 t ON t.id = sb.teacher_id
+LEFT JOIN rooms_2567 r ON r.id = s.room_id;
+
+CREATE OR REPLACE VIEW v_teacher_timetable_2567 AS
+SELECT s.id AS schedule_id, s.semester_id, sb.teacher_id, s.class_id, s.day_of_week, s.period,
+       sb.subject_name, sb.subject_code,
+       c.class_name,
+       r.name AS room_name, r.room_type
+FROM schedules_2567 s
+JOIN subjects_2567 sb ON sb.id = s.subject_id
+JOIN classes_2567  c ON c.id = s.class_id
+LEFT JOIN rooms_2567 r ON r.id = s.room_id;
+
+
+
+
+🌐 Website Structure
+Navigation Menu
+html<nav>
+  <a href="/student-schedule">ตารางเรียนนักเรียน</a>
+  <a href="/teacher-schedule">ตารางสอนครู</a>
+  <a href="/substitution">ตารางสอนแทน</a>
+  <a href="/admin">จัดการระบบ (Admin)</a>
+</nav>
+📱 หน้าแต่ละส่วน
+1. ตารางเรียนนักเรียน /student-schedule
+📚 ตารางเรียนนักเรียน
+
+📅 เลือกภาคเรียน: [ภาคเรียนที่ 1/2567 ▼]
+🏫 เลือกห้องเรียน: [ม.1/1 ▼]
+
+ตารางเรียน ม.1/1 - ภาคเรียนที่ 1 ปีการศึกษา 2567
+┌─────────┬────────────────────┬────────────────────┬────────────────────┬────────┐
+│ วัน/เวลา│ คาบ 1              │ คาบ 2              │ คาบ 3              │ คาบ 4  │
+│         │08:20-09:10         │09:10-10:00         │10:00-10:50         │10:50   │
+├─────────┼────────────────────┼────────────────────┼────────────────────┼────────┤
+│ จันทร์    │วิทยาศาสตร์           │คณิตศาสตร์            │ฟิสิกส์             │ -      │
+│         │ครู: นายคอด เอไอ      │ครู: นางสาวมาตา       │ครู: นางเคมี        │        │
+│         │ 401                │ 402                │แล็บฟิสิกส์         │        │
+└─────────┴────────────────────┴────────────────────┴────────────────────┴────────┘
+
+
+2. ตารางสอนครู /teacher-schedule
+👨‍🏫 ตารางสอนครู
+
+📅 เลือกภาคเรียน: [ภาคเรียนที่ 1/2567 ▼]
+
+📊 สรุปภาระงานสอน (ภาคเรียนที่ 1/2567)
+🏆 กลุ่มสาระ (รวมชั่วโมง)
+1. วิทยาศาสตร์    45 ชั่วโมง
+2. คณิตศาสตร์     38 ชั่วโมง
+3. ภาษาไทย        32 ชั่วโมง
+
+🥇 ครู (รายคน)
+1. นายคอด เอไอ     24 ชั่วโมง
+2. นางสาวมาตา      20 ชั่วโมง
+3. นางเคมี         18 ชั่วโมง
+
+📋 ตารางรายครู
+[นายคอด เอไอ] [นางสาวมาตา] [นางเคมี]
+
+ตารางสอน - นายคอด เอไอ
+กลุ่มสาระ: วิทยาศาสตร์
+📞 081-234-5678
+📧 code.ai@school.com
+ภาคเรียนที่ 1 ปีการศึกษา 2567
+
+┌─────────┬──────────────┬──────────────┬──────────────┬────────┐
+│ วัน/เวลา│ คาบ 1        │ คาบ 2        │ คาบ 3        │ คาบ 4 │
+├─────────┼──────────────┼──────────────┼──────────────┼────────┤
+│ จันทร์  │ วิทยาศาสตร์ │ -            │ ฟิสิกส์      │ -      │
+│         │ ม.1/1        │              │ ม.4/1        │        │
+│         │  401         │              │  แล็บฟิสิกส์ │        │
+└─────────┴──────────────┴──────────────┴──────────────┴────────┘
+
+📝 ภาระงานสอน
+ว23103 วิทยาการคำนวณ ม.1/1 ม.1/2 ม.1/3 6 คาบ
+ลส201 ลูกเสือ ม.2 1 คาบ
+รวม 24 คาบ/สัปดาห์
+
+
+📊 สรุปภาระงานสอน กับ ตารางรายครู อยู่คนละ sub nav 
+
+
+3. ตารางสอนแทน /substitution
+🔄 ตารางสอนแทน
+
+📅 เลือกภาคเรียน: [ภาคเรียนที่ 1/2567 ▼]
+
+🏅 Hall of Fame - ครูสอนแทน (ภาคเรียนนี้)
+🥇 นายชีววิทยา   25 คาบ
+🥈 นางเคมี       18 คาบ
+🥉 นายคณิต B     15 คาบ
+
+📅 เลือกวันที่ดูการสอนแทน
+[วันนี้] [📅 15/09/2024] [เมื่อวาน] [สัปดาห์ที่แล้ว]
+
+📋 ตารางสอนแทน - วันที่ 15 ก.ย. 2024
+
+นายคอด เอไอ (ลาป่วย)
+┌─────────┬──────────────┬──────────────┬──────────────┬────────┐
+│ วัน/เวลา│ คาบ 1        │ คาบ 2        │ คาบ 3        │ คาบ 4 │
+├─────────┼──────────────┼──────────────┼──────────────┼────────┤
+│ จันทร์    │ วิทยาศาสตร์ │ -            │ ฟิสิกส์      │ -      │
+│         │ ครู: นายคอด  │              │ ครู: นายคอด │        │
+│         │    401      │              │  แล็บฟิส │        │
+└─────────┴──────────────┴──────────────┴──────────────┴────────┘
+
+ตารางสอนแทน - ผู้สอนแทน
+
+┌─────────┬──────────────┬──────────────┬──────────────┬────────┐
+│ วัน/เวลา│ คาบ 1        │ คาบ 2        │ คาบ 3        │ คาบ 4 │
+├─────────┼──────────────┼──────────────┼──────────────┼────────┤
+│ จันทร์  │ วิทยาศาสตร์ │ -            │ ฟิสิกส์      │ -      │
+│         │ ครู: นายชีวฯ │              │ ครู: นางเคมี │        │
+│         │     401      │              │  แล็บฟิสิกส์ │        │
+└─────────┴──────────────┴──────────────┴──────────────┴────────┘
+
+Achievement Ranking กับ 📋 ตารางสอนแทน อยู่คนละ sub nav 
+
+
+4. จัดการระบบ (Admin) /admin
+⚙️ จัดการระบบ (Admin Only)
+* ต้องมีการ login เข้าได้เฉพาะ แอดมิน ใช้จาก table แรก *
+
+📋 เพิ่มข้อมูล
+
+🎓 ปีการศึกษา: [2567 ▼]
+📅 ภาคเรียน: [ภาคเรียนที่ 1 ▼]
+
+👨‍🏫 เพิ่มครู
+┌─────────────────────────────┐
+│ ชื่อ: [นายคอด เอไอ]         │
+│ กลุ่มสาระ: [วิทยาศาสตร์ ▼]  │
+│ เบอร์: [081-234-5678]       │
+│ อีเมล: [code@school.com]    │
+│ [💾 บันทึก] → teachers_2567 │
+└─────────────────────────────┘
+
+🏫 เพิ่มห้องเรียน
+┌─────────────────────────────┐
+│ ชั้น: [ม.1 ▼]              │
+│ ห้อง: [1]                  │
+│ จำนวนนักเรียน: [35] (optional)│
+│ [💾 บันทึก] → classes_2567  │
+│ Auto generate: ม.1/1        │
+└─────────────────────────────┘
+
+📚 เพิ่มวิชา
+┌─────────────────────────────┐
+│ ครู: [นายคอด เอไอ ▼]        │
+│ ห้องเรียน: [ม.1/1 ▼]       │
+│ วิชา: [วิทยาศาสตร์]         │
+│ รหัสวิชา: [ว23103]          │
+│ คาบ/สัปดาห์: [3]            │
+│ [💾 บันทึก] → subjects_2567│
+└─────────────────────────────┘
+
+🤖 สร้างตารางสอน
+┌─────────────────────────────┐
+│ [🎯 Generate ตารางด้วย AI]   │
+│ [📋 Preview ตาราง]          │
+│ [✏️ แก้ไขตาราง]             │
+│ [💾 บันทึกเข้า Database]    │
+└─────────────────────────────┘
+
+🔄 จัดการการสอนแทน
+┌─────────────────────────────┐
+│ วันที่: [📅 เลือกวัน]        │
+│ ครูที่ไม่อยู่:               │
+│ ☑️ นายคอด - ลาป่วย          │
+│ ☑️ นางมาตา - ประชุม          │
+│ [🧮 หาครูสอนแทน]           │
+│ [💾 Submit การสอนแทน]       │
+└─────────────────────────────┘
+🤖 System Logic
+1. Generate ตารางสอน (AI):
+[โหลดข้อมูล] → [กด Gen AI] → [AI Gen ตารางเต็ม]
+    ↓
+[แสดง Preview] → [AI Check Conflicts]
+    ↓
+[Manual ปรับแต่ง] ← ← ← [Loop จนพอใจ]
+    ↓
+[Submit ทั้งหมดเข้า DB]
+2. จัดสอนแทน (Algorithm):
+[เลือกครูที่ไม่อยู่ + เหตุผล] → [แสดงตารางครูที่ขาด]
+    ↓
+[Algorithm หาครูสอนแทน] → [แสดงตารางสอนแทน]
+    ↓
+[ปรับแต่งได้] → [Submit เข้า DB]
+3. Algorithm หาครูสอนแทน:
+
+หาครูที่ว่างในช่วงเวลานั้น
+ถ้าไม่มี → return "ไม่มีครูว่างสอนแทน"
+เรียงลำดับตาม: สอนแทนน้อยที่สุด → คาบสอนวันนั้นน้อยที่สุด
+return ครูที่แนะนำ + ตัวเลือกสำรอง
+
+🎯 Key Features
+
+Multi-Year Support: แยก tables ตามปีการศึกษา
+Semester Flexibility: รองรับ 2-3 ภาคเรียน
+Class Management: ห้องเรียนแยกแต่ละภาคเรียน
+Global Context: Admin เลือกปี/ภาคเรียนครั้งเดียว
+Teacher Contact Info: เบอร์โทร + อีเมล + กลุ่มสาระ
+Achievement System: Hall of Fame การสอนแทน
+Historical Data: ดูข้อมูลย้อนหลังได้
+AI Generation: สร้างตารางอัตโนมัติ
+Algorithm Substitute: หาครูสอนแทนอัตโนมัติ
+
+🔧 Technology Stack
+
+Frontend: HTML, CSS, JavaScript
+Database: Supabase (PostgreSQL)
+AI: Claude API (เฉพาะ generate ตาราง)
+Algorithm: Pure JavaScript (หาครูสอนแทน)
+
+
+Total: 4 หน้าหลัก + Multi-Year Database + AI Generate + Algorithm Substitute + Achievement System + Teacher Management + Class Management + Real-time Dashboard

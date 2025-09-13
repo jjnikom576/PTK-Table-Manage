@@ -1,0 +1,539 @@
+/* =========================================================
+   RESPONSIVE.CSS — part 1/2
+   อ้างอิงคลาสตาม HTML ที่ให้มา (global-context, main-navigation,
+   sub-navigation, page-content, schedule-container, admin forms ฯลฯ)
+   Mobile-first แล้วเสริมที่ Tablet / Desktop
+   ========================================================= */
+
+/* -----------------------
+   Breakpoints & helpers
+-------------------------*/
+:root {
+  --bp-mobile-max: 767px;
+  --bp-tablet-min: 768px;
+  --bp-tablet-max: 1023px;
+  --bp-desktop-min: 1024px;
+
+  --touch-target: 44px;
+}
+
+/* Base mobile spacing/typography overrides */
+@media (max-width: 767px) {
+  .container { padding-left: 1rem; padding-right: 1rem; }
+
+  h1 { font-size: 1.5rem; line-height: 1.3; }
+  h2 { font-size: 1.25rem; line-height: 1.3; }
+  h3 { font-size: 1.125rem; line-height: 1.3; }
+  body, p { font-size: .9375rem; line-height: 1.5; }
+}
+
+/* =========================================================
+   Global Context Bar (header.global-context)
+========================================================= */
+@media (max-width: 767px) {
+  .global-context { position: sticky; top: 0; z-index: var(--z-index-sticky); }
+  .global-context .container {
+    display: grid; gap: .5rem;
+  }
+  .context-controls {
+    display: grid; gap: .5rem;
+  }
+  .context-selector {
+    display: grid; gap: .35rem;
+  }
+  .context-selector select {
+    min-height: var(--touch-target);
+    padding: .6rem .75rem;
+    font-size: .95rem;
+  }
+  .context-divider { display: none; }
+  .context-status { font-size: .875rem; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .global-context .container {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .context-controls {
+    display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  }
+  .context-selector select { min-width: 200px; }
+}
+
+@media (min-width: 1024px) {
+  .global-context .container {
+    display: flex; align-items: center; justify-content: space-between; gap: 1.25rem;
+  }
+  .context-controls { display: flex; align-items: center; gap: 1.25rem; }
+  .context-selector select { min-width: 220px; }
+}
+
+/* =========================================================
+   Main Navigation (.main-navigation)
+========================================================= */
+@media (max-width: 767px) {
+  .main-navigation .container {
+    display: grid; gap: .5rem; align-items: center;
+  }
+  .nav-brand h1 { margin: 0; font-size: 1.125rem; }
+
+  .mobile-menu-toggle { display: inline-flex; justify-self: end; }
+
+  .nav-menu {
+    display: none; flex-direction: column; gap: .25rem;
+    border-top: 1px solid var(--color-gray-200); padding-top: .5rem;
+  }
+  .nav-menu.active { display: flex; }
+
+  .nav-link {
+    padding: .6rem .75rem; border-radius: var(--radius-md);
+    text-align: left; min-height: var(--touch-target);
+  }
+}
+
+@media (min-width: 768px) {
+  .main-navigation .container {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .mobile-menu-toggle { display: none; }
+  .nav-menu { display: flex; align-items: center; gap: .5rem; padding: .5rem 0; }
+  .nav-link { padding: .55rem .9rem; }
+}
+
+/* =========================================================
+   Page Layout / Sections
+========================================================= */
+@media (max-width: 767px) {
+  .main-content .container { padding-top: .75rem; padding-bottom: 1rem; }
+  .page-header { margin-bottom: .5rem; }
+  .page-content { margin-top: .75rem; }
+}
+
+/* toggle-able pages */
+.page-content.hidden { display: none !important; }
+.page-content:not(.hidden) { display: block; }
+
+/* =========================================================
+   Sub Navigation (ภายใต้แต่ละ page)
+========================================================= */
+@media (max-width: 767px) {
+  .sub-navigation { margin-top: .25rem; }
+  .sub-nav-controls { display: grid; gap: .5rem; }
+  .class-selector select { min-height: var(--touch-target); font-size: .95rem; }
+
+  .sub-nav-tabs { gap: .35rem; }
+  .sub-nav-tab {
+    min-height: var(--touch-target); padding: .5rem .75rem; font-size: .9rem;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .sub-nav-tabs { gap: .5rem; }
+}
+
+@media (min-width: 1024px) {
+  .sub-nav-tabs { gap: .6rem; }
+}
+
+/* =========================================================
+   Export Bars (.export-bar)
+========================================================= */
+@media (max-width: 767px) {
+  .export-bar {
+    grid-template-columns: 1fr; display: grid; gap: .5rem;
+  }
+  .export-buttons { justify-content: stretch; }
+  .export-buttons .btn { width: 100%; }
+}
+
+@media (min-width: 768px) {
+  .export-bar { display: flex; align-items: center; justify-content: space-between; }
+}
+
+/* =========================================================
+   Schedule blocks (student & teacher)
+========================================================= */
+@media (max-width: 767px) {
+  .schedule-header { text-align: center; }
+  .schedule-container {
+    overflow-x: auto; -webkit-overflow-scrolling: touch;
+  }
+  .schedule-container .schedule-table { min-width: 640px; font-size: .85rem; }
+  .schedule-container .schedule-table th,
+  .schedule-container .schedule-table td {
+    padding: .5rem .35rem;
+  }
+  .schedule-context { font-size: .9rem; color: var(--color-dark-lighter); }
+  #student-empty-state, #teacher-details-empty { padding: .75rem; }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .schedule-container { overflow-x: auto; }
+  .schedule-container .schedule-table { min-width: 820px; }
+}
+
+@media (min-width: 1024px) {
+  .schedule-container .schedule-table { width: 100%; min-width: unset; }
+}
+
+/* =========================================================
+   Teacher page: summary grids & ranking
+========================================================= */
+@media (max-width: 767px) {
+  .workload-container { display: grid; gap: .75rem; }
+  .summary-section h3 { margin: .25rem 0; }
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+  .ranking-list { display: grid; gap: .5rem; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .stats-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+@media (min-width: 1024px) {
+  .stats-grid { grid-template-columns: repeat(4, minmax(0,1fr)); }
+}
+
+/* =========================================================
+   Teacher details tab
+========================================================= */
+@media (max-width: 767px) {
+  .teacher-controls { margin-bottom: .5rem; }
+  #teacher-tabs { display: grid; grid-auto-flow: column; gap: .35rem; overflow-x: auto; }
+  #teacher-info { padding: .5rem; }
+  .workload-details { margin-top: .5rem; }
+}
+
+/* =========================================================
+   Substitution page
+========================================================= */
+@media (max-width: 767px) {
+  .date-controls h3 { font-size: 1rem; margin-bottom: .35rem; }
+  .date-picker-toolbar {
+    display: grid; gap: .5rem; grid-template-columns: 1fr 1fr 1fr;
+  }
+  .date-input-group {
+    grid-column: 1 / -1; display: grid; grid-template-columns: 1fr auto; gap: .5rem;
+  }
+  .date-input { min-height: var(--touch-target); }
+  #btn-load-date { min-height: var(--touch-target); }
+
+  .substitution-container { display: grid; gap: .75rem; }
+  #absent-teachers, #substitute-assignments { display: grid; gap: .5rem; }
+}
+
+/* =========================================================
+   Admin page: forms grid & sections
+========================================================= */
+@media (max-width: 767px) {
+  .admin-section { padding: .75rem; }
+  .admin-forms-grid {
+    display: grid; grid-template-columns: 1fr; gap: .75rem;
+  }
+  .admin-form-section h3 { margin: .25rem 0 .5rem; }
+  .admin-form .form-group { margin-bottom: .75rem; }
+  .admin-form .btn { width: 100%; min-height: var(--touch-target); }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  .admin-forms-grid { grid-template-columns: repeat(2, minmax(0,1fr)); gap: 1rem; }
+}
+@media (min-width: 1024px) {
+  .admin-forms-grid { grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1.25rem; }
+}
+
+/* =========================================================
+   Loading / Error / Empty states
+========================================================= */
+@media (max-width: 767px) {
+  .loading-state, .error-state, .empty-state { padding: .75rem; }
+  .loading-spinner-large { width: 32px; height: 32px; border-width: 3px; }
+}
+
+/* =========================================================
+   Footer / Notification
+========================================================= */
+@media (max-width: 767px) {
+  .main-footer .container { padding: .75rem 0; }
+  .notification-container { right: .75rem; left: .75rem; bottom: .75rem; }
+}
+
+/* =========================================================
+   Touch-friendly (coarse pointer)
+========================================================= */
+@media (pointer: coarse) {
+  .btn,
+  .nav-link,
+  .sub-nav-tab,
+  .form-group select,
+  .form-group input {
+    min-height: 48px;
+  }
+}
+
+/* =========================================================
+   RESPONSIVE.CSS — part 2/2
+   เสริมรายละเอียดเฉพาะอุปกรณ์/โหมด: sticky table, landscape,
+   reduced motion, high contrast, print, safe-area, และองค์ประกอบอื่น ๆ
+   ที่อ้างอิงจาก HTML ปัจจุบัน
+   ========================================================= */
+
+/* =========================================================
+   Schedule table: sticky header & first column (>= tablet)
+========================================================= */
+@media (min-width: 768px) {
+  .schedule-container .schedule-table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  .schedule-container .schedule-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2; /* อยู่เหนือเซลล์ทั่วไป */
+  }
+
+  /* คอลัมน์แรก (หัวแถวเวลา/ชื่อแถว) ให้ติดซ้าย */
+  .schedule-container .schedule-table th:first-child,
+  .schedule-container .schedule-table td:first-child {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+
+  /* เมื่อหัวแถวและคอลัมน์แรกซ้อนกัน เพิ่ม z-index ของหัวแถวคอลัมน์แรก */
+  .schedule-container .schedule-table thead th:first-child {
+    z-index: 3;
+  }
+}
+
+/* =========================================================
+   Sub-pages layout enhancements (>= tablet)
+========================================================= */
+@media (min-width: 768px) {
+  /* Teacher: ranking & stats สองคอลัมน์ขึ้นไป */
+  #teacher-summary .summary-section + .summary-section {
+    margin-top: 1rem;
+  }
+  #teacher-summary .ranking-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0,1fr));
+    gap: .75rem;
+  }
+}
+@media (min-width: 1024px) {
+  #teacher-summary .ranking-list {
+    grid-template-columns: repeat(3, minmax(0,1fr));
+  }
+}
+
+/* Teacher details layout */
+@media (min-width: 1024px) {
+  .teacher-content {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+  #teacher-info {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+/* =========================================================
+   Substitution page grids
+========================================================= */
+@media (min-width: 768px) {
+  .substitution-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+@media (min-width: 1024px) {
+  .substitution-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Date toolbar alignment (>= tablet) */
+@media (min-width: 768px) {
+  .date-picker-toolbar {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .date-input-group {
+    display: inline-grid;
+    grid-template-columns: 220px auto;
+    gap: .5rem;
+  }
+  .date-input { min-width: 220px; }
+}
+
+/* =========================================================
+   Admin: sub-section layouts and previews
+========================================================= */
+@media (min-width: 768px) {
+  .generation-controls { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .schedule-preview { margin-top: .75rem; }
+}
+@media (min-width: 1024px) {
+  .substitute-management-container,
+  .year-management-container,
+  .ai-generation-container {
+    padding: 1rem;
+  }
+}
+
+/* =========================================================
+   Footer & Notifications
+========================================================= */
+@media (max-width: 767px) {
+  .main-footer .container {
+    text-align: center;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0));
+  }
+  .notification-container {
+    left: 1rem; right: 1rem;
+    bottom: calc(1rem + env(safe-area-inset-bottom, 0));
+  }
+}
+
+/* =========================================================
+   Loading overlay & spinners
+========================================================= */
+@media (max-width: 767px) {
+  .loading-overlay p { margin-top: .5rem; font-size: .95rem; }
+  .loading-spinner-large {
+    width: 40px; height: 40px; border-width: 4px;
+  }
+}
+
+/* =========================================================
+   Landscape mobile tweaks
+========================================================= */
+@media (max-width: 767px) and (orientation: landscape) {
+  .global-context { position: static; }
+  .sub-nav-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .schedule-container { overflow-x: auto; }
+}
+
+/* =========================================================
+   Reduced motion
+========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  *,:before,:after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =========================================================
+   High contrast
+========================================================= */
+@media (prefers-contrast: high) {
+  .nav-link,
+  .sub-nav-tab,
+  .btn,
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    border-width: 2px;
+  }
+  .schedule-container .schedule-table th,
+  .schedule-container .schedule-table td {
+    border-width: 2px;
+  }
+}
+
+/* =========================================================
+   Print mode
+========================================================= */
+@media print {
+  /* ซ่อนส่วนที่ไม่จำเป็น */
+  .global-context,
+  .main-navigation,
+  .sub-navigation,
+  .export-bar,
+  .mobile-menu-toggle,
+  .notification-container,
+  .loading-overlay,
+  .generation-controls,
+  .substitute-actions,
+  .year-actions {
+    display: none !important;
+  }
+
+  .main-content,
+  .page-content,
+  .schedule-container {
+    margin: 0; padding: 0;
+  }
+
+  /* ตารางให้พิมพ์ชัด */
+  .schedule-container .schedule-table {
+    width: 100%;
+    border-collapse: collapse !important;
+    font-size: 11px;
+  }
+  .schedule-container .schedule-table th,
+  .schedule-container .schedule-table td {
+    border: 1px solid #000 !important;
+    padding: 4px 3px !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* การ์ด/ส่วนอื่น ๆ ให้หลีกเลี่ยงการแยกหน้า */
+  .admin-section,
+  .ai-generation-container,
+  .substitute-management-container,
+  .year-management-container {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #000;
+    box-shadow: none !important;
+    margin-bottom: .5rem;
+  }
+}
+
+/* =========================================================
+   iOS Safe Area support
+========================================================= */
+@supports (padding: max(0px)) {
+  .main-navigation { padding-top: max(.5rem, env(safe-area-inset-top)); }
+  .main-footer { padding-bottom: max(.75rem, env(safe-area-inset-bottom)); }
+}
+
+/* =========================================================
+   Helpers for small controls on mobile
+========================================================= */
+@media (max-width: 767px) {
+  .btn { min-height: var(--touch-target); }
+  .sub-nav-tab,
+  .nav-link { min-height: var(--touch-target); }
+
+  /* กลุ่มปุ่มใน export */
+  .export-buttons { display: grid; gap: .5rem; grid-template-columns: 1fr 1fr 1fr; }
+  .export-buttons .btn { width: 100%; }
+}
+
+/* =========================================================
+   Minor spacing tune for headers on mobile
+========================================================= */
+@media (max-width: 767px) {
+  .page-header h2 { margin-bottom: .25rem; }
+  .page-header + .export-bar { margin-top: .5rem; }
+}
+
+/* =========================================================
+   Fallback: ถ้าฟอร์มมี .hidden ถูกเอาออก ให้แสดง block
+========================================================= */
+@media (max-width: 767px) {
+  .hidden { display: none !important; }
+  .page-content:not(.hidden),
+  .sub-page.active { display: block; }
+}
