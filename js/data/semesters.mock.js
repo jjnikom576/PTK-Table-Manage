@@ -17,9 +17,9 @@ const SEMESTERS = [
         created_at: '2023-05-01T00:00:00.000Z'
     },
 
-    // ปีการศึกษา 2567 (ปัจจุบัน)
+    // ปีการศึกษา 2567 (ปัจจุบัน) - แก้ไข duplicate ID
     {
-        id: 4,
+        id: 10,
         academic_year_id: 2,
         semester_number: 1,
         semester_name: 'ภาคเรียนที่ 1',
@@ -50,16 +50,6 @@ const SEMESTERS = [
     },
 
     // ปีการศึกษา 2567 (ปัจจุบัน)
-    {
-        id: 4,
-        academic_year_id: 2,
-        semester_number: 1,
-        semester_name: 'ภาคเรียนที่ 1',
-        start_date: '2024-05-15',
-        end_date: '2024-09-30',
-        is_active: true, // ภาคเรียนปัจจุบัน
-        created_at: '2024-05-01T00:00:00.000Z'
-    },
     {
         id: 5,
         academic_year_id: 2,

@@ -134,7 +134,7 @@ export async function setGlobalContext(year, semesterId) {
  */
 export async function switchToYear(year) {
   try {
-    const semesters = await loadSemesters(year);
+    const semesters = await loadSemestersByYear(year);
     let newSemesterId = null;
     
     if (currentContext.semester) {
@@ -185,6 +185,7 @@ export async function loadAcademicYears() {
     let result;
     if (serviceConfig.mode === 'mock') {
       result = { ok: true, data: mockData.academicYears };
+      console.log('[DataService] Loaded academic years from mock:', mockData.academicYears);
     } else {
       result = await academicYearsAPI.getAcademicYears();
     }
@@ -200,9 +201,28 @@ export async function loadAcademicYears() {
 }
 
 /**
+ * Load Semesters
+ */
+export async function loadSemesters() {
+  try {
+    let result;
+    if (serviceConfig.mode === 'mock') {
+      result = { ok: true, data: mockData.semesters };
+      console.log('[DataService] Loaded semesters from mock:', mockData.semesters);
+    } else {
+      result = await semestersAPI.getAllSemesters();
+    }
+    return result;
+  } catch (error) {
+    console.error('[DataService] Failed to load semesters:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
  * Load Semesters for Year
  */
-export async function loadSemesters(yearId) {
+export async function loadSemestersByYear(yearId) {
   const cacheKey = `semesters.${yearId}`;
   let cached = cache.get(cacheKey);
   if (cached) return { ok: true, data: cached };
@@ -300,8 +320,12 @@ export async function loadSemesterData(semesterId) {
     const semester = await getSemesterById(semesterId);
     if (!semester.ok) throw new Error('Semester not found');
     
-    const year = semester.data.academic_year_id;
-    const yearData = await loadYearData(year);
+    // หา actual year จาก academic_year_id
+    const academicYear = await getAcademicYearById(semester.data.academic_year_id);
+    if (!academicYear.ok) throw new Error('Academic year not found');
+    
+    const actualYear = academicYear.data.year; // ใช้ actual year (2568)
+    const yearData = await loadYearData(actualYear);
     
     if (!yearData.ok) return yearData;
     
@@ -321,6 +345,99 @@ export async function loadSemesterData(semesterId) {
     console.error('[DataService] Failed to load semester data:', error);
     return { ok: false, error: error.message };
   }
+}
+
+// =============================================================================
+// STUDENT SCHEDULE FUNCTIONS  
+// =============================================================================
+
+/**
+ * Get Student Schedule by Class
+ */
+export async function getStudentSchedule(classId) {
+  try {
+    console.log('[DataService] Getting student schedule for class:', classId);
+    console.log('[DataService] Current context:', currentContext);
+    
+    // ใช้ปีจาก context จริง
+    const targetYear = currentContext.year || 2568;
+    console.log('[DataService] Using target year:', targetYear);
+    
+    const yearData = await loadYearData(targetYear);
+    
+    if (!yearData.ok) {
+      throw new Error('Failed to load year data');
+    }
+    
+    const { schedules, subjects, teachers, classes, rooms } = yearData.data;
+    console.log('[DataService] Available classes:', classes.map(c => c.class_name));
+    
+    // หา class จาก classId (m1-1 -> ม.1/1)
+    const className = classId.replace('-', '/').replace('m', 'ม.');
+    console.log('[DataService] Looking for class:', className);
+    
+    const classInfo = classes.find(c => c.class_name === className);
+    console.log('[DataService] Found class:', classInfo);
+    
+    if (!classInfo) {
+      return { ok: false, error: `Class ${className} not found` };
+    }
+    
+    // หา schedules ของ class นี้
+    const classSchedules = schedules.filter(s => s.class_id === classInfo.id);
+    
+    // สร้างตารางแบบ matrix
+    const scheduleMatrix = buildScheduleMatrix(classSchedules, { subjects, teachers, rooms });
+    
+    return {
+      ok: true,
+      data: {
+        classInfo,
+        schedules: classSchedules,
+        matrix: scheduleMatrix,
+        subjects,
+        teachers,
+        rooms
+      }
+    };
+    
+  } catch (error) {
+    console.error('[DataService] Failed to get student schedule:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Build Schedule Matrix (5 days x 8 periods)
+ */
+function buildScheduleMatrix(schedules, context) {
+  const matrix = {};
+  
+  // สร้าง matrix ว่าง
+  for (let day = 1; day <= 5; day++) {
+    matrix[day] = {};
+    for (let period = 1; period <= 8; period++) {
+      matrix[day][period] = null;
+    }
+  }
+  
+  // ใส่ข้อมูล schedule
+  schedules.forEach(schedule => {
+    const subject = context.subjects.find(s => s.id === schedule.subject_id);
+    const teacher = context.teachers.find(t => t.id === subject?.teacher_id);
+    const room = context.rooms.find(r => r.id === schedule.room_id);
+    
+    if (schedule.day_of_week && schedule.period) {
+      matrix[schedule.day_of_week][schedule.period] = {
+        schedule,
+        subject: subject || { subject_name: 'ไม่ระบุวิชา' },
+        teacher: teacher || { name: 'ไม่ระบุครู' },
+        room: room || { name: 'ไม่ระบุห้อง' }
+      };
+    }
+  });
+  
+  return matrix;
 }
 
 // =============================================================================
@@ -398,6 +515,17 @@ export async function getSchedules() {
 }
 
 // Helper functions
+export async function getAcademicYearById(yearId) {
+  const years = await loadAcademicYears();
+  if (!years.ok) return years;
+  
+  const academicYear = years.data.find(y => y.id === yearId);
+  if (!academicYear) {
+    return { ok: false, error: `Academic year ID ${yearId} not found` };
+  }
+  return { ok: true, data: academicYear };
+}
+
 export async function getAcademicYearByNumber(year) {
   const years = await loadAcademicYears();
   if (!years.ok) return years;

@@ -21,6 +21,9 @@ const classes_2566 = [
 const classes_2568 = [
     { id: 1, semester_id: 7, class_name: 'ม.1/1', grade_level: 'ม.1', section: 1, student_count: 30, created_at: '2025-05-01T00:00:00.000Z' },
     { id: 2, semester_id: 7, class_name: 'ม.1/2', grade_level: 'ม.1', section: 2, student_count: 29, created_at: '2025-05-01T00:00:00.000Z' },
+    { id: 3, semester_id: 7, class_name: 'ม.2/1', grade_level: 'ม.2', section: 1, student_count: 32, created_at: '2025-05-01T00:00:00.000Z' },
+    { id: 4, semester_id: 7, class_name: 'ม.2/2', grade_level: 'ม.2', section: 2, student_count: 31, created_at: '2025-05-01T00:00:00.000Z' },
+    { id: 5, semester_id: 7, class_name: 'ม.3/1', grade_level: 'ม.3', section: 1, student_count: 28, created_at: '2025-05-01T00:00:00.000Z' },
 ];
 
 // Utility Functions
@@ -44,6 +47,10 @@ export const getClassesBySemester = ClassUtils.getClassesBySemester;
 
 // Export default
 export default {
-    data: allClassesData,
+    data: {
+        classes_2566,
+        classes_2567, 
+        classes_2568
+    },
     utils: ClassUtils
 };

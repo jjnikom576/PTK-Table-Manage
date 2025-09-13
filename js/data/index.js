@@ -10,7 +10,7 @@ import teachersData, { TeacherUtils } from './teachers.mock.js';
 import classesData, { ClassUtils } from './classes.mock.js';
 import roomsData, { RoomUtils, ROOM_TYPES } from './rooms.mock.js';
 import subjectsData from './subjects.mock.js';
-import schedulesData, { ScheduleUtils, ConflictDetection, TIME_PERIODS, DAYS_OF_WEEK } from './schedules.mock.js';
+import schedulesModule, { schedulesData, ScheduleUtils, ConflictDetection, TIME_PERIODS, DAYS_OF_WEEK } from './schedules.mock.js';
 import substitutionsData from './substitutions.mock.js';
 
 // Main Export Structure - Multi-Year Data
@@ -25,7 +25,7 @@ export const mockData = {
         classes: classesData.data.classes_2566 || [],
         rooms: roomsData.data.rooms_2566 || [],
         subjects: subjectsData.data.subjects_2566 || [],
-        schedules: schedulesData.data.schedules_2566 || [],
+        schedules: schedulesData.schedules_2566 || [],
         substitutions: substitutionsData.data.substitutions_2566 || [],
         substitution_schedules: substitutionsData.data.substitution_schedules_2566 || []
     },
@@ -34,7 +34,7 @@ export const mockData = {
         classes: classesData.data.classes_2567 || [],
         rooms: roomsData.data.rooms_2567 || [],
         subjects: subjectsData.data.subjects_2567 || [],
-        schedules: schedulesData.data.schedules_2567 || [],
+        schedules: schedulesData.schedules_2567 || [],
         substitutions: substitutionsData.data.substitutions_2567 || [],
         substitution_schedules: substitutionsData.data.substitution_schedules_2567 || []
     },
@@ -43,7 +43,7 @@ export const mockData = {
         classes: classesData.data.classes_2568 || [],
         rooms: roomsData.data.rooms_2568 || [],
         subjects: subjectsData.data.subjects_2568 || [],
-        schedules: schedulesData.data.schedules_2568 || [],
+        schedules: schedulesData.schedules_2568 || [],
         substitutions: substitutionsData.data.substitutions_2568 || [],
         substitution_schedules: substitutionsData.data.substitution_schedules_2568 || []
     }

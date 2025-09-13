@@ -31,7 +31,7 @@ const schedules_2567_sample = [
     {
         id: 1,
         semester_id: 4,
-        subject_id: 1,  // วิทยาศาสตร์ (teacher_id: 1, class_id: 1)
+        subject_id: 1,  // วิทยาศาสตร์ (id: 1)
         class_id: 1,    // ม.1/1
         day_of_week: 1, // จันทร์
         period: 1,      // คาบ 1
@@ -41,7 +41,7 @@ const schedules_2567_sample = [
     {
         id: 2,
         semester_id: 4,
-        subject_id: 3,  // คณิตศาสตร์ (teacher_id: 4, class_id: 1)
+        subject_id: 2,  // คณิตศาสตร์ (id: 2)
         class_id: 1,    // ม.1/1
         day_of_week: 1, // จันทร์
         period: 2,      // คาบ 2
@@ -51,7 +51,7 @@ const schedules_2567_sample = [
     {
         id: 3,
         semester_id: 4,
-        subject_id: 5,  // ภาษาไทย (teacher_id: 7, class_id: 1)
+        subject_id: 3,  // ภาษาไทย (id: 3)
         class_id: 1,    // ม.1/1
         day_of_week: 1, // จันทร์
         period: 3,      // คาบ 3
@@ -61,7 +61,7 @@ const schedules_2567_sample = [
     {
         id: 4,
         semester_id: 4,
-        subject_id: 7,  // ภาษาอังกฤษ (teacher_id: 9, class_id: 1)
+        subject_id: 4,  // ภาษาอังกฤษ (id: 4)
         class_id: 1,    // ม.1/1
         day_of_week: 1, // จันทร์
         period: 5,      // คาบ 5
@@ -73,7 +73,7 @@ const schedules_2567_sample = [
     {
         id: 5,
         semester_id: 4,
-        subject_id: 3,  // คณิตศาสตร์ (teacher_id: 4)
+        subject_id: 2,  // คณิตศาสตร์ (id: 2)
         class_id: 1,    // ม.1/1
         day_of_week: 2, // อังคาร
         period: 1,      // คาบ 1
@@ -83,7 +83,7 @@ const schedules_2567_sample = [
     {
         id: 6,
         semester_id: 4,
-        subject_id: 1,  // วิทยาศาสตร์ (teacher_id: 1)
+        subject_id: 1,  // วิทยาศาสตร์ (id: 1)
         class_id: 1,    // ม.1/1
         day_of_week: 2, // อังคาร
         period: 2,      // คาบ 2
@@ -95,28 +95,42 @@ const schedules_2567_sample = [
     {
         id: 7,
         semester_id: 4,
-        subject_id: 4,  // คณิตศาสตร์ ม.1/2 (teacher_id: 5 - ครูต่างคน)
+        subject_id: 6,  // คณิตศาสตร์ ม.1/2 (ต้องสร้าง subject ใหม่)
         class_id: 2,    // ม.1/2
         day_of_week: 1, // จันทร์
-        period: 1,      // คาบ 1 - ไม่ชนเพราะครูต่างคน
+        period: 1,      // คาบ 1
         room_id: 2,     // ห้อง 102 (CLASS)
         created_at: '2024-05-01T00:00:00.000Z'
     },
     {
         id: 8,
         semester_id: 4,
-        subject_id: 2,  // วิทยาศาสตร์ ม.1/2 (teacher_id: 1 - ครูเดียวกัน)
+        subject_id: 7,  // วิทยาศาสตร์ ม.1/2 (ต้องสร้าง subject ใหม่)
         class_id: 2,    // ม.1/2
         day_of_week: 1, // จันทร์
         period: 4,      // คาบ 4 - ต้องต่างคาบกับ ม.1/1
-        room_id: 15,    // ห้องวิทยาศาสตร์ 2 (TECH)
+        room_id: 14,    // ห้องวิทยาศาสตร์ 1 (TECH) - ใช้ร่วมกับ ม.1/1 ได้
         created_at: '2024-05-01T00:00:00.000Z'
     }
 ];
 
-// Export Structure
-export const schedulesData = {
-    schedules_2567: schedules_2567_sample
+// Schedules 2568 - Copy from 2567 but adjust semester_id and subject_id mapping
+const schedules_2568_sample = schedules_2567_sample.map(schedule => {
+    // Subject ID mapping: 2567 (1,2,3,4,5) -> 2568 (101,102,103,104,105)
+    return {
+        ...schedule,
+        id: schedule.id + 100, // เพิ่ม 100 เพื่อไม่ให้ id ซ้ำ
+        semester_id: 7,  // ภาคเรียนที่ 1 ปี 2568
+        subject_id: schedule.subject_id + 100, // subject_id: 1->101, 2->102, etc.
+        created_at: '2025-05-01T00:00:00.000Z'
+    };
+});
+
+// Multi-Year Schedules Data Structure
+const schedulesData = {
+    schedules_2566: [],  // ยังไม่มีข้อมูล
+    schedules_2567: schedules_2567_sample,
+    schedules_2568: schedules_2568_sample
 };
 
 // Conflict Detection Logic
@@ -366,3 +380,6 @@ export default {
     periods: TIME_PERIODS,
     days: DAYS_OF_WEEK
 };
+
+// Also export schedulesData directly for compatibility
+export { schedulesData };

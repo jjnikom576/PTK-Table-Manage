@@ -300,6 +300,10 @@ export { teachers_2567, teachers_2566, teachers_2568 };
 
 // Export default
 export default {
-    data: teachersData,
+    data: {
+        teachers_2566: teachers_2566,
+        teachers_2567: teachers_2567,
+        teachers_2568: teachers_2568
+    },
     utils: TeacherUtils
 };
