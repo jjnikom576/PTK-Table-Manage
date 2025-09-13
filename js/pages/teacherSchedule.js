@@ -318,24 +318,24 @@ function renderTeacherInfoSection(teacher, scheduleData, context) {
   if (!infoContainer) return;
   
   infoContainer.innerHTML = `
-    <div class="teacher-info-card">
-      <h4>ตารางสอน - ${teacher.name}</h4>
-      <div class="teacher-details-grid">
-        <div class="detail-item">
+    <div class="teacher-info-card" style="text-align: center;">
+      <h4 style="text-align: center;">ตารางสอน - ${teacher.name}</h4>
+      <div class="teacher-details-grid" style="text-align: center;">
+        <div class="detail-item" style="text-align: center;">
           <span class="label">กลุ่มสาระ:</span>
           <span class="value">${teacher.subject_group}</span>
         </div>
         ${teacher.phone ? `
-        <div class="detail-item">
+        <div class="detail-item" style="text-align: center;">
           <span class="label">📞</span>
           <span class="value">${teacher.phone}</span>
         </div>` : ''}
         ${teacher.email ? `
-        <div class="detail-item">
+        <div class="detail-item" style="text-align: center;">
           <span class="label">📧</span>
           <span class="value">${teacher.email}</span>
         </div>` : ''}
-        <div class="detail-item">
+        <div class="detail-item" style="text-align: center;">
           <span class="label">ภาคเรียน:</span>
           <span class="value">ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}</span>
         </div>
@@ -364,8 +364,8 @@ function renderScheduleTableSection(scheduleData, teacher, context) {
               ${timeSlots.map((timeSlot, index) => 
                 `<th class="period-header">
                   <div class="period-info">
-                    <span class="period-number">คาบ ${index + 1}</span>
-                    <small class="time-slot">${timeSlot}</small>
+                    <div class="period-number">คาบ ${index + 1}</div>
+                    <div class="time-slot">${timeSlot}</div>
                   </div>
                 </th>`
               ).join('')}
@@ -442,7 +442,7 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
   
   workloadContainer.innerHTML = `
     <div class="workload-summary-card">
-      <h4>📝 ภาระงานสอน</h4>
+      <h4 style="text-align: center !important;">📝 ภาระงานสอน</h4>
       <div class="subjects-list">
         ${subjectSummary.map(item => `
           <div class="subject-workload-item">
@@ -453,7 +453,7 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
           </div>
         `).join('')}
       </div>
-      <div class="total-workload">
+      <div class="total-workload" style="text-align: center !important;">
         <strong>รวม ${scheduleData.totalPeriods} คาบ/สัปดาห์</strong>
       </div>
     </div>

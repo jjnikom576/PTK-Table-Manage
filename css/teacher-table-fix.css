@@ -1,0 +1,97 @@
+/* =========================================
+   FIX: หน้า Teacher Schedule - จัดกึ่งกลาง
+   ========================================= */
+
+/* ========== 1. หัวตาราง จัดกึ่งกลาง ========== */
+.schedule-table thead th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.schedule-table thead th:first-child {
+  text-align: center !important; /* แม้แต่คอลัมน์แรก */
+}
+
+/* ========== 2. ตาราง จัดกึ่งกลาง ทั้ง 8 คาบ ========== */
+.schedule-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+.schedule-table td:first-child {
+  text-align: center !important; /* คอลัมน์วัน */
+  font-weight: var(--font-weight-semibold);
+}
+
+/* เซลล์เนื้อหาวิชา */
+.subject-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-height: 60px;
+  gap: .15rem;
+}
+
+.subject-name,
+.teacher-name,
+.class-name,
+.room-name {
+  text-align: center !important;
+}
+
+/* ========== 3. สรุปภาระงาน จัดกึ่งกลาง ========== */
+.workload-container {
+  text-align: center;
+}
+
+.summary-section h3 {
+  text-align: center !important;
+}
+
+.stats-grid {
+  justify-items: center;
+}
+
+.stat-card {
+  text-align: center !important;
+}
+
+.ranking-list {
+  align-items: center;
+}
+
+.ranking-item {
+  justify-content: center;
+  text-align: center;
+}
+
+/* ========== 4. Teacher Info Card จัดกึ่งกลาง ========== */
+.teacher-info {
+  text-align: center;
+}
+
+.teacher-info .info-card {
+  text-align: center !important;
+}
+
+.teacher-info .info-title,
+.teacher-info .info-value {
+  text-align: center !important;
+}
+
+/* ========== 5. Responsive เพิ่มเติม ========== */
+@media (max-width: 767px) {
+  .schedule-container {
+    text-align: center;
+  }
+  
+  .schedule-table {
+    margin: 0 auto;
+  }
+  
+  .workload-container {
+    text-align: center;
+  }
+}

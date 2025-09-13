@@ -162,6 +162,11 @@
   .schedule-container .schedule-table th,
   .schedule-container .schedule-table td {
     padding: .5rem .35rem;
+    text-align: center !important; /* FIX: บังคับกึ่งกลางใน mobile */
+  }
+  .schedule-container .schedule-table th:first-child,
+  .schedule-container .schedule-table td:first-child {
+    text-align: center !important; /* FIX: คอลัมน์แรกก็กึ่งกลาง */
   }
   .schedule-context { font-size: .9rem; color: var(--color-dark-lighter); }
   #student-empty-state, #teacher-details-empty { padding: .75rem; }
@@ -329,13 +334,13 @@
 @media (min-width: 1024px) {
   .teacher-content {
     display: grid;
-    grid-template-columns: 320px 1fr;
+    grid-template-columns: 1fr; /* FIX: เปลี่ยนเป็นแนวตั้งแทนแนวนอน */
     gap: 1rem;
     align-items: start;
   }
   #teacher-info {
-    position: sticky;
-    top: 1rem;
+    position: static; /* FIX: ไม่ต้อง sticky */
+    top: unset;
   }
 }
 

@@ -383,7 +383,211 @@
 /* ========== Teacher Details layout (tabs/panels) ========== */
 .sub-page { display: none; }
 .sub-page.active { display: block; }
-.teacher-content { display: grid; gap: .75rem; }
+.teacher-content { 
+  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  gap: .75rem; 
+}
+
+/* FIX: Teacher Info Container - จัดกึ่งกลางเต็มความกว้าง */
+#teacher-info {
+  width: 100% !important;
+  text-align: center !important;
+  display: block !important;
+}
+
+/* ========== FIX: Teacher Schedule Table - จัดกึ่งกลาง ========== */
+#teacher-details .schedule-table thead th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+#teacher-details .schedule-table thead th:first-child {
+  text-align: center !important;
+}
+
+#teacher-details .schedule-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+#teacher-details .schedule-table td:first-child {
+  text-align: center !important;
+}
+
+#teacher-details .subject-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-height: 60px;
+  gap: .15rem;
+}
+
+#teacher-details .subject-name,
+#teacher-details .teacher-name,
+#teacher-details .class-name {
+  text-align: center !important;
+}
+
+/* ========== FIX: Teacher Info Card - จัดกึ่งกลาง ========== */
+.teacher-info-card {
+  text-align: center !important;
+}
+
+.teacher-info-card h4 {
+  text-align: center !important;
+}
+
+.teacher-details-grid {
+  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  text-align: center !important;
+}
+
+.detail-item {
+  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  text-align: center !important;
+  margin-bottom: 0.5rem;
+}
+
+/* ========== FIX: Workload Summary Card - จัดกึ่งกลาง ========== */
+.workload-summary-card {
+  text-align: left !important; /* FIX: เปลี่ยนกลับเป็นชิดซ้าย */
+}
+
+.workload-summary-card h4 {
+  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+}
+
+/* FIX: เพิ่ม selector ที่เฉพาะเจาะจง */
+#teacher-workload h4 {
+  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+}
+
+.workload-details h4 {
+  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+}
+
+.subjects-list {
+  display: block !important;
+  text-align: center !important;
+  padding-left: 0;
+  max-width: 446px; /* FIX: ปรับตามความกว้างหน้าจอ */
+  margin: 0 auto;
+}
+
+.subject-workload-item {
+  display: grid !important;
+  grid-template-columns: 90px 1fr 70px 70px;
+  gap: 0.75rem;
+  text-align: left !important;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+  align-items: center; /* FIX: จัดแนวตั้งให้อยู่แนวเดียวกัน */
+}
+
+/* จัดรูปแบบแต่ละคอลัมน์ */
+.subject-code {
+  text-align: left !important;
+  font-family: monospace;
+  font-weight: bold;
+  color: #666;
+  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+}
+
+.subject-name {
+  text-align: left !important;
+  font-weight: bold;
+  color: #333;
+  font-size: 1rem;
+}
+
+.class-names {
+  text-align: center !important;
+  color: #0066cc;
+  font-weight: medium;
+  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+}
+
+.periods-count {
+  text-align: right !important;
+  font-weight: bold;
+  color: #007700;
+  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+}
+
+.total-workload {
+  text-align: center !important; /* FIX: สรุปกึ่งกลาง */
+}
+
+/* ========== FIX: Teacher Info ใช้ class ที่มีอยู่แล้ว ========== */
+.teacher-info {
+  text-align: center !important;
+}
+
+.teacher-info h4 {
+  text-align: center !important;
+}
+
+.teacher-info .info-card {
+  text-align: center !important;
+}
+
+.teacher-info .info-title {
+  text-align: center !important;
+}
+
+.teacher-info .info-value {
+  text-align: center !important;
+}
+
+/* ========== FIX: Workload Details ใช้ class ที่มีอยู่แล้ว ========== */
+.workload-details {
+  text-align: center !important;
+  margin-bottom: 2rem; /* เพิ่มระยะห่างจาก footer */
+}
+
+.workload-details .work-card {
+  text-align: center !important;
+}
+
+/* ========== FIX: หัวข้อชื่อครู - จัดกึ่งกลาง ========== */
+#teacher-details h3 {
+  text-align: center !important;
+}
+
+#teacher-details h4 {
+  text-align: center !important;
+}
+
+/* สำหรับ element ที่มีชื่อครู */
+#teacher-details [class*="teacher"] {
+  text-align: center !important;
+}
+
+#teacher-details [id*="teacher"] {
+  text-align: center !important;
+}
+
+/* ========== FIX: Period Header - แยกบรรทัด ========== */
+.period-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.25rem;
+}
+
+.period-number {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.time-slot {
+  font-size: 0.75rem;
+  color: #666;
+}
 
 /* ========== Substitution: date info header ========== */
 .date-info { margin-bottom: .5rem; }
