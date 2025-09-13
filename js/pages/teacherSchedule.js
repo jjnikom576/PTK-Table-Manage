@@ -267,13 +267,24 @@ async function renderTeacherTabs(context) {
   const tabsContainer = document.getElementById('teacher-tabs');
   if (!tabsContainer || !pageState.teachers.length) return;
   
-  tabsContainer.innerHTML = pageState.teachers.map(teacher => `
+  // FIX: เรียงครูตามกลุ่มสาระก่อน แล้วค่อยเรียงตามชื่อ
+  const sortedTeachers = [...pageState.teachers].sort((a, b) => {
+    // เรียงตามกลุ่มสาระก่อน
+    if (a.subject_group !== b.subject_group) {
+      return a.subject_group.localeCompare(b.subject_group, 'th');
+    }
+    // ถ้ากลุ่มสาระเดียวกัน ให้เรียงตามชื่อ
+    return a.name.localeCompare(b.name, 'th');
+  });
+  
+  tabsContainer.innerHTML = sortedTeachers.map(teacher => `
     <button class="teacher-tab" 
             data-teacher-id="${teacher.id}" 
             role="tab"
-            aria-selected="false">
-      ${teacher.name}
-      <span class="teacher-subject">${teacher.subject_group}</span>
+            aria-selected="false"
+            style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.75rem;">
+      <div style="font-weight: bold; margin-bottom: 0.25rem;">${teacher.name}</div>
+      <div style="font-size: 0.85rem; color: #666;">${teacher.subject_group}</div>
     </button>
   `).join('');
 }
