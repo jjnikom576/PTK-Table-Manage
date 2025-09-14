@@ -173,7 +173,7 @@ async function initStudentPage() {
         console.warn('[Navigation] No classes data, using fallback');
         classSelector.innerHTML = `
           <option value="">-- เลือกห้องเรียน --</option>
-          <option value="m1-1222">ม.1/1</option>
+          <option value="m1-1">ม.1/1</option>
           <option value="m1-2">ม.1/2</option>
           <option value="m2-1">ม.2/1</option>
           <option value="m2-2">ม.2/2</option>
@@ -196,8 +196,181 @@ async function initStudentPage() {
       }
     });
     
+    classSelector.addEventListener('change', (e) => {
+      if (e.target.value) {
+        loadMockSchedule(e.target.value);
+      }
+    });
+    
     classSelector.dataset.initialized = 'true';
   }
+  
+  // เพิ่ม export handlers
+  setupBasicExportHandlers();
+}
+
+function setupBasicExportHandlers() {
+  console.log('[Navigation] Setting up basic export handlers');
+  
+  const exportButtons = document.querySelectorAll('#export-bar-student button[data-export-type]');
+  console.log('[Navigation] Found export buttons:', exportButtons.length);
+  
+  exportButtons.forEach(button => {
+    button.addEventListener('click', async (e) => {
+      console.log('[Navigation] Export button clicked:', e.target.dataset.exportType);
+      
+      // ตรวจสอบว่าเลือก class แล้วหรือไม่
+      const classSelector = document.getElementById('class-dropdown');
+      if (!classSelector || !classSelector.value) {
+        alert('กรุณาเลือกห้องเรียนก่อน');
+        return;
+      }
+      
+      try {
+        // เรียกใช้ export function จาก utils/export.js
+        const { exportTableToCSV } = await import('./utils/export.js');
+        
+        // ดึงข้อมูลตารางจริงจากหน้าเว็บ
+        const exportData = extractTableDataFromDOM(classSelector.value);
+        
+        if (!exportData || exportData.length === 0) {
+          alert('ไม่พบข้อมูลตารางเรียน กรุณาโหลดตารางก่อน');
+          return;
+        }
+        
+        const filename = `ตารางเรียน-${classSelector.value}_${new Date().toISOString().slice(0, 10)}`;
+        await exportTableToCSV(exportData, filename);
+        
+        console.log('[Navigation] Export completed successfully');
+        
+      } catch (error) {
+        console.error('[Navigation] Export failed:', error);
+        alert('Export ล้มเหลว: ' + error.message);
+      }
+    });
+  });
+}
+
+// ดึงข้อมูลตารางจาก DOM
+function extractTableDataFromDOM(className) {
+  console.log('[Navigation] Extracting table data for class:', className);
+  
+  // ลอง selector ต่าง ๆ
+  let scheduleTable = document.querySelector('#student-schedule-table .schedule-table');
+  if (!scheduleTable) {
+    scheduleTable = document.querySelector('.schedule-table');
+  }
+  if (!scheduleTable) {
+    scheduleTable = document.querySelector('table');
+  }
+  
+  if (!scheduleTable) {
+    console.warn('[Navigation] No schedule table found');
+    return null;
+  }
+  
+  console.log('[Navigation] Found table:', scheduleTable);
+  
+  const exportData = [];
+  
+  // เพิ่ม header พร้อมเวลา
+  const timeSlots = ['08:20-09:10', '09:10-10:00', '10:00-10:50', '10:50-11:40', '13:00-13:50', '13:50-14:40', '14:40-15:30', '15:30-16:20'];
+  
+  exportData.push({
+    'วัน/เวลา': '',
+    'คาบ 1': '',
+    'คาบ 2': '',
+    'คาบ 3': `ตารางเรียน - ${className.toUpperCase()}`,
+    'คาบ 4': '',
+    'คาบ 5': '',
+    'คาบ 6': '',
+    'คาบ 7': '',
+    'คาบ 8': ''
+  });
+  
+  // บรรทัดว่าง
+  exportData.push({
+    'วัน/เวลา': '', 'คาบ 1': '', 'คาบ 2': '', 'คาบ 3': '',
+    'คาบ 4': '', 'คาบ 5': '', 'คาบ 6': '', 'คาบ 7': '', 'คาบ 8': ''
+  });
+  
+  // หัวตารางพร้อมเวลา
+  exportData.push({
+    'วัน/เวลา': 'วัน/เวลา',
+    'คาบ 1': `คาบ 1\n${timeSlots[0]}`,
+    'คาบ 2': `คาบ 2\n${timeSlots[1]}`,
+    'คาบ 3': `คาบ 3\n${timeSlots[2]}`,
+    'คาบ 4': `คาบ 4\n${timeSlots[3]}`,
+    'คาบ 5': `คาบ 5\n${timeSlots[4]}`,
+    'คาบ 6': `คาบ 6\n${timeSlots[5]}`,
+    'คาบ 7': `คาบ 7\n${timeSlots[6]}`,
+    'คาบ 8': `คาบ 8\n${timeSlots[7]}`
+  });
+  
+  // ดึงข้อมูลจากตาราง
+  const rows = scheduleTable.querySelectorAll('tbody tr, tr');
+  console.log('[Navigation] Found rows:', rows.length);
+  
+  rows.forEach((row, rowIndex) => {
+    console.log('[Navigation] Processing row', rowIndex, row);
+    
+    const dayCell = row.querySelector('.day-cell, td:first-child');
+    if (!dayCell) {
+      console.log('[Navigation] No day cell found in row', rowIndex);
+      return;
+    }
+    
+    const dayName = dayCell.textContent.trim();
+    console.log('[Navigation] Day name:', dayName);
+    
+    if (!dayName || dayName === 'วัน/เวลา') {
+      console.log('[Navigation] Skipping header/empty row');
+      return;
+    }
+    
+    const rowData = { 'วัน/เวลา': dayName };
+    
+    // ดึงข้อมูลแต่ละคาบ
+    const cells = row.querySelectorAll('td:not(:first-child)');
+    console.log('[Navigation] Found cells:', cells.length);
+    
+    cells.forEach((cell, index) => {
+      const period = index + 1;
+      console.log('[Navigation] Processing cell', period, cell.innerHTML);
+      
+      // ดึงข้อมูลจาก cell
+      const cellContent = cell.innerHTML || cell.textContent || '';
+      
+      // ตรวจสอบว่าเป็น empty cell หรือไม่
+      if (cellContent.includes('<div class="subject">-</div>') || cellContent.trim() === '-') {
+        rowData[`คาบ ${period}`] = '-';
+      } else {
+        // ดึง subject, teacher, room จาก div elements
+        const subjectMatch = cellContent.match(/<div class="subject">([^<]+)</); 
+        const teacherMatch = cellContent.match(/<div class="teacher">([^<]+)</); 
+        const roomMatch = cellContent.match(/<div class="room">([^<]+)</); 
+        
+        const subject = subjectMatch ? subjectMatch[1].trim() : '';
+        const teacher = teacherMatch ? teacherMatch[1].trim() : '';
+        const room = roomMatch ? roomMatch[1].trim() : '';
+        
+        if (subject && subject !== '-') {
+          let cellData = subject;
+          if (teacher) cellData += `\n${teacher}`;
+          if (room) cellData += `\n${room}`;
+          rowData[`คาบ ${period}`] = cellData;
+        } else {
+          rowData[`คาบ ${period}`] = '-';
+        }
+      }
+    });
+    
+    exportData.push(rowData);
+  });
+  
+  console.log('[Navigation] Extracted', exportData.length, 'rows');
+  console.log('[Navigation] Sample data:', exportData[2]);
+  return exportData;
 }
 
 async function initTeacherPage() {

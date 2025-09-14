@@ -1,141 +1,4 @@
 /**
- * Setup Student Export Handlers
- */
-function setupStudentExportHandlers(context) {
-  const exportButtons = document.querySelectorAll('#export-bar-student button[data-export-type]');
-  
-  exportButtons.forEach(button => {
-    const newButton = button.cloneNode(true);
-    button.parentNode.replaceChild(newButton, button);
-    
-    newButton.addEventListener('click', async (e) => {
-      e.preventDefault();
-      e.stopPropagation();
-      await handleStudentExport(newButton, context);
-    });
-  });
-  
-  console.log('[StudentSchedule] Export handlers setup, buttons found:', exportButtons.length);
-}
-
-/**
- * Handle Student Export
- */
-async function handleStudentExport(button, context) {
-  if (button.disabled) return;
-  
-  try {
-    if (!pageState.selectedClass) {
-      throw new Error('กรุณาเลือกห้องเรียนก่อน');
-    }
-    
-    showExportProgress(button);
-    
-    const format = button.dataset.exportType;
-    const exportData = await prepareStudentExportData(pageState.selectedClass, context);
-    const filename = generateStudentExportFilename(pageState.selectedClass, context);
-    
-    switch(format) {
-      case 'csv':
-        await exportTableToCSV(exportData, filename);
-        break;
-      case 'xlsx':
-        await exportTableToXLSX(exportData, filename);
-        break;
-      case 'gsheets':
-        await exportTableToGoogleSheets(exportData, filename);
-        break;
-      default:
-        throw new Error('รูปแบบ Export ไม่ถูกต้อง');
-    }
-    
-    showExportSuccess('Export สำเร็จ!');
-    
-  } catch (error) {
-    console.error('[StudentSchedule] Export failed:', error);
-    showExportError(error.message);
-  } finally {
-    hideExportProgress(button);
-  }
-}
-
-/**
- * Prepare Student Export Data
- */
-async function prepareStudentExportData(className, context) {
-  if (!pageState.currentSchedule) {
-    throw new Error('ไม่มีข้อมูลตารางเรียน');
-  }
-  
-  const timeSlots = generateTimeSlots();
-  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
-  const exportData = [];
-  
-  // Header information
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `ตารางเรียน - ${className}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
-  
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
-  
-  // Empty row
-  exportData.push({
-    'วัน/เวลา': '', 'คาบ 1': '', 'คาบ 2': '', 'คาบ 3': '',
-    'คาบ 4': '', 'คาบ 5': '', 'คาบ 6': '', 'คาบ 7': '', 'คาบ 8': ''
-  });
-  
-  // Table data
-  days.forEach((day, dayIndex) => {
-    const dayNumber = dayIndex + 1;
-    const rowData = { 'วัน/เวลา': day };
-    
-    timeSlots.forEach((timeSlot, periodIndex) => {
-      const period = periodIndex + 1;
-      const cellData = pageState.currentSchedule.matrix[dayNumber]?.[period];
-      
-      if (cellData) {
-        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cellData.room.name}`;
-      } else {
-        rowData[`คาบ ${period}`] = '-';
-      }
-    });
-    
-    exportData.push(rowData);
-  });
-  
-  return exportData;
-}
-
-/**
- * Generate Student Export Filename
- */
-function generateStudentExportFilename(className, context) {
-  const year = context.currentYear || 'unknown';
-  const semester = context.currentSemester?.semester_number || 'unknown';
-  const date = new Date().toISOString().slice(0, 10);
-  
-  return `ตารางเรียน-${className}_${year}_ภาค${semester}_${date}`;
-}
-
-/**
  * Enhanced Student Schedule Page for Multi-Year School Schedule System
  * Features: Context-aware loading, Room information, Export functionality
  */
@@ -981,6 +844,158 @@ function clearSavedSelectedClass() {
 // Export page state for debugging
 export function getPageState() {
   return { ...pageState };
+}
+
+// =============================================================================
+// EXPORT FUNCTIONALITY
+// =============================================================================
+
+/**
+ * Setup Student Export Handlers
+ */
+function setupStudentExportHandlers(context) {
+  console.log('[StudentSchedule] Setting up export handlers...');
+  
+  const exportButtons = document.querySelectorAll('#export-bar-student button[data-export-type]');
+  console.log('[StudentSchedule] Found export buttons:', exportButtons.length);
+  
+  if (exportButtons.length === 0) {
+    console.warn('[StudentSchedule] No export buttons found! Selector: #export-bar-student button[data-export-type]');
+    return;
+  }
+  
+  exportButtons.forEach((button, index) => {
+    console.log(`[StudentSchedule] Setting up button ${index + 1}:`, button.dataset.exportType);
+    
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    
+    newButton.addEventListener('click', async (e) => {
+      console.log('[StudentSchedule] Export button clicked:', e.target.dataset.exportType);
+      e.preventDefault();
+      e.stopPropagation();
+      await handleStudentExport(newButton, context);
+    });
+  });
+  
+  console.log('[StudentSchedule] Export handlers setup completed');
+}
+
+/**
+ * Handle Student Export
+ */
+async function handleStudentExport(button, context) {
+  if (button.disabled) return;
+  
+  try {
+    if (!pageState.selectedClass) {
+      throw new Error('กรุณาเลือกห้องเรียนก่อน');
+    }
+    
+    showExportProgress(button);
+    
+    const format = button.dataset.exportType;
+    const exportData = await prepareStudentExportData(pageState.selectedClass, context);
+    const filename = generateStudentExportFilename(pageState.selectedClass, context);
+    
+    switch(format) {
+      case 'csv':
+        await exportTableToCSV(exportData, filename);
+        break;
+      case 'xlsx':
+        await exportTableToXLSX(exportData, filename);
+        break;
+      case 'gsheets':
+        await exportTableToGoogleSheets(exportData, filename);
+        break;
+      default:
+        throw new Error('รูปแบบ Export ไม่ถูกต้อง');
+    }
+    
+    showExportSuccess('Export สำเร็จ!');
+    
+  } catch (error) {
+    console.error('[StudentSchedule] Export failed:', error);
+    showExportError(error.message);
+  } finally {
+    hideExportProgress(button);
+  }
+}
+
+/**
+ * Prepare Student Export Data
+ */
+async function prepareStudentExportData(className, context) {
+  if (!pageState.currentSchedule) {
+    throw new Error('ไม่มีข้อมูลตารางเรียน');
+  }
+  
+  const timeSlots = generateTimeSlots();
+  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
+  const exportData = [];
+  
+  // Header information
+  exportData.push({
+    'วัน/เวลา': '',
+    'คาบ 1': '',
+    'คาบ 2': '',
+    'คาบ 3': `ตารางเรียน - ${className}`,
+    'คาบ 4': '',
+    'คาบ 5': '',
+    'คาบ 6': '',
+    'คาบ 7': '',
+    'คาบ 8': ''
+  });
+  
+  exportData.push({
+    'วัน/เวลา': '',
+    'คาบ 1': '',
+    'คาบ 2': '',
+    'คาบ 3': `ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}`,
+    'คาบ 4': '',
+    'คาบ 5': '',
+    'คาบ 6': '',
+    'คาบ 7': '',
+    'คาบ 8': ''
+  });
+  
+  // Empty row
+  exportData.push({
+    'วัน/เวลา': '', 'คาบ 1': '', 'คาบ 2': '', 'คาบ 3': '',
+    'คาบ 4': '', 'คาบ 5': '', 'คาบ 6': '', 'คาบ 7': '', 'คาบ 8': ''
+  });
+  
+  // Table data
+  days.forEach((day, dayIndex) => {
+    const dayNumber = dayIndex + 1;
+    const rowData = { 'วัน/เวลา': day };
+    
+    timeSlots.forEach((timeSlot, periodIndex) => {
+      const period = periodIndex + 1;
+      const cellData = pageState.currentSchedule.matrix[dayNumber]?.[period];
+      
+      if (cellData) {
+        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cellData.room.name}`;
+      } else {
+        rowData[`คาบ ${period}`] = '-';
+      }
+    });
+    
+    exportData.push(rowData);
+  });
+  
+  return exportData;
+}
+
+/**
+ * Generate Student Export Filename
+ */
+function generateStudentExportFilename(className, context) {
+  const year = context.currentYear || 'unknown';
+  const semester = context.currentSemester?.semester_number || 'unknown';
+  const date = new Date().toISOString().slice(0, 10);
+  
+  return `ตารางเรียน-${className}_${year}_ภาค${semester}_${date}`;
 }
 
 // Make functions available globally for HTML onclick handlers
