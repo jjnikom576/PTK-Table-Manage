@@ -30,15 +30,22 @@ export function exportTableToCSV(tableData, filename) {
   }
 
   try {
-    // Get headers from first row
-    const headers = Object.keys(tableData[0]);
+    // Skip first row if it contains column headers
+    let dataRows = tableData;
+    const firstRow = tableData[0];
     
-    // Create CSV content
+    // Check if first row is header row (contains 'วัน/เวลา')
+    if (firstRow && firstRow['วัน/เวลา'] === 'วัน/เวลา') {
+      dataRows = tableData.slice(1); // Skip header row
+    }
+    
+    // Get headers from first data row
+    const headers = Object.keys(dataRows[0] || firstRow);
+    
+    // Create CSV content WITHOUT automatic header
     const csvRows = [
-      // Header row
-      headers.map(header => `"${header}"`).join(','),
-      // Data rows
-      ...tableData.map(row => 
+      // Data rows only
+      ...dataRows.map(row => 
         headers.map(header => {
           const value = row[header] || '';
           // Escape quotes and wrap in quotes

@@ -145,14 +145,8 @@ class SchoolScheduleApp {
   async setupExportHandlers() {
     console.log('📤 Setting up export handlers...');
     
-    document.addEventListener('click', async (e) => {
-      if (e.target.matches('[data-export-type]')) {
-        const type = e.target.dataset.exportType;
-        const target = e.target.dataset.target;
-        
-        await this.handleExportClick(type, target, e.target);
-      }
-    });
+    // FIX: ลบ global export handler เพื่อไม่ให้ทับซ้อนกับ page-specific handlers
+    // แต่ละหน้าจะจัดการ export เอง
     
     console.log('✅ Export handlers setup completed');
   }

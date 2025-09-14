@@ -173,7 +173,7 @@ async function initStudentPage() {
         console.warn('[Navigation] No classes data, using fallback');
         classSelector.innerHTML = `
           <option value="">-- เลือกห้องเรียน --</option>
-          <option value="m1-1">ม.1/1</option>
+          <option value="m1-1222">ม.1/1</option>
           <option value="m1-2">ม.1/2</option>
           <option value="m2-1">ม.2/1</option>
           <option value="m2-2">ม.2/2</option>
