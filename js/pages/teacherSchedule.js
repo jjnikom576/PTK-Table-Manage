@@ -282,9 +282,9 @@ async function renderTeacherTabs(context) {
             data-teacher-id="${teacher.id}" 
             role="tab"
             aria-selected="false"
-            style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.75rem;">
-      <div style="font-weight: bold; margin-bottom: 0.25rem;">${teacher.name}</div>
-      <div style="font-size: 0.85rem; color: #666;">${teacher.subject_group}</div>
+            style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.75rem; cursor: pointer;">
+      <div style="font-weight: bold; margin-bottom: 0.25rem; pointer-events: none;">${teacher.name}</div>
+      <div style="font-size: 0.85rem; color: #666; pointer-events: none;">${teacher.subject_group}</div>
     </button>
   `).join('');
 }
