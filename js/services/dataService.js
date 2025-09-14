@@ -97,6 +97,42 @@ const cache = {
 };
 
 // =============================================================================
+// CACHE MANAGEMENT (NEW)
+// =============================================================================
+
+/**
+ * Clear all cache (for context switching)
+ */
+export function clearCache() {
+  console.log('[DataService] Clearing all cache...');
+  cache.clear();
+  console.log('[DataService] ✅ Cache cleared');
+}
+
+/**
+ * Clear cache for specific year
+ */
+export function clearYearCache(year) {
+  console.log(`[DataService] Clearing cache for year ${year}...`);
+  cache.delete(`byYear.${year}`);
+  cache.delete(`exportCache.${year}`);
+  console.log(`[DataService] ✅ Year ${year} cache cleared`);
+}
+
+/**
+ * Get cache status
+ */
+export function getCacheStatus() {
+  return {
+    enabled: serviceConfig.enableCache,
+    timeout: serviceConfig.cacheTimeout,
+    size: Object.keys(cache.timestamps).length,
+    years: Object.keys(cache.byYear),
+    lastCleared: cache.lastCleared || null
+  };
+}
+
+// =============================================================================
 // CORE FUNCTIONS
 // =============================================================================
 
@@ -372,15 +408,32 @@ export async function getStudentSchedule(classId) {
     const { schedules, subjects, teachers, classes, rooms } = yearData.data;
     console.log('[DataService] Available classes:', classes.map(c => c.class_name));
     
-    // หา class จาก classId (m1-1 -> ม.1/1)
-    const className = classId.replace('-', '/').replace('m', 'ม.');
-    console.log('[DataService] Looking for class:', className);
+    // ⭐ FIX: รองรับทั้ง numeric ID และ string ID
+    console.log('[DataService] Looking for class:', classId, 'type:', typeof classId);
     
-    const classInfo = classes.find(c => c.class_name === className);
-    console.log('[DataService] Found class:', classInfo);
+    let classInfo = null;
+    
+    // ลองหาด้วย numeric ID ก่อน
+    if (!isNaN(classId)) {
+      classInfo = classes.find(c => c.id === parseInt(classId));
+      console.log('[DataService] Found by numeric ID:', classInfo);
+    }
+    
+    // ถ้าไม่เจอ ลองหาด้วย string conversion (m1-1 -> ม.1/1)
+    if (!classInfo && typeof classId === 'string') {
+      const className = classId.replace('-', '/').replace('m', 'ม.');
+      classInfo = classes.find(c => c.class_name === className);
+      console.log('[DataService] Found by name conversion:', classInfo);
+    }
+    
+    // ถ้ายังไม่เจอ ลองหาด้วย direct match
+    if (!classInfo) {
+      classInfo = classes.find(c => c.class_name === classId || c.id === classId);
+      console.log('[DataService] Found by direct match:', classInfo);
+    }
     
     if (!classInfo) {
-      return { ok: false, error: `Class ${className} not found` };
+      return { ok: false, error: `Class ${classId} not found` };
     }
     
     // หา schedules ของ class นี้

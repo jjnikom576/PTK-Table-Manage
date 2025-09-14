@@ -10,7 +10,7 @@ import teachersData, { TeacherUtils } from './teachers.mock.js';
 import classesData, { ClassUtils } from './classes.mock.js';
 import roomsData, { RoomUtils, ROOM_TYPES } from './rooms.mock.js';
 import subjectsData from './subjects.mock.js';
-import schedulesModule, { schedulesData, ScheduleUtils, ConflictDetection, TIME_PERIODS, DAYS_OF_WEEK } from './schedules.mock.js';
+import { schedulesData } from './schedules.mock.js';
 import substitutionsData from './substitutions.mock.js';
 
 // Main Export Structure - Multi-Year Data
@@ -58,13 +58,9 @@ export {
     TeacherUtils,
     ClassUtils,
     RoomUtils,
-    ScheduleUtils,
-    ConflictDetection,
     
     // Constants
-    ROOM_TYPES,
-    TIME_PERIODS,
-    DAYS_OF_WEEK
+    ROOM_TYPES
 };
 
 // Default export for convenient access

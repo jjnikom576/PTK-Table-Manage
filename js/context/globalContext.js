@@ -70,37 +70,52 @@ export async function initGlobalContext() {
       console.log('[GlobalContext] Loaded semesters:', semesters.data);
     }
     
+    // ⭐ FIX: หา active semester ก่อน จาก ปีล่าสุด ไม่ใช่ปี 2567
     // Set default context if none exists
     if (!globalContext.currentYear) {
-      // หาปีล่าสุดและภาคเรียนที่ active หรือภาคแรกของปีล่าสุด
+      let targetYear = null;
+      let targetSemester = null;
+      
+      // 1. หาปีล่าสุดก่อน
       const latestYear = globalContext.availableYears.reduce((latest, year) => 
         year.year > latest.year ? year : latest, globalContext.availableYears[0]);
       
-      // หา active semester ก่อน ถ้าไม่มีให้หาภาคแรกของปีล่าสุด
-      let activeSemester = globalContext.availableSemesters.find(s => s.is_active);
+      console.log('[GlobalContext] Latest available year:', latestYear);
       
-      if (!activeSemester && latestYear) {
-        // ถ้าไม่มี active semester ให้หาภาคแรกของปีล่าสุด
-        activeSemester = globalContext.availableSemesters.find(s => 
-          s.academic_year_id === latestYear.id && s.semester_number === 1
+      if (latestYear) {
+        // 2. หา active semester ในปีล่าสุด
+        const activeSemesterInLatestYear = globalContext.availableSemesters.find(s => 
+          s.is_active && s.academic_year_id === latestYear.id
         );
+        
+        if (activeSemesterInLatestYear) {
+          targetYear = latestYear.year;
+          targetSemester = activeSemesterInLatestYear;
+          console.log('[GlobalContext] Found active semester in latest year:', activeSemesterInLatestYear.semester_name);
+        } else {
+          // 3. ไม่มี active semester ในปีล่าสุด ให้ใช้ภาคเรียนที่ 1
+          const firstSemesterInLatestYear = globalContext.availableSemesters.find(s => 
+            s.academic_year_id === latestYear.id && s.semester_number === 1
+          );
+          
+          if (firstSemesterInLatestYear) {
+            targetYear = latestYear.year;
+            targetSemester = firstSemesterInLatestYear;
+            console.log('[GlobalContext] Using first semester of latest year:', firstSemesterInLatestYear.semester_name);
+          }
+        }
       }
       
-      // ถ้า active semester ไม่ตรงกับปีล่าสุด ให้หาภาคแรกของปีล่าสุดแทน
-      if (activeSemester && activeSemester.academic_year_id !== latestYear.id) {
-        activeSemester = globalContext.availableSemesters.find(s => 
-          s.academic_year_id === latestYear.id && s.semester_number === 1
-        );
-        console.log('[GlobalContext] Active semester not match latest year, switching to first semester of latest year:', activeSemester);
+      // 4. Fallback ถ้ายังหาไม่เจอ
+      if (!targetYear) {
+        targetYear = 2567;
+        targetSemester = globalContext.availableSemesters.find(s => s.id === 10) || 
+                         { id: 10, semester_name: 'ภาคเรียนที่ 1' };
+        console.log('[GlobalContext] Using fallback context');
       }
       
-      const defaultYear = latestYear ? latestYear.year : 2567;
-      const defaultSemesterId = activeSemester ? activeSemester.id : 10;
-      
-      console.log('[GlobalContext] Latest year:', latestYear);
-      console.log('[GlobalContext] Active semester:', activeSemester);
-      console.log('[GlobalContext] Setting default context:', defaultYear, defaultSemesterId);
-      await setContext(defaultYear, defaultSemesterId);
+      console.log('[GlobalContext] Final default context:', targetYear, targetSemester.id, targetSemester.semester_name);
+      await setContext(targetYear, targetSemester.id);
     }
     
     // Setup event listeners
@@ -471,7 +486,7 @@ export async function validateContext(year, semesterId) {
 // =============================================================================
 
 /**
- * Update Context UI
+ * Update Context UI (FIXED - ไม่ override user selection)
  */
 export function updateContextUI() {
   try {
@@ -480,17 +495,31 @@ export function updateContextUI() {
     // Update year selector
     const yearSelector = document.getElementById('year-selector');
     if (yearSelector) {
+      // ⭐ FIX: เช็คว่า user กำลังเลือกอยู่ไหม
+      const userIsSelecting = document.activeElement === yearSelector;
+      
       updateYearSelector(globalContext.availableYears);
-      yearSelector.value = globalContext.currentYear || '';
-      console.log('[GlobalContext] Set year selector to:', globalContext.currentYear);
+      
+      // ⭐ FIX: อัปเดต value เฉพาะตอนที่ user ไม่ได้เลือก
+      if (!userIsSelecting && yearSelector.value !== String(globalContext.currentYear || '')) {
+        yearSelector.value = globalContext.currentYear || '';
+        console.log('[GlobalContext] Set year selector to:', globalContext.currentYear);
+      }
     }
     
     // Update semester selector
     const semesterSelector = document.getElementById('semester-selector');
     if (semesterSelector) {
+      // ⭐ FIX: เช็คว่า user กำลังเลือกอยู่ไหม
+      const userIsSelecting = document.activeElement === semesterSelector;
+      
       updateSemesterSelector(globalContext.availableSemesters);
-      semesterSelector.value = globalContext.currentSemester?.id || '';
-      console.log('[GlobalContext] Set semester selector to:', globalContext.currentSemester?.id);
+      
+      // ⭐ FIX: อัปเดต value เฉพาะตอนที่ user ไม่ได้เลือก
+      if (!userIsSelecting && semesterSelector.value !== String(globalContext.currentSemester?.id || '')) {
+        semesterSelector.value = globalContext.currentSemester?.id || '';
+        console.log('[GlobalContext] Set semester selector to:', globalContext.currentSemester?.id);
+      }
     }
     
     // Update context display
@@ -539,13 +568,15 @@ export function updateYearSelector(availableYears) {
 }
 
 /**
- * Update Semester Selector
+ * Update Semester Selector (FIXED - ไม่ rebuild ใหม่ถ้าไม่จำเป็น)
  */
 export function updateSemesterSelector(availableSemesters) {
   const semesterSelector = document.getElementById('semester-selector');
   if (!semesterSelector) return;
   
-  semesterSelector.innerHTML = '<option value="">เลือกภาคเรียน</option>';
+  // ⭐ FIX: เก็บ current value ไว้
+  const currentValue = semesterSelector.value;
+  const userIsSelecting = document.activeElement === semesterSelector;
   
   // กรองให้แสดงเฉพาะภาคเรียนของปีปัจจุบัน
   const currentYearData = globalContext.availableYears.find(y => y.year === globalContext.currentYear);
@@ -555,18 +586,35 @@ export function updateSemesterSelector(availableSemesters) {
   
   console.log('[GlobalContext] Filtering semesters for year:', globalContext.currentYear, 'Found:', filteredSemesters);
   
-  filteredSemesters.forEach(semester => {
-    const option = document.createElement('option');
-    option.value = semester.id;
-    option.textContent = semester.semester_name;
-    option.selected = semester.id === globalContext.currentSemester?.id;
-    semesterSelector.appendChild(option);
-  });
+  // ⭐ FIX: เช็คว่าตัวเลือกเปลี่ยนแปลงไหม ก่อนจะ rebuild
+  const currentOptions = Array.from(semesterSelector.options).slice(1); // Skip first option
+  const needsRebuild = currentOptions.length !== filteredSemesters.length ||
+    !filteredSemesters.every((sem, idx) => 
+      currentOptions[idx] && 
+      currentOptions[idx].value === String(sem.id) &&
+      currentOptions[idx].textContent === sem.semester_name
+    );
   
-  // บังคับ set value หลัง populate options
-  if (globalContext.currentSemester?.id) {
-    semesterSelector.value = globalContext.currentSemester.id;
-    console.log('[GlobalContext] Force set semester selector value to:', globalContext.currentSemester.id);
+  // ⭐ FIX: Rebuild เฉพาะตอนที่จำเป็น และ user ไม่ได้เลือก
+  if (needsRebuild && !userIsSelecting) {
+    semesterSelector.innerHTML = '<option value="">เลือกภาคเรียน</option>';
+    
+    filteredSemesters.forEach(semester => {
+      const option = document.createElement('option');
+      option.value = semester.id;
+      option.textContent = semester.semester_name;
+      semesterSelector.appendChild(option);
+    });
+    
+    // ⭐ FIX: กู้คืน value เดิม หรือใช้ context value
+    const valueToSet = currentValue || (globalContext.currentSemester?.id ? String(globalContext.currentSemester.id) : '');
+    if (valueToSet && semesterSelector.querySelector(`option[value="${valueToSet}"]`)) {
+      semesterSelector.value = valueToSet;
+      console.log('[GlobalContext] Restored semester selector value to:', valueToSet);
+    } else if (globalContext.currentSemester?.id) {
+      semesterSelector.value = globalContext.currentSemester.id;
+      console.log('[GlobalContext] Force set semester selector value to:', globalContext.currentSemester.id);
+    }
   }
 }
 

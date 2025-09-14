@@ -9,6 +9,109 @@ import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '
 import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, generateTimeSlots, isActiveSemester } from '../utils.js';
 
 // =============================================================================
+// EXPORT FUNCTIONS (NEW)
+// =============================================================================
+
+/**
+ * Refresh page data without resetting UI (NEW)
+ */
+export async function refreshPage(newContext, preserveSelection = null) {
+  console.log('[StudentSchedule] Refreshing page data with context:', newContext);
+  
+  try {
+    // ⭐ FIX: ลด cache clearing - เพียง clear 1 ครั้ง
+    console.log('[StudentSchedule] Refreshing page data with context:', newContext);
+    
+    // Refresh class selector while preserving selection
+    await refreshClassSelector(newContext, preserveSelection);
+    
+    // If there was a selection, reload that schedule
+    if (preserveSelection) {
+      console.log('[StudentSchedule] Reloading schedule for preserved selection:', preserveSelection);
+      // ⭐ FIX: Use correct function name
+      const classDropdown = document.querySelector('#class-dropdown');
+      if (classDropdown && preserveSelection) {
+        classDropdown.value = preserveSelection;
+        const changeEvent = new Event('change', { bubbles: true });
+        classDropdown.dispatchEvent(changeEvent);
+      }
+    }
+    
+    console.log('[StudentSchedule] Page refresh completed successfully');
+    
+  } catch (error) {
+    console.error('[StudentSchedule] Error refreshing page:', error);
+  }
+}
+
+/**
+ * Refresh class selector (EXPORTED)
+ */
+export async function refreshClassSelector(context = null, preserveSelection = null) {
+  console.log('[StudentSchedule] Refreshing class selector');
+  
+  const currentContext = context || globalContext.getContext();
+  
+  // Find class selector
+  const selectors = ['#class-dropdown', '#class-selector', '.class-selector', '[data-class-selector]'];
+  let classSelector = null;
+  
+  for (const sel of selectors) {
+    classSelector = document.querySelector(sel);
+    if (classSelector) {
+      console.log(`Found class selector with: ${sel}`);
+      break;
+    }
+  }
+  
+  if (!classSelector) {
+    console.warn('Class selector not found');
+    return;
+  }
+  
+  // ⭐ FIX: ลด cache clearing - เพียง clear ตอนจำเป็น
+  // Get fresh classes data
+  const result = await dataService.getClasses();
+  
+  if (!result.ok) {
+    console.error('Failed to get classes:', result.error);
+    return;
+  }
+  
+  const classes = result.data;
+  console.log('Got classes for refresh:', classes.map(c => c.class_name));
+  
+  // Update selector options
+  const currentSelection = preserveSelection || classSelector.value;
+  classSelector.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
+  
+  classes.forEach(cls => {
+    const option = document.createElement('option');
+    option.value = cls.id;
+    option.textContent = cls.class_name;
+    classSelector.appendChild(option);
+  });
+  
+  // ⭐ FIX: ไม่ auto-select ให้อยู่ที่ "เลือกห้องเรียน" เท่านั้น
+  // Restore selection if possible
+  if (currentSelection && classSelector.querySelector(`option[value="${currentSelection}"]`)) {
+    classSelector.value = currentSelection;
+    console.log('Restored class selection:', currentSelection);
+    
+    // เฉพาะตอนที่ restore selection จึง trigger event
+    setTimeout(() => {
+      const changeEvent = new Event('change', { bubbles: true });
+      classSelector.dispatchEvent(changeEvent);
+    }, 100);
+  } else {
+    // ⭐ FIX: ไม่ auto-select - ให้อยู่ที่ default option
+    console.log('No previous selection, staying at default option');
+  }
+  
+  console.log('Class selector refreshed with', classes.length, 'classes');
+}
+
+// =============================================================================
 // PAGE STATE
 // =============================================================================
 
@@ -31,20 +134,121 @@ export async function initStudentSchedulePage(context) {
   console.log('[StudentSchedule] Initializing page with context:', context);
   
   try {
-    // Validate context access
-    const accessResult = validateContextAccess(context);
-    if (!accessResult.ok) {
-      throw new Error(accessResult.error);
+    // ⭐ FIX: Use context directly without extra validation
+    const currentContext = context || globalContext.getContext();
+    
+    if (!currentContext.year || !currentContext.semesterId) {
+      console.warn('Context missing year/semesterId, using defaults');
+      const fallbackContext = globalContext.getContext();
+      currentContext.year = fallbackContext.currentYear || 2568;
+      currentContext.semesterId = fallbackContext.currentSemester?.id || 7;
     }
     
-    // Render page components
-    await renderContextControls(context);
+    console.log('Using context:', currentContext);
     
-    // Load available classes
-    await loadAvailableClasses(context);
+    // Render page components
+    await renderContextControls(currentContext);
+    
+    /**
+ * Refresh class selector dropdown (NEW)
+ */
+async function refreshClassSelector(context) {
+  console.log('[StudentSchedule] Refreshing class selector');
+  
+  // ⭐ FIX: Try multiple selectors
+  const selectors = ['#class-selector', '.class-selector', '[data-class-selector]', 'select[name="class"]'];
+  let classSelector = null;
+  
+  for (const sel of selectors) {
+    classSelector = document.querySelector(sel);
+    if (classSelector) {
+      console.log(`Found class selector with: ${sel}`);
+      break;
+    }
+  }
+  
+  if (!classSelector) {
+    console.warn('Class selector not found with any selector:', selectors);
+    // ⭐ FIX: List all select elements for debugging
+    const allSelects = document.querySelectorAll('select');
+    console.log('All select elements found:', Array.from(allSelects).map(s => s.id || s.className || s.tagName));
+    return;
+  }
+  
+  // ⭐ FIX: Force clear cache before getting classes
+  await dataService.clearCache();
+  
+  // Get fresh classes data for current context
+  console.log('Getting classes for context:', context);
+  const result = await dataService.getClasses();
+  if (!result.ok) {
+    console.error('Failed to get classes:', result.error);
+    return;
+  }
+  
+  const classes = result.data;
+  console.log('Got classes for refresh:', classes.map(c => c.class_name));
+  
+  // ⭐ FIX: If no classes, show all available classes from mockData
+  if (classes.length === 0) {
+    console.warn('No classes found for current context, checking mockData...');
+    const { mockData } = await import('../data/index.js');
+    const contextKey = context.year || 2568;
+    const fallbackClasses = mockData[contextKey]?.classes || [];
+    console.log(`Fallback classes for year ${contextKey}:`, fallbackClasses.map(c => c.class_name));
+    
+    if (fallbackClasses.length > 0) {
+      classes.push(...fallbackClasses);
+    }
+  }
+  
+  // Clear and repopulate
+  classSelector.innerHTML = '<option value="">เลือกห้องเรียน</option>';
+  classes.forEach(classItem => {
+    const option = document.createElement('option');
+    option.value = classItem.id;
+    option.textContent = classItem.class_name;
+    classSelector.appendChild(option);
+  });
+  
+  // ⭐ FIX: Auto-select first class and trigger change event
+  if (classes.length > 0) {
+    classSelector.value = classes[0].id;
+    console.log(`Auto-selected class: ${classes[0].class_name}`);
+    
+    // ⭐ FIX: Use setTimeout to ensure DOM is ready
+    setTimeout(() => {
+      const changeEvent = new Event('change', { bubbles: true });
+      classSelector.dispatchEvent(changeEvent);
+      console.log('Change event dispatched');
+      
+      // ⭐ FIX: Force load schedule if event doesn't work
+      setTimeout(() => {
+        const selectedClassId = classSelector.value;
+        if (selectedClassId && classes.length > 0) {
+          console.log('Force loading schedule for class:', selectedClassId);
+          // Direct call to navigation's loadSchedule
+          if (window.loadScheduleForClass) {
+            window.loadScheduleForClass(`m${selectedClassId.replace('/', '-').toLowerCase()}`);
+          }
+        }
+      }, 200);
+    }, 100);
+  }
+  
+  console.log(`Class selector refreshed with ${classes.length} classes`);
+}
+
+// Load available classes
+    await loadAvailableClasses(currentContext);
+    
+    // ⭐ FIX: Move refresh to AFTER DOM setup
+    // setTimeout(async () => {
+    //   await refreshClassSelector(currentContext);
+    // }, 100);
     
     // Setup event listeners
-    setupEventListeners(context);
+    setupEventListeners(currentContext);
     
     // Load initial schedule if class is selected
     const savedClass = getSavedSelectedClass();
@@ -57,6 +261,13 @@ export async function initStudentSchedulePage(context) {
     setupStudentExportHandlers(context);
     
     console.log('[StudentSchedule] Page initialized successfully');
+    
+    // ⭐ FIX: Re-setup event listeners + refresh selector after page clear
+    setTimeout(async () => {
+      console.log('Re-setting up event listeners...');
+      setupEventListeners(currentContext);  // Re-setup lost listeners
+      await refreshClassSelector(currentContext);  // Then refresh selector
+    }, 300);
     
   } catch (error) {
     console.error('[StudentSchedule] Failed to initialize page:', error);
