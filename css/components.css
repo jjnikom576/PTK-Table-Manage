@@ -77,6 +77,14 @@
 /* Cell content */
 .subject-cell { display: flex; flex-direction: column; align-items: center; gap: .15rem; min-height: 58px; }
 .subject-name { font-weight: var(--font-weight-semibold); color: var(--color-dark); font-size: var(--subject-font, 14px); text-align: center; line-height: 1.25; white-space: nowrap; }
+/* Ensure student page uses fixed 14px subject font as requested */
+#student-schedule-table .subject-name { font-size: 14px !important; white-space: nowrap; }
+
+/* Ensure teacher page uses the same fixed subject font and centering */
+#teacher-schedule-table .subject-name { font-size: 14px !important; white-space: nowrap; text-align: center; }
+#teacher-schedule-table .subject-info { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; min-height: 48px; text-align: center; }
+#teacher-schedule-table .class-name, 
+#teacher-schedule-table .room-name { font-size: 12px; }
 .teacher-name { font-size: var(--font-size-xs); color: var(--color-dark-lighter); }
 .class-name { font-size: var(--font-size-xs); color: var(--color-primary-dark); font-weight: var(--font-weight-medium); }
 .time-slot { font-weight: var(--font-weight-semibold); color: var(--color-dark-light); }
