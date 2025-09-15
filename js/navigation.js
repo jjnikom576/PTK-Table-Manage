@@ -444,16 +444,8 @@ async function initTeacherPage() {
   updateSemesterDisplay();
   
   try {
-    // สร้าง context ง่าย ๆ
-    const context = {
-      currentYear: 2568,
-      currentSemester: { id: 7, semester_number: 1 }
-    };
-    
-    console.log('[Navigation] Teacher page context:', context);
-    
-    // เรียกใช้ teacherSchedule.js
-    await teacherSchedule.initTeacherSchedulePage(context);
+    // ให้หน้า teacherSchedule จัดการอ่าน context เองจาก globalContext
+    await teacherSchedule.initTeacherSchedulePage();
     console.log('[Navigation] Teacher schedule initialized');
     
   } catch (error) {

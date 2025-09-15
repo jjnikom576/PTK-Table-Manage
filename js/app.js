@@ -292,15 +292,48 @@ class SchoolScheduleApp {
       const result = await switchContext(newYear, newSemesterId);
       
       if (result.ok) {
-        // ⭐ FIX: Refresh เฉพาะ content ไม่ใช่ทั้งหน้า
-        console.log('🔄 Context changed successfully, refreshing content...');
-        
-        // Clear และ refresh content area
-        await this.refreshContentOnly({ year: newYear, semesterId: newSemesterId });
-        
-        // ⭐ FIX: แสดง notification เพียงครั้งเดียว (ไม่ใช้ context change listener)
+        // ⭐ Behavior: If user is currently on Teacher page, stay and refresh its summary.
+        // Otherwise, stay on current page and just refresh its content.
+        const current = getCurrentPage();
+        console.log('🔄 Context changed successfully. Current page =', current);
+
+        if (current === 'teacher') {
+          // Refresh teacher page data explicitly
+          try {
+            const teacherPage = await import('./pages/teacherSchedule.js');
+            if (teacherPage && typeof teacherPage.refreshPage === 'function') {
+              const ctx = getContext();
+              await teacherPage.refreshPage(ctx);
+            }
+            // Ensure summary tab is active
+            const detailsTab = document.querySelector('[data-target="teacher-details"]');
+            const summaryTab = document.querySelector('[data-target="teacher-summary"]');
+            const summaryContent = document.getElementById('teacher-summary');
+            const detailsContent = document.getElementById('teacher-details');
+            if (summaryTab && detailsTab) {
+              summaryTab.classList.add('active');
+              summaryTab.setAttribute('aria-selected', 'true');
+              detailsTab.classList.remove('active');
+              detailsTab.setAttribute('aria-selected', 'false');
+            }
+            if (summaryContent && detailsContent) {
+              summaryContent.classList.remove('hidden');
+              summaryContent.classList.add('active');
+              detailsContent.classList.remove('active');
+              detailsContent.classList.add('hidden');
+            }
+          } catch (e) {
+            console.warn('Failed to refresh teacher page after context change:', e);
+          }
+        } else {
+          // Stay on current page; refresh its content and UI
+          await this.refreshContentOnly({ year: newYear, semesterId: newSemesterId });
+          await this.refreshCurrentPage(getContext());
+        }
+
+        // Notify success
         const semesterName = await this.getSemesterName(newSemesterId);
-        this.showNotification(`เปลี่ยนไปปีการศึกษา ${newYear} ${semesterName} เรียบร้อย!`, 'success');
+        this.showNotification(`เปลี่ยนไปปีการศึกษา ${newYear} ${semesterName} เรียบร้อย`, 'success');
       } else {
         throw new Error(result.error || 'Context switch failed');
       }

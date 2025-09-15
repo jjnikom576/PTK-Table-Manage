@@ -54,7 +54,7 @@ export async function initTeacherSchedulePage(context = null) {
 
     // Set up dataService context first
     console.log('[TeacherSchedule] Setting up dataService context');
-    await dataService.setGlobalContext(currentContext.currentYear, currentContext.currentSemester.id);
+    await dataService.setGlobalContext(currentContext.currentYear, (currentContext.currentSemester && currentContext.currentSemester.id) || null);
 
     // Load teachers and data
     console.log('[TeacherSchedule] Loading teachers data');
@@ -234,13 +234,14 @@ async function loadTeachersData(context) {
       rooms: roomsResult.data?.length || 0
     });
 
-    // Calculate workload for each teacher
+    // ⭐ FIX: คิดภาระงานเฉพาะภาคเรียนปัจจุบันเท่านั้น
     await calculateWorkloadSummary({
       teachers: teachersResult.data,
       schedules: schedulesResult.data,
       subjects: subjectsResult.data,
       classes: classesResult.data || [],
-      rooms: roomsResult.data || []
+      rooms: roomsResult.data || [],
+      semesterId: (context.currentSemester && context.currentSemester.id) || null
     });
 
   } catch (error) {
@@ -255,25 +256,28 @@ async function loadTeachersData(context) {
  * Calculate Workload Summary
  */
 async function calculateWorkloadSummary(data) {
-  const { teachers, schedules, subjects, classes, rooms } = data;
+  const { teachers, schedules, subjects, classes = [] } = data;
+
+  // สร้างดัชนี subject ตาม id เพื่อ join schedule -> subject -> teacher อย่างแม่นยำ
+  const subjectById = new Map((subjects || []).map(s => [s.id, s]));
 
   // Group teachers by subject group
   const subjectGroups = {};
   const teacherWorkloads = [];
 
   teachers.forEach(teacher => {
-    // Find subjects taught by this teacher
-    const teacherSubjects = subjects.filter(s => s.teacher_id === teacher.id);
+    // รายวิชาที่ครูสอน (จาก subjects ของปีนี้)
+    const teacherSubjects = (subjects || []).filter(s => s.teacher_id === teacher.id);
 
-    // Calculate total periods
-    const teacherSchedules = schedules.filter(schedule => {
-      const subject = subjects.find(s => s.id === schedule.subject_id);
-      return subject && subject.teacher_id === teacher.id;
+    // คาบสอนจริงของครู (จาก schedules ของปีนี้ โดยอิง subject->teacher)
+    const teacherSchedules = (schedules || []).filter(sc => {
+      const sub = subjectById.get(sc.subject_id);
+      return sub && sub.teacher_id === teacher.id;
     });
 
     const totalPeriods = teacherSchedules.length;
 
-    // Group by subject group
+    // สะสมตามกลุ่มสาระ
     if (!subjectGroups[teacher.subject_group]) {
       subjectGroups[teacher.subject_group] = {
         name: teacher.subject_group,
@@ -281,11 +285,10 @@ async function calculateWorkloadSummary(data) {
         totalPeriods: 0
       };
     }
-
-    subjectGroups[teacher.subject_group].teachers++;
+    subjectGroups[teacher.subject_group].teachers += 1;
     subjectGroups[teacher.subject_group].totalPeriods += totalPeriods;
 
-    // Individual teacher workload
+    // บันทึกสรุปรายครู
     teacherWorkloads.push({
       teacher,
       subjects: teacherSubjects,
@@ -294,6 +297,45 @@ async function calculateWorkloadSummary(data) {
       subjectsCount: teacherSubjects.length
     });
   });
+
+  // Debug: log totals
+  try {
+    const totalSchedulesAll = (schedules || []).length;
+    const totalSubjectsAll = (subjects || []).length;
+    const totalPeriodsSum = teacherWorkloads.reduce((sum, t) => sum + t.totalPeriods, 0);
+    console.log('[TeacherSchedule] Workload debug:', { totalSchedulesAll, totalSubjectsAll, totalPeriodsSum });
+    // Fallback: if sum is zero but schedules exist, try year-class filter fallback
+    if (totalPeriodsSum === 0 && totalSchedulesAll > 0 && classes.length > 0) {
+      console.warn('[TeacherSchedule] Detected zero workload with schedules present. Applying year-class fallback...');
+      const classIdsOfYear = new Set(classes.map(c => c.id));
+      const filteredSchedules = schedules.filter(sc => classIdsOfYear.has(sc.class_id));
+      const subjectById = new Map((subjects || []).map(s => [s.id, s]));
+      teacherWorkloads.length = 0;
+      const subjectGroupsFB = {};
+      teachers.forEach(teacher => {
+        const teacherSubjects = (subjects || []).filter(s => s.teacher_id === teacher.id && classIdsOfYear.has(s.class_id));
+        const teacherSchedules = filteredSchedules.filter(sc => {
+          const sub = subjectById.get(sc.subject_id);
+          return sub && sub.teacher_id === teacher.id && classIdsOfYear.has(sc.class_id);
+        });
+        const totalPeriods = teacherSchedules.length;
+        if (!subjectGroupsFB[teacher.subject_group]) {
+          subjectGroupsFB[teacher.subject_group] = { name: teacher.subject_group, teachers: 0, totalPeriods: 0 };
+        }
+        subjectGroupsFB[teacher.subject_group].teachers += 1;
+        subjectGroupsFB[teacher.subject_group].totalPeriods += totalPeriods;
+        teacherWorkloads.push({ teacher, subjects: teacherSubjects, schedules: teacherSchedules, totalPeriods, subjectsCount: teacherSubjects.length });
+      });
+      pageState.workloadSummary = {
+        subjectGroups: Object.values(subjectGroupsFB),
+        teacherWorkloads: teacherWorkloads.sort((a, b) => b.totalPeriods - a.totalPeriods)
+      };
+      console.log('[TeacherSchedule] Fallback workload computed.');
+      return;
+    }
+  } catch (e) {
+    console.warn('[TeacherSchedule] Workload debug/fallback error:', e);
+  }
 
   pageState.workloadSummary = {
     subjectGroups: Object.values(subjectGroups),
@@ -620,15 +662,20 @@ async function getTeacherScheduleData(teacherId, context) {
       rooms: rooms.length
     });
 
-    // Filter subjects taught by this teacher
-    const teacherSubjects = subjects.filter(s => s.teacher_id === teacherId);
-    const subjectIds = teacherSubjects.map(s => s.id);
+    // ⭐ FIX: กรองข้อมูลตามปีด้วย class ของปีนี้ (mock บางส่วนใช้ semester_id ข้ามปี)
+    const classIdsOfYear = new Set(classes.map(c => c.id));
+    const subjectsInYear = subjects.filter(s => classIdsOfYear.has(s.class_id));
+    const schedulesInYear = schedules.filter(s => classIdsOfYear.has(s.class_id));
+
+    // Filter subjects taught by this teacher (เฉพาะปีที่เลือก)
+    const teacherSubjects = subjectsInYear.filter(s => s.teacher_id === teacherId);
+    const subjectIds = new Set(teacherSubjects.map(s => s.id));
     
     console.log(`[TeacherSchedule] Teacher ${teacherId} teaches ${teacherSubjects.length} subjects:`, 
       teacherSubjects.map(s => s.subject_name));
 
-    // Filter schedules for teacher's subjects
-    const teacherSchedules = schedules.filter(s => subjectIds.includes(s.subject_id));
+    // Filter schedules for teacher's subjects (เฉพาะปีที่เลือก)
+    const teacherSchedules = schedulesInYear.filter(s => subjectIds.has(s.subject_id));
     
     console.log(`[TeacherSchedule] Found ${teacherSchedules.length} schedule entries for teacher ${teacherId}`);
 
