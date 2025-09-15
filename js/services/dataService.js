@@ -384,6 +384,225 @@ export async function loadSemesterData(semesterId) {
 }
 
 // =============================================================================
+// MAIN DATA FUNCTIONS (MISSING FUNCTIONS)
+// =============================================================================
+
+/**
+ * Get Teachers (FIXED - เพิ่ม function ที่ขาดหาย)
+ */
+export async function getTeachers(year = null) {
+  const targetYear = year || currentContext.year;
+  if (!targetYear) {
+    return { ok: false, error: 'No year specified' };
+  }
+  
+  console.log(`[DataService] getTeachers for year: ${targetYear}`);
+  
+  const cacheKey = `teachers_${targetYear}`;
+  let cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`[DataService] ✅ Teachers cache HIT for year ${targetYear}:`, cached.length);
+    return { ok: true, data: cached };
+  }
+  
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const yearData = mockData[targetYear];
+      if (!yearData || !yearData.teachers) {
+        console.warn(`[DataService] ⚠️ No teachers data for year ${targetYear}`);
+        return { ok: true, data: [] };
+      }
+      
+      const teachers = yearData.teachers;
+      console.log(`[DataService] ✅ Loaded ${teachers.length} teachers from mock for year ${targetYear}`);
+      cache.set(cacheKey, teachers);
+      return { ok: true, data: teachers };
+    } else {
+      const result = await teachersAPI.getTeachers(targetYear);
+      if (result.ok) {
+        cache.set(cacheKey, result.data);
+      }
+      return result;
+    }
+  } catch (error) {
+    console.error(`[DataService] ❌ Failed to load teachers for year ${targetYear}:`, error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Get Classes (FIXED - เพิ่ม year parameter)
+ */
+export async function getClasses(year = null) {
+  const targetYear = year || currentContext.year;
+  if (!targetYear) {
+    return { ok: false, error: 'No year specified' };
+  }
+  
+  console.log(`[DataService] getClasses for year: ${targetYear}`);
+  
+  const cacheKey = `classes_${targetYear}`;
+  let cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`[DataService] ✅ Classes cache HIT for year ${targetYear}:`, cached.length);
+    return { ok: true, data: cached };
+  }
+  
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const yearData = mockData[targetYear];
+      if (!yearData || !yearData.classes) {
+        console.warn(`[DataService] ⚠️ No classes data for year ${targetYear}`);
+        return { ok: true, data: [] };
+      }
+      
+      const classes = yearData.classes;
+      console.log(`[DataService] ✅ Loaded ${classes.length} classes from mock for year ${targetYear}`);
+      cache.set(cacheKey, classes);
+      return { ok: true, data: classes };
+    } else {
+      const result = await classesAPI.getClasses(targetYear);
+      if (result.ok) {
+        cache.set(cacheKey, result.data);
+      }
+      return result;
+    }
+  } catch (error) {
+    console.error(`[DataService] ❌ Failed to load classes for year ${targetYear}:`, error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Get Rooms (FIXED - เพิ่ม year parameter)
+ */
+export async function getRooms(year = null) {
+  const targetYear = year || currentContext.year;
+  if (!targetYear) {
+    return { ok: false, error: 'No year specified' };
+  }
+  
+  console.log(`[DataService] getRooms for year: ${targetYear}`);
+  
+  const cacheKey = `rooms_${targetYear}`;
+  let cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`[DataService] ✅ Rooms cache HIT for year ${targetYear}:`, cached.length);
+    return { ok: true, data: cached };
+  }
+  
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const yearData = mockData[targetYear];
+      if (!yearData || !yearData.rooms) {
+        console.warn(`[DataService] ⚠️ No rooms data for year ${targetYear}`);
+        return { ok: true, data: [] };
+      }
+      
+      const rooms = yearData.rooms;
+      console.log(`[DataService] ✅ Loaded ${rooms.length} rooms from mock for year ${targetYear}`);
+      cache.set(cacheKey, rooms);
+      return { ok: true, data: rooms };
+    } else {
+      const result = await roomsAPI.getRooms(targetYear);
+      if (result.ok) {
+        cache.set(cacheKey, result.data);
+      }
+      return result;
+    }
+  } catch (error) {
+    console.error(`[DataService] ❌ Failed to load rooms for year ${targetYear}:`, error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Get Subjects (FIXED - เพิ่ม year parameter)
+ */
+export async function getSubjects(year = null) {
+  const targetYear = year || currentContext.year;
+  if (!targetYear) {
+    return { ok: false, error: 'No year specified' };
+  }
+  
+  console.log(`[DataService] getSubjects for year: ${targetYear}`);
+  
+  const cacheKey = `subjects_${targetYear}`;
+  let cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`[DataService] ✅ Subjects cache HIT for year ${targetYear}:`, cached.length);
+    return { ok: true, data: cached };
+  }
+  
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const yearData = mockData[targetYear];
+      if (!yearData || !yearData.subjects) {
+        console.warn(`[DataService] ⚠️ No subjects data for year ${targetYear}`);
+        return { ok: true, data: [] };
+      }
+      
+      const subjects = yearData.subjects;
+      console.log(`[DataService] ✅ Loaded ${subjects.length} subjects from mock for year ${targetYear}`);
+      cache.set(cacheKey, subjects);
+      return { ok: true, data: subjects };
+    } else {
+      const result = await subjectsAPI.getSubjects(targetYear);
+      if (result.ok) {
+        cache.set(cacheKey, result.data);
+      }
+      return result;
+    }
+  } catch (error) {
+    console.error(`[DataService] ❌ Failed to load subjects for year ${targetYear}:`, error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
+ * Get Schedules (FIXED - เพิ่ม year parameter)
+ */
+export async function getSchedules(year = null) {
+  const targetYear = year || currentContext.year;
+  if (!targetYear) {
+    return { ok: false, error: 'No year specified' };
+  }
+  
+  console.log(`[DataService] getSchedules for year: ${targetYear}`);
+  
+  const cacheKey = `schedules_${targetYear}`;
+  let cached = cache.get(cacheKey);
+  if (cached) {
+    console.log(`[DataService] ✅ Schedules cache HIT for year ${targetYear}:`, cached.length);
+    return { ok: true, data: cached };
+  }
+  
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const yearData = mockData[targetYear];
+      if (!yearData || !yearData.schedules) {
+        console.warn(`[DataService] ⚠️ No schedules data for year ${targetYear}`);
+        return { ok: true, data: [] };
+      }
+      
+      const schedules = yearData.schedules;
+      console.log(`[DataService] ✅ Loaded ${schedules.length} schedules from mock for year ${targetYear}`);
+      cache.set(cacheKey, schedules);
+      return { ok: true, data: schedules };
+    } else {
+      const result = await schedulesAPI.getSchedules(targetYear);
+      if (result.ok) {
+        cache.set(cacheKey, result.data);
+      }
+      return result;
+    }
+  } catch (error) {
+    console.error(`[DataService] ❌ Failed to load schedules for year ${targetYear}:`, error);
+    return { ok: false, error: error.message };
+  }
+}
+
+// =============================================================================
 // STUDENT SCHEDULE FUNCTIONS  
 // =============================================================================
 
@@ -494,78 +713,33 @@ function buildScheduleMatrix(schedules, context) {
 }
 
 // =============================================================================
-// CRUD OPERATIONS (CONTEXT-AWARE)
+// CRUD OPERATIONS (CONTEXT-AWARE) - FIXED: ลบ function ซ้ำ
 // =============================================================================
 
 /**
- * Get Teachers (using current context)
+ * Get Teachers (using current context) - REMOVED: ซ้ำกับ function ข้างบน
  */
-export async function getTeachers() {
-  if (!currentContext.year) {
-    throw new Error('No active context. Call setGlobalContext first.');
-  }
-  
-  const yearData = await loadYearData(currentContext.year);
-  if (!yearData.ok) return yearData;
-  
-  return { ok: true, data: yearData.data.teachers };
-}
+// ⭐ FIX: ลบ function นี้ออกเพราะซ้ำกับ getTeachers(year) ข้างบน
 
 /**
- * Get Classes (using current context)
+ * Get Classes (using current context) - REMOVED: ซ้ำกับ function ข้างบน
  */
-export async function getClasses() {
-  if (!currentContext.semesterId) {
-    throw new Error('No active semester context. Call setGlobalContext first.');
-  }
-  
-  const semesterData = await loadSemesterData(currentContext.semesterId);
-  if (!semesterData.ok) return semesterData;
-  
-  return { ok: true, data: semesterData.data.classes };
-}
+// ⭐ FIX: ลบ function นี้ออกเพราะซ้ำกับ getClasses(year) ข้างบน
 
 /**
- * Get Rooms (using current context) - ใหม่
+ * Get Rooms (using current context) - REMOVED: ซ้ำกับ function ข้างบน
  */
-export async function getRooms() {
-  if (!currentContext.year) {
-    throw new Error('No active context. Call setGlobalContext first.');
-  }
-  
-  const yearData = await loadYearData(currentContext.year);
-  if (!yearData.ok) return yearData;
-  
-  return { ok: true, data: yearData.data.rooms };
-}
+// ⭐ FIX: ลบ function นี้ออกเพราะซ้ำกับ getRooms(year) ข้างบน
 
 /**
- * Get Subjects (using current context)
+ * Get Subjects (using current context) - REMOVED: ซ้ำกับ function ข้างบน
  */
-export async function getSubjects() {
-  if (!currentContext.semesterId) {
-    throw new Error('No active semester context. Call setGlobalContext first.');
-  }
-  
-  const semesterData = await loadSemesterData(currentContext.semesterId);
-  if (!semesterData.ok) return semesterData;
-  
-  return { ok: true, data: semesterData.data.subjects };
-}
+// ⭐ FIX: ลบ function นี้ออกเพราะซ้ำกับ getSubjects(year) ข้างบน
 
 /**
- * Get Schedules (using current context)
+ * Get Schedules (using current context) - REMOVED: ซ้ำกับ function ข้างบน
  */
-export async function getSchedules() {
-  if (!currentContext.semesterId) {
-    throw new Error('No active semester context. Call setGlobalContext first.');
-  }
-  
-  const semesterData = await loadSemesterData(currentContext.semesterId);
-  if (!semesterData.ok) return semesterData;
-  
-  return { ok: true, data: semesterData.data.schedules };
-}
+// ⭐ FIX: ลบ function นี้ออกเพราะซ้ำกับ getSchedules(year) ข้างบน
 
 // Helper functions
 export async function getAcademicYearById(yearId) {

@@ -74,7 +74,23 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   
   let classes = [];
   if (result.ok && result.data.length > 0) {
-    classes = result.data;
+    // ⭐ FIX: กรอง duplicate จาก dataService
+    const uniqueClasses = new Map();
+    
+    result.data.forEach(cls => {
+      if (cls.grade_level === 'ม.1') {
+        const key = cls.class_name;
+        if (!uniqueClasses.has(key)) {
+          uniqueClasses.set(key, cls);
+        }
+      }
+    });
+    
+    classes = Array.from(uniqueClasses.values())
+      .sort((a, b) => a.class_name.localeCompare(b.class_name));
+      
+    console.log('[StudentSchedule] ✅ Filtered unique classes from dataService:', classes.map(c => c.class_name));
+    
   } else {
     // Fallback: ใช้ mock data โดยตรงเหมือน navigation.js
     console.warn('[StudentSchedule] No classes from service, using mock data fallback');
@@ -88,17 +104,19 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     });
     
     // กรองเฉพาะ ม.1 และลบ duplicate
-    const uniqueClasses = [];
-    const seenNames = new Set();
+    const uniqueClasses = new Map();
     
     allClasses.forEach(cls => {
-      if (cls.grade_level === 'ม.1' && !seenNames.has(cls.class_name)) {
-        seenNames.add(cls.class_name);
-        uniqueClasses.push(cls);
+      if (cls.grade_level === 'ม.1') {
+        const key = cls.class_name;
+        if (!uniqueClasses.has(key)) {
+          uniqueClasses.set(key, cls);
+        }
       }
     });
     
-    classes = uniqueClasses;
+    classes = Array.from(uniqueClasses.values())
+      .sort((a, b) => a.class_name.localeCompare(b.class_name));
   }
   console.log('Got classes for refresh:', classes.map(c => c.class_name));
   
@@ -113,7 +131,7 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     classSelector.appendChild(option);
   });
   
-  // ⭐ FIX: ไม่ auto-select ให้อยู่ที่ "เลือกห้องเรียน" เท่านั้น
+  // ⭐ FIX: Auto-select first class เมื่อ page load ครั้งแรก
   // Restore selection if possible
   if (currentSelection && classSelector.querySelector(`option[value="${currentSelection}"]`)) {
     classSelector.value = currentSelection;
@@ -124,8 +142,19 @@ export async function refreshClassSelector(context = null, preserveSelection = n
       const changeEvent = new Event('change', { bubbles: true });
       classSelector.dispatchEvent(changeEvent);
     }, 100);
+  } else if (!preserveSelection && classes.length > 0) {
+    // ⭐ FIX: Auto-select first class เมื่อไม่มี selection เดิม
+    const firstClass = classes[0];
+    classSelector.value = firstClass.class_name;
+    console.log('[StudentSchedule] ✅ Auto-selected first class:', firstClass.class_name);
+    
+    // Trigger change event เพื่อโหลด schedule
+    setTimeout(() => {
+      const changeEvent = new Event('change', { bubbles: true });
+      classSelector.dispatchEvent(changeEvent);
+    }, 100);
   } else {
-    // ⭐ FIX: ไม่ auto-select - ให้อยู่ที่ default option
+    // กรณีอื่นๆ ไม่ auto-select
     console.log('No previous selection, staying at default option');
   }
   

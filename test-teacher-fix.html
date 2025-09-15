@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Teacher Tab Fix</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; }
+        .test-result { padding: 10px; margin: 10px 0; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teacher Schedule Fix Test</h1>
+    
+    <div class="test-section">
+        <h2>📊 Test Results</h2>
+        <div id="test-results"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🎯 Manual Tests</h2>
+        <button onclick="testContextSwitch()">Test Context Switch</button>
+        <button onclick="testDataLoading()">Test Data Loading</button>
+        <button onclick="testTeacherTabs()">Test Teacher Tabs</button>
+        <button onclick="runAllTests()">Run All Tests</button>
+    </div>
+    
+    <div class="test-section">
+        <h2>📝 Test Log</h2>
+        <div id="test-log" style="height: 300px; overflow-y: auto; background: #f8f9fa; padding: 10px; border: 1px solid #dee2e6;"></div>
+    </div>
+
+    <script type="module">
+        import * as dataService from './js/services/dataService.js';
+        import * as teacherSchedule from './js/pages/teacherSchedule.js';
+        import { getContext } from './js/context/globalContext.js';
+
+        let testResults = [];
+        let testLog = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            testLog.push(`[${timestamp}] ${message}`);
+            updateTestLog();
+            
+            if (type === 'error') {
+                console.error(message);
+            } else {
+                console.log(message);
+            }
+        }
+
+        function updateTestLog() {
+            const logDiv = document.getElementById('test-log');
+            logDiv.innerHTML = testLog.map(msg => `<div>${msg}</div>`).join('');
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function addTestResult(name, success, message) {
+            testResults.push({ name, success, message });
+            updateTestResults();
+        }
+
+        function updateTestResults() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = testResults.map(result => 
+                `<div class="test-result ${result.success ? 'success' : 'error'}">
+                    <strong>${result.name}:</strong> ${result.message}
+                </div>`
+            ).join('');
+        }
+
+        // Test Functions
+        window.testContextSwitch = async function() {
+            try {
+                log('🎯 Testing context switch...', 'info');
+                
+                // Initialize dataService
+                await dataService.initDataService({ mode: 'mock' });
+                log('✅ DataService initialized');
+                
+                // Set context to year 2567
+                const result = await dataService.setGlobalContext(2567, 1);
+                if (result.ok) {
+                    log('✅ Context set to 2567/1');
+                    addTestResult('Context Switch', true, 'Successfully switched to year 2567');
+                } else {
+                    throw new Error(result.error);
+                }
+                
+                // Test data loading
+                const teachers = await dataService.getTeachers(2567);
+                if (teachers.ok && teachers.data.length > 0) {
+                    log(`✅ Loaded ${teachers.data.length} teachers for 2567`);
+                    addTestResult('Data Loading', true, `Found ${teachers.data.length} teachers`);
+                } else {
+                    throw new Error('No teachers data found');
+                }
+                
+            } catch (error) {
+                log(`❌ Context switch test failed: ${error.message}`, 'error');
+                addTestResult('Context Switch', false, error.message);
+            }
+        };
+
+        window.testDataLoading = async function() {
+            try {
+                log('📊 Testing data loading...', 'info');
+                
+                // Test all data types
+                const [teachers, classes, rooms, subjects, schedules] = await Promise.all([
+                    dataService.getTeachers(2567),
+                    dataService.getClasses(2567),
+                    dataService.getRooms(2567),
+                    dataService.getSubjects(2567),
+                    dataService.getSchedules(2567)
+                ]);
+                
+                const results = {
+                    teachers: teachers.ok ? teachers.data.length : 0,
+                    classes: classes.ok ? classes.data.length : 0,
+                    rooms: rooms.ok ? rooms.data.length : 0,
+                    subjects: subjects.ok ? subjects.data.length : 0,
+                    schedules: schedules.ok ? schedules.data.length : 0
+                };
+                
+                log(`✅ Data loaded: ${JSON.stringify(results)}`);
+                addTestResult('Data Loading', true, `All data types loaded successfully`);
+                
+            } catch (error) {
+                log(`❌ Data loading test failed: ${error.message}`, 'error');
+                addTestResult('Data Loading', false, error.message);
+            }
+        };
+
+        window.testTeacherTabs = async function() {
+            try {
+                log('👨‍🏫 Testing teacher tabs...', 'info');
+                
+                // Test teacher data for different years
+                const teachers2567 = await dataService.getTeachers(2567);
+                const teachers2566 = await dataService.getTeachers(2566);
+                
+                if (teachers2567.ok && teachers2566.ok) {
+                    log(`✅ Year 2567: ${teachers2567.data.length} teachers`);
+                    log(`✅ Year 2566: ${teachers2566.data.length} teachers`);
+                    
+                    // Check if data is different
+                    const same = JSON.stringify(teachers2567.data) === JSON.stringify(teachers2566.data);
+                    if (!same) {
+                        log('✅ Teacher data correctly differs between years');
+                        addTestResult('Teacher Tabs', true, 'Multi-year data working correctly');
+                    } else {
+                        log('⚠️ Teacher data is identical between years');
+                        addTestResult('Teacher Tabs', false, 'Data should differ between years');
+                    }
+                } else {
+                    throw new Error('Failed to load teacher data');
+                }
+                
+            } catch (error) {
+                log(`❌ Teacher tabs test failed: ${error.message}`, 'error');
+                addTestResult('Teacher Tabs', false, error.message);
+            }
+        };
+
+        window.runAllTests = async function() {
+            log('🚀 Running all tests...', 'info');
+            testResults = [];
+            testLog = [];
+            
+            await testContextSwitch();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testDataLoading();
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            await testTeacherTabs();
+            
+            log('🏁 All tests completed!', 'info');
+        };
+
+        // Auto-run tests on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🎬 Test page loaded', 'info');
+            setTimeout(() => runAllTests(), 1000);
+        });
+    </script>
+</body>
+</html>

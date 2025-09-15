@@ -7,6 +7,8 @@ import * as dataService from './services/dataService.js';
 import * as teacherSchedule from './pages/teacherSchedule.js';
 import * as globalContext from './context/globalContext.js';
 import { formatClassName, getClassDisplayName } from './data/classes.mock.js';
+// ⭐ FIX: Import event listener fix
+import { fixStudentPageEventListeners } from './fix-navigation.js';
 
 // =============================================================================
 // NAVIGATION STATE
@@ -158,87 +160,18 @@ async function initStudentPage() {
   
   const classSelector = document.getElementById('class-dropdown');
   if (classSelector && !classSelector.dataset.initialized) {
-    try {
-      const classes = await dataService.getClasses();
-      
-      if (classes.ok && classes.data.length > 0) {
-        let optionsHTML = '<option value="">-- เลือกห้องเรียน --</option>';
-        
-        classes.data.forEach(cls => {
-          const value = cls.class_name; // ใช้ "1/1" โดยตรง
-          const displayName = getClassDisplayName(cls); // "ม.1/1 (40 คน)"
-          optionsHTML += `<option value="${value}">${displayName}</option>`;
-        });
-        
-        classSelector.innerHTML = optionsHTML;
-        console.log('[Navigation] Loaded classes from dataService:', classes.data.length, 'classes');
-        
-      } else {
-        console.warn('[Navigation] No classes data from service, loading direct from mock');
-        // ใช้ direct access ไปยัง mock data
-        const { mockData } = await import('./data/index.js');
-        
-        // หาข้อมูลจากปีที่มีข้อมูล (2566, 2567, 2568)
-        let allClasses = [];
-        
-        // รวม classes จากทุกปี
-        [2566, 2567, 2568].forEach(year => {
-          if (mockData[year] && mockData[year].classes) {
-            allClasses = allClasses.concat(mockData[year].classes);
-          }
-        });
-        
-        if (allClasses.length > 0) {
-          let optionsHTML = '<option value="">-- เลือกห้องเรียน --</option>';
-          
-          // กรองเฉพาะ ม.1 และลบ duplicate
-          const uniqueClasses = [];
-          const seenNames = new Set();
-          
-          allClasses.forEach(cls => {
-            if (cls.grade_level === 'ม.1' && !seenNames.has(cls.class_name)) {
-              seenNames.add(cls.class_name);
-              uniqueClasses.push(cls);
-            }
-          });
-          
-          // เรียงตามชื่อ
-          uniqueClasses.sort((a, b) => a.class_name.localeCompare(b.class_name));
-          
-          uniqueClasses.forEach(cls => {
-            const value = cls.class_name; // ใช้ "1/1" โดยตรง
-            const displayName = getClassDisplayName(cls); // "ม.1/1 (40 คน)"
-            optionsHTML += `<option value="${value}">${displayName}</option>`;
-          });
-          
-          classSelector.innerHTML = optionsHTML;
-          console.log('[Navigation] Loaded classes from direct mock:', uniqueClasses.length, 'ม.1 classes');
-        } else {
-          console.error('[Navigation] No classes in any mock data');
-          classSelector.innerHTML = '<option value="">ไม่พบข้อมูลห้องเรียน</option>';
-        }
-      }
-    } catch (error) {
-      console.error('[Navigation] Error loading classes:', error);
-    }
     
-    classSelector.addEventListener('change', (e) => {
-      if (e.target.value) {
-        const selectedValue = e.target.value; // "1/1"
-        const selectedOption = e.target.options[e.target.selectedIndex];
-        const optionText = selectedOption ? selectedOption.text : '';
-        const selectedClassName = optionText.split(' (')[0]; // "ม.1/1"
-        
-        console.log('[Navigation] Selected value:', selectedValue, '-> Class name:', selectedClassName);
-        
-        updateSelectedClassName(selectedClassName);
-        loadMockSchedule(selectedValue);
-      } else {
-        updateSelectedClassName('');
-      }
-    });
+    // ⭐ FIX: ใช้ studentSchedule.js ให้โหลด classes แทน ไม่โหลดที่นี่
+    console.log('[Navigation] ⚠️ Skipping classes loading - let studentSchedule.js handle it');
+    
+    // เพิ่ม empty option ไว้ก่อน
+    classSelector.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
+    
+    // ⭐ FIX: ใช้ fix function เพื่อป้องกัน event listener ซ้ำ
+    fixStudentPageEventListeners();
     
     classSelector.dataset.initialized = 'true';
+    console.log('[Navigation] ✅ Class selector initialized (empty) - waiting for studentSchedule.js to populate');
   }
   
   setupBasicExportHandlers();

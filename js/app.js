@@ -61,8 +61,34 @@ class SchoolScheduleApp {
       this.initialized = true;
       console.log('✅ School Schedule System initialized successfully');
       
+      // ⭐ FIX: โหลด default class หลังจาก init เสร็จ
+      await this.loadDefaultClassSelection();
+      
     } catch (error) {
       await this.handleInitializationError(error);
+    }
+  }
+  
+  /**
+   * Load default class selection for student page (NEW)
+   */
+  async loadDefaultClassSelection() {
+    try {
+      console.log('[App] 🎯 Loading default class selection...');
+      
+      const currentPage = getCurrentPage();
+      
+      if (currentPage === 'student') {
+        const studentPage = await import('./pages/studentSchedule.js');
+        if (studentPage.refreshClassSelector) {
+          const currentContext = getContext();
+          await studentPage.refreshClassSelector(currentContext, null);
+          console.log('[App] ✅ Default class selection loaded');
+        }
+      }
+      
+    } catch (error) {
+      console.error('[App] Error loading default class selection:', error);
     }
   }
 
@@ -789,7 +815,7 @@ class SchoolScheduleApp {
   }
 
   /**
-   * Refresh current page (FIXED - ไม่ทำลาย ComboBox)
+   * Refresh current page (FIXED - ใช้ refreshPage function ที่ถูกต้อง)
    */
   async refreshCurrentPage(newContext) {
     console.log(`🔄 Refreshing current page: ${this.currentPage}`);
@@ -800,44 +826,33 @@ class SchoolScheduleApp {
     }
     
     try {
-      // ⭐ FIX: แทนที่จะ clear ทุกอย่าง ให้ refresh แค่ข้อมูลเท่านั้น
       console.log(`🔄 Refreshing data for page: ${this.currentPage}`);
       
-      // แทนที่จะ reset UI ให้ refresh แค่ข้อมูล
+      // ⭐ FIX: เรียกใช้ refreshPage functions ที่ถูกต้อง
       if (this.currentPage === 'student') {
-        // ⭐ FIX: เก็บ current selection ไว้
-        const classSelector = document.querySelector('#class-dropdown');
-        const currentSelection = classSelector ? classSelector.value : null;
-        
-        console.log('Preserving class selection:', currentSelection);
-        
-        // เรียก refresh function ของ student page โดยตรง
         const studentPage = await import('./pages/studentSchedule.js');
         if (studentPage.refreshPage) {
-          await studentPage.refreshPage(newContext, currentSelection);
-        } else {
-          // Fallback: เรียก init แต่ไม่ reset UI
-          await studentPage.refreshClassSelector();
+          await studentPage.refreshPage(newContext, null); // ไม่ preserve selection
         }
-        
-        console.log('Student page data refreshed without UI reset');
+        console.log('Student page data refreshed');
       }
       else if (this.currentPage === 'teacher') {
-        // Refresh teacher page data only
+        // ⭐ FIX: ใช้ refreshPage function ของ teacher page
         const teacherPage = await import('./pages/teacherSchedule.js');
         if (teacherPage.refreshPage) {
           await teacherPage.refreshPage(newContext);
+          console.log('✅ Teacher page data refreshed successfully');
+        } else {
+          console.warn('⚠️ Teacher page refreshPage function not found');
         }
       }
       else if (this.currentPage === 'substitution') {
-        // Refresh substitution page data only
         const substitutionPage = await import('./pages/substitution.js');
         if (substitutionPage.refreshPage) {
           await substitutionPage.refreshPage(newContext);
         }
       }
       else if (this.currentPage === 'admin') {
-        // Refresh admin page data only
         const adminPage = await import('./pages/admin.js');
         if (adminPage.refreshPage) {
           await adminPage.refreshPage(newContext);
@@ -848,7 +863,7 @@ class SchoolScheduleApp {
       
     } catch (error) {
       console.error('Error refreshing current page:', error);
-      this.showNotification('เกิดข้อผิดพลาดในการรีเฟรชหน้า', 'error');
+      this.showNotification('เกิดข้อผิดพลาดในการรีเฟรชหน้า: ' + error.message, 'error');
     }
   }
 

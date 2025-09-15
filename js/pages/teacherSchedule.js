@@ -98,31 +98,111 @@ export async function updatePageForContext(newContext) {
   }
 }
 
+/**
+ * Refresh Page Data (NEW - สำหรับ context switching)
+ */
+export async function refreshPage(newContext, preserveSelection = null) {
+  console.log('[TeacherSchedule] Refreshing page data with context:', newContext);
+  
+  try {
+    // Set loading state
+    setLoading(true);
+    
+    // ⭐ FIX: Set context in dataService first
+    await dataService.setGlobalContext(newContext.currentYear || newContext.year, newContext.currentSemester?.id || newContext.semesterId);
+    
+    // Clear current state
+    pageState.teachers = [];
+    pageState.selectedTeacher = null;
+    pageState.teacherSchedules = {};
+    pageState.workloadSummary = null;
+    
+    // Reload data with new context
+    await loadTeachersData(newContext);
+    
+    // Re-render components
+    await renderWorkloadSummary(newContext);
+    await renderTeacherTabs(newContext);
+    
+    // Clear any selected teacher (let user reselect)
+    const teacherInfoContainer = document.getElementById('teacher-info');
+    const scheduleContainer = document.getElementById('teacher-schedule-table');
+    const workloadContainer = document.getElementById('teacher-workload');
+    const emptyState = document.getElementById('teacher-details-empty');
+    
+    if (teacherInfoContainer) teacherInfoContainer.classList.add('hidden');
+    if (scheduleContainer) scheduleContainer.classList.add('hidden');
+    if (workloadContainer) workloadContainer.classList.add('hidden');
+    if (emptyState) emptyState.style.display = 'block';
+    
+    // Clear active tab
+    const activeTabs = document.querySelectorAll('.teacher-tab.active');
+    activeTabs.forEach(tab => {
+      tab.classList.remove('active');
+      tab.setAttribute('aria-selected', 'false');
+    });
+    
+    console.log('[TeacherSchedule] ✅ Page refresh completed successfully');
+    
+  } catch (error) {
+    console.error('[TeacherSchedule] Error refreshing page:', error);
+    showError('เกิดข้อผิดพลาดในการรีเฟรชข้อมูลครู: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
 // =============================================================================
 // DATA LOADING
 // =============================================================================
 
 /**
- * Load Teachers Data
+ * Load Teachers Data (FIXED - ใช้ context ที่ถูกต้อง)
  */
 async function loadTeachersData(context) {
   try {
     setLoading(true);
+    
+    // ⭐ FIX: ใช้ year จาก context ให้ถูกต้อง
+    const targetYear = context.currentYear || context.year;
+    console.log(`[TeacherSchedule] Loading data for year: ${targetYear}`);
+    
+    if (!targetYear) {
+      throw new Error('ไม่ได้ระบุปีการศึกษา');
+    }
 
-    // Load all required data
+    // ⭐ FIX: ส่ง year parameter ให้ทุก API call
     const [teachersResult, schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
-      dataService.getTeachers(context.currentYear),
-      dataService.getSchedules(),
-      dataService.getSubjects(),
-      dataService.getClasses(context.currentYear),
-      dataService.getRooms()
+      dataService.getTeachers(targetYear),      // ✅ ใส่ year
+      dataService.getSchedules(targetYear),     // ✅ ใส่ year  
+      dataService.getSubjects(targetYear),      // ✅ ใส่ year
+      dataService.getClasses(targetYear),       // ✅ ใส่ year
+      dataService.getRooms(targetYear)          // ✅ ใส่ year
     ]);
 
-    if (!teachersResult.ok) throw new Error('ไม่สามารถโหลดข้อมูลครูได้');
-    if (!schedulesResult.ok) throw new Error('ไม่สามารถโหลดข้อมูลตารางสอนได้');
-    if (!subjectsResult.ok) throw new Error('ไม่สามารถโหลดข้อมูลวิชาได้');
+    // ตรวจสอบผลลัพธ์
+    if (!teachersResult.ok) {
+      console.error('[TeacherSchedule] Teachers load failed:', teachersResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลครูได้: ' + teachersResult.error);
+    }
+    if (!schedulesResult.ok) {
+      console.error('[TeacherSchedule] Schedules load failed:', schedulesResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลตารางสอนได้: ' + schedulesResult.error);
+    }
+    if (!subjectsResult.ok) {
+      console.error('[TeacherSchedule] Subjects load failed:', subjectsResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลวิชาได้: ' + subjectsResult.error);
+    }
 
     pageState.teachers = teachersResult.data;
+
+    console.log(`[TeacherSchedule] ✅ Successfully loaded data for year ${targetYear}:`, {
+      teachers: teachersResult.data.length,
+      schedules: schedulesResult.data.length,
+      subjects: subjectsResult.data.length,
+      classes: classesResult.data?.length || 0,
+      rooms: roomsResult.data?.length || 0
+    });
 
     // Calculate workload for each teacher
     await calculateWorkloadSummary({
@@ -131,12 +211,6 @@ async function loadTeachersData(context) {
       subjects: subjectsResult.data,
       classes: classesResult.data || [],
       rooms: roomsResult.data || []
-    });
-
-    console.log('[TeacherSchedule] Loaded data:', {
-      teachers: teachersResult.data.length,
-      schedules: schedulesResult.data.length,
-      subjects: subjectsResult.data.length
     });
 
   } catch (error) {
@@ -472,40 +546,86 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
 }
 
 /**
- * Get Teacher Schedule Data
+ * Get Teacher Schedule Data (FIXED - ใช้ context ที่ถูกต้อง)
  */
 async function getTeacherScheduleData(teacherId, context) {
-  // Load all data
-  const [schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
-    dataService.getSchedules(),
-    dataService.getSubjects(),
-    dataService.getClasses(),
-    dataService.getRooms()
-  ]);
+  try {
+    console.log(`[TeacherSchedule] Getting schedule data for teacher ${teacherId} with context:`, context);
+    
+    // ⭐ FIX: ใช้ year จาก context ที่ถูกต้อง
+    const targetYear = context.currentYear || context.year;
+    if (!targetYear) {
+      throw new Error('ไม่ได้ระบุปีการศึกษา');
+    }
+    
+    console.log(`[TeacherSchedule] Loading data for year: ${targetYear}`);
+    
+    // ⭐ FIX: ส่ง year parameter ให้ทุก API call
+    const [schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
+      dataService.getSchedules(targetYear),
+      dataService.getSubjects(targetYear),
+      dataService.getClasses(targetYear),
+      dataService.getRooms(targetYear)
+    ]);
+    
+    // ตรวจสอบผลลัพธ์
+    if (!schedulesResult.ok) {
+      console.error('[TeacherSchedule] Schedules load failed:', schedulesResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลตารางสอนได้: ' + schedulesResult.error);
+    }
+    if (!subjectsResult.ok) {
+      console.error('[TeacherSchedule] Subjects load failed:', subjectsResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลวิชาได้: ' + subjectsResult.error);
+    }
 
-  const schedules = schedulesResult.data || [];
-  const subjects = subjectsResult.data || [];
-  const classes = classesResult.data || [];
-  const rooms = roomsResult.data || [];
+    const schedules = schedulesResult.data || [];
+    const subjects = subjectsResult.data || [];
+    const classes = classesResult.data || [];
+    const rooms = roomsResult.data || [];
 
-  // Filter subjects taught by this teacher
-  const teacherSubjects = subjects.filter(s => s.teacher_id === teacherId);
-  const subjectIds = teacherSubjects.map(s => s.id);
+    console.log(`[TeacherSchedule] ✅ Data loaded successfully:`, {
+      schedules: schedules.length,
+      subjects: subjects.length,
+      classes: classes.length,
+      rooms: rooms.length
+    });
 
-  // Filter schedules for teacher's subjects
-  const teacherSchedules = schedules.filter(s => subjectIds.includes(s.subject_id));
+    // Filter subjects taught by this teacher
+    const teacherSubjects = subjects.filter(s => s.teacher_id === teacherId);
+    const subjectIds = teacherSubjects.map(s => s.id);
+    
+    console.log(`[TeacherSchedule] Teacher ${teacherId} teaches ${teacherSubjects.length} subjects:`, 
+      teacherSubjects.map(s => s.subject_name));
 
-  // Build schedule matrix
-  const matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
+    // Filter schedules for teacher's subjects
+    const teacherSchedules = schedules.filter(s => subjectIds.includes(s.subject_id));
+    
+    console.log(`[TeacherSchedule] Found ${teacherSchedules.length} schedule entries for teacher ${teacherId}`);
 
-  return {
-    subjects: teacherSubjects,
-    schedules: teacherSchedules,
-    matrix,
-    classes,
-    rooms,
-    totalPeriods: teacherSchedules.length
-  };
+    // Build schedule matrix
+    const matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
+
+    const result = {
+      subjects: teacherSubjects,
+      schedules: teacherSchedules,
+      matrix,
+      classes,
+      rooms,
+      totalPeriods: teacherSchedules.length
+    };
+    
+    console.log(`[TeacherSchedule] ✅ Schedule data prepared for teacher ${teacherId}:`, {
+      totalSubjects: result.subjects.length,
+      totalSchedules: result.schedules.length,
+      totalPeriods: result.totalPeriods
+    });
+    
+    return result;
+    
+  } catch (error) {
+    console.error(`[TeacherSchedule] Failed to get teacher ${teacherId} schedule data:`, error);
+    throw error;
+  }
 }
 
 /**
