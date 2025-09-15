@@ -454,7 +454,7 @@ export async function renderContextControls(context) {
   
   controlsContainer.innerHTML = `
     <div class="page-header">
-      <h2>📚 ตารางเรียนนักเรียน</h2>
+      <h2>📚 ตารางเรียน</h2>
       <div class="context-info">
         <span>ปีการศึกษา ${context.currentYear || 'ไม่ได้เลือก'}</span>
         <span class="separator">|</span>
@@ -540,9 +540,6 @@ export function renderScheduleTable(resultData, context) {
     tableContainer.innerHTML = '<p class="no-schedule">ไม่มีตารางเรียนสำหรับห้องนี้</p>';
     return;
   }
-  // Hide empty-state helper when we have a schedule
-  const emptyStateEl = document.getElementById('student-empty-state');
-  if (emptyStateEl) emptyStateEl.style.display = 'none';
 
   const timeSlots = generateTimeSlots();
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
@@ -1220,8 +1217,6 @@ function clearScheduleDisplay() {
   if (tableContainer) tableContainer.innerHTML = '';
   if (headerContainer) headerContainer.innerHTML = '';
   if (exportContainer) exportContainer.innerHTML = '';
-  const emptyStateEl = document.getElementById('student-empty-state');
-  if (emptyStateEl) emptyStateEl.style.display = 'block';
   
   pageState.currentSchedule = null;
   pageState.selectedClass = null;
