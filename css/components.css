@@ -38,6 +38,9 @@
   border-collapse: collapse;
   font-size: var(--font-size-sm);
   background: #fff;
+  table-layout: fixed;
+  /* Default font sizing for subject/metadata */
+  --subject-font: 14px;
 }
 .schedule-table thead th {
   background: var(--color-light-dark);
@@ -48,9 +51,10 @@
   text-align: center;
   border-bottom: 2px solid var(--color-gray-200);
   border-right: 1px solid var(--color-gray-200);
+  height: 64px;
 }
 .schedule-table thead th:first-child {
-  text-align: left;
+  text-align: center;
   background: var(--color-primary);
   color: #fff;
 }
@@ -59,10 +63,12 @@
   border-bottom: 1px solid var(--color-gray-100);
   padding: .5rem;
   text-align: center;
-  vertical-align: top;
+  vertical-align: middle;
+  height: 64px;
+  box-sizing: border-box;
 }
 .schedule-table td:first-child {
-  text-align: left;
+  text-align: center;
   font-weight: var(--font-weight-semibold);
   background: var(--color-gray-50);
 }
@@ -70,15 +76,28 @@
 
 /* Cell content */
 .subject-cell { display: flex; flex-direction: column; align-items: center; gap: .15rem; min-height: 58px; }
-.subject-name {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-dark);
-  font-size: var(--font-size-xs);
-  text-align: center; line-height: 1.25;
-}
+.subject-name { font-weight: var(--font-weight-semibold); color: var(--color-dark); font-size: var(--subject-font, 14px); text-align: center; line-height: 1.25; white-space: nowrap; }
 .teacher-name { font-size: var(--font-size-xs); color: var(--color-dark-lighter); }
 .class-name { font-size: var(--font-size-xs); color: var(--color-primary-dark); font-weight: var(--font-weight-medium); }
 .time-slot { font-weight: var(--font-weight-semibold); color: var(--color-dark-light); }
+
+/* Keep time on a single line */
+.schedule-table th .period-number { display: block; }
+.schedule-table th .time-slot { white-space: nowrap; display: block; }
+
+/* Center content inside cells */
+.schedule-table .schedule-cell-content,
+.schedule-table .empty-cell { display: flex; align-items: center; justify-content: center; flex-direction: column; gap: .15rem; min-height: 48px; text-align: center; padding: 1px 1px; box-sizing: border-box; }
+
+/* Day column width */
+.schedule-table .day-header,
+.schedule-table .day-cell { width: 120px; }
+
+/* Lunch column styling */
+.schedule-table .lunch-header,
+.schedule-table .lunch-column { background: #fff9cc; text-align: center; }
+.schedule-table .lunch-column { font-weight: 600; vertical-align: middle; }
+.schedule-table .lunch-header .lunch-info { font-weight: 600; }
 
 /* State variants for cells */
 .subject-cell--empty {
@@ -126,33 +145,32 @@
   font-size: var(--font-size-2xl); font-weight: var(--font-weight-bold); color: var(--color-primary);
 }
 
+/* Center and pastel style for Subject Group stats */
+#subject-group-stats { justify-items: center; }
+#subject-group-stats .stat-card { text-align: center; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: .6rem .75rem; min-height: 120px; width: 100%; box-sizing: border-box; }
+#subject-group-stats .stat-title { font-weight: var(--font-weight-semibold); color: var(--color-dark); }
+#subject-group-stats .stat-number { font-size: 1.5rem; font-weight: var(--font-weight-bold); color: var(--color-primary-dark); }
+#subject-group-stats .stat-subtitle { color: var(--color-dark-lighter); }
+#subject-group-stats .stat-card:nth-child(6n+1) { background: #fff7e6; }
+#subject-group-stats .stat-card:nth-child(6n+2) { background: #e6f7ff; }
+#subject-group-stats .stat-card:nth-child(6n+3) { background: #f6ffed; }
+#subject-group-stats .stat-card:nth-child(6n+4) { background: #f9f0ff; }
+#subject-group-stats .stat-card:nth-child(6n+5) { background: #fff0f6; }
+#subject-group-stats .stat-card:nth-child(6n+6) { background: #f0f5ff; }
+
 /* Ranking list (teacher-summary) */
 .ranking-list { display: flex; flex-direction: column; gap: .5rem; }
-.ranking-item {
-  display: flex; align-items: center; gap: .75rem;
-  background: #fff; border: 1px solid var(--color-gray-200);
-  border-radius: var(--radius-lg); padding: .6rem .75rem;
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
-}
+.ranking-item { display: flex; flex-direction: column; align-items: center; gap: .25rem; background: #fff; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: .6rem .75rem; transition: transform var(--transition-fast), box-shadow var(--transition-fast); text-align: center; min-height: 120px; box-sizing: border-box; }
 .ranking-item:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
-.rank-no {
-  min-width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  color: #fff; font-weight: var(--font-weight-bold);
-}
-.rank-no--1 { background: linear-gradient(135deg, #ffd700, #ffed4e); }
-.rank-no--2 { background: linear-gradient(135deg, #c0c0c0, #e5e5e5); }
-.rank-no--3 { background: linear-gradient(135deg, #cd7f32, #daa520); }
-.rank-no--n { background: var(--color-primary); }
-.rank-info { flex: 1; }
-.rank-name { font-weight: var(--font-weight-semibold); color: var(--color-dark); }
-.rank-meta { display: flex; gap: .75rem; flex-wrap: wrap; color: var(--color-dark-lighter); font-size: var(--font-size-sm); }
+.rank-line { font-weight: var(--font-weight-bold); color: var(--color-primary); font-size: 1rem; }
+.group-line { color: var(--color-dark-lighter); font-size: .9rem; }
+.name-line { font-weight: var(--font-weight-semibold); color: var(--color-dark); font-size: 1rem; }
+.meta-line { color: var(--color-dark-lighter); font-size: .9rem; display: flex; align-items: center; gap: .35rem; }
+.meta-line .dot { opacity: .6; }
 
 /* Teacher tabs (details) */
 .teacher-controls { margin: .5rem 0 1rem; }
-.teacher-tabs {
-  display: flex; gap: .5rem; flex-wrap: wrap;
-}
+.teacher-tabs { display: block; }
 .teacher-tab {
   padding: .4rem .65rem; border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md); background: #fff; color: var(--color-dark-lighter);
@@ -160,6 +178,26 @@
 }
 .teacher-tab:hover { border-color: var(--color-primary); color: var(--color-primary-dark); }
 .teacher-tab.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* Grouped teacher tabs (menu-like) and filter chips */
+.teacher-groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .75rem; }
+.group-section { background: #fff; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg); padding: .5rem; }
+.group-title { font-weight: var(--font-weight-semibold); color: var(--color-dark); margin: .25rem .25rem .5rem; text-align: left; }
+.group-list { display: flex; flex-wrap: wrap; gap: .5rem; align-items: stretch; }
+.group-list .teacher-tab { display: inline-flex; align-items: center; justify-content: center; padding: .5rem .75rem; cursor: pointer; text-align: center; flex: 1 1 120px; min-width: 120px; max-width: 100%; }
+.teacher-tab__name { pointer-events: none; }
+.group-filter { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .5rem; }
+.group-chip { display: inline-flex; align-items: center; justify-content: center; padding: .35rem .6rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-full); background: #fff; color: var(--color-dark-lighter); cursor: pointer; transition: all var(--transition-fast); }
+.group-chip:hover { border-color: var(--color-primary); color: var(--color-primary-dark); }
+.group-chip.active { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+
+/* Pastel backgrounds per subject group section */
+.teacher-groups .group-section:nth-child(6n+1) { background: #fff7e6; }
+.teacher-groups .group-section:nth-child(6n+2) { background: #e6f7ff; }
+.teacher-groups .group-section:nth-child(6n+3) { background: #f6ffed; }
+.teacher-groups .group-section:nth-child(6n+4) { background: #f9f0ff; }
+.teacher-groups .group-section:nth-child(6n+5) { background: #fff0f6; }
+.teacher-groups .group-section:nth-child(6n+6) { background: #f0f5ff; }
 
 .teacher-info {
   display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: .75rem;
