@@ -380,24 +380,28 @@ async function renderWorkloadSummary(context) {
     subjectGroupContainer.innerHTML = html;
   }
 
-  // อัปเดต teacher ranking
+  // อัปเดต teacher ranking (จัดเป็น 4 บรรทัด: Rank -> Group -> Name -> Subjects & Hours)
   const teacherRankingContainer = document.getElementById('teacher-ranking');
   console.log('[TeacherSchedule] teacher-ranking element:', teacherRankingContainer);
 
   if (teacherRankingContainer) {
-    const html = teacherWorkloads.map((item, index) => `
-      <div class="ranking-item" data-teacher-id="${item.teacher.id}">
-        <div class="rank">#${index + 1}</div>
-        <div class="teacher-info">
-          <div class="teacher-name">${item.teacher.name}</div>
-          <div class="teacher-group">${item.teacher.subject_group}</div>
-        </div>
-        <div class="workload-info">
-          <div class="periods-count">${item.totalPeriods} คาบ</div>
-          <div class="subjects-count">${item.subjectsCount} วิชา</div>
-        </div>
-      </div>
-    `).join('');
+    const html = teacherWorkloads.map((item, index) => {
+      const rank = `#${index + 1}`;
+      const group = item.teacher.subject_group || '';
+      const name = item.teacher.name || '';
+      const meta = `${item.subjectsCount} วิชา • ${item.totalPeriods} คาบ`;
+      return `
+        <div class="ranking-item" data-teacher-id="${item.teacher.id}">
+          <div class="rank-line">${rank}</div>
+          <div class="group-line">${group}</div>
+          <div class="name-line">${name}</div>
+          <div class="meta-line">
+            <span class="subjects-count">${item.subjectsCount} วิชา</span>
+            <span class="dot">•</span>
+            <span class="periods-count">${item.totalPeriods} คาบ</span>
+          </div>
+        </div>`;
+    }).join('');
 
     console.log('[TeacherSchedule] Teacher ranking HTML:', html);
     teacherRankingContainer.innerHTML = html;
@@ -459,9 +463,17 @@ async function renderTeacherSchedule(teacherId, context) {
     document.getElementById('teacher-workload')?.classList.remove('hidden');
     document.getElementById('teacher-details-empty')?.style.setProperty('display', 'none');
 
+    // Smooth scroll to the first section heading: "ตารางสอน - {teacher.name}"
+    const infoHeadingEl = document.querySelector('#teacher-info .teacher-info-card h4') ||
+                          document.getElementById('teacher-info') ||
+                          document.getElementById('teacher-schedule-table');
+    if (infoHeadingEl) {
+      scrollElementToViewportTop(infoHeadingEl, 72);
+    }
+
   } catch (error) {
     console.error('[TeacherSchedule] Failed to render teacher schedule:', error);
-    showError(`โหลดตารางสอนครู ${teacher.name} ล้มเหลว: ${error.message}`);
+    showError(`โหลดตารางสอน ${teacher.name} ล้มเหลว: ${error.message}`);
   } finally {
     setLoading(false);
   }
@@ -559,7 +571,7 @@ function renderScheduleTableSection(scheduleData, teacher, context) {
             <div class="subject-info">
               <div class="subject-name">${cellData.subject.subject_name}</div>
               <div class="class-name">${cellData.class.class_name}</div>
-              <div class="room-name">${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}</div>
+              <div class="room-name">${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}</div>
             </div>
           </td>
         `;
@@ -822,7 +834,7 @@ function renderScheduleTable(scheduleData, teacher, context) {
               <div class="subject-name">${cellData.subject.subject_name}</div>
               <div class="class-name">${cellData.class.class_name}</div>
               <div class="room-name">
-                ${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}
+                ${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}
                 ${cellData.room.room_type ? `<span class="room-type ${cellData.room.room_type.toLowerCase()}">${cellData.room.room_type}</span>` : ''}
               </div>
             </div>
@@ -949,6 +961,15 @@ function setupEventListeners(context) {
     if (e.target.matches('.teacher-tab')) {
       console.log('[TeacherSchedule] Teacher tab clicked:', e.target.dataset.teacherId);
       const teacherId = parseInt(e.target.dataset.teacherId);
+      // Smooth center the clicked tab in the tab strip
+      try {
+        const tabsContainer = document.getElementById('teacher-tabs');
+        if (tabsContainer && e.target) {
+          centerElementInContainer(tabsContainer, e.target);
+        }
+      } catch (err) {
+        console.warn('[TeacherSchedule] Failed to center tab:', err);
+      }
       await selectTeacher(teacherId, context);
     }
   });
@@ -1016,6 +1037,11 @@ async function selectTeacher(teacherId, context) {
   if (activeTab) {
     activeTab.classList.add('active');
     activeTab.setAttribute('aria-selected', 'true');
+    // Ensure the active tab is centered in view (fallback if click handler missed it)
+    const tabsContainer = document.getElementById('teacher-tabs');
+    if (tabsContainer) {
+      centerElementInContainer(tabsContainer, activeTab);
+    }
   }
 
   // Update page state
@@ -1026,6 +1052,48 @@ async function selectTeacher(teacherId, context) {
 
   // Setup export functionality
   setupExportHandlers(teacherId, context);
+}
+
+// Smoothly scroll an element so its top aligns near the top of the viewport
+function scrollElementToViewportTop(element, offset = 0) {
+  try {
+    const rect = element.getBoundingClientRect();
+    const viewportH = window.innerHeight || document.documentElement.clientHeight;
+    const currentY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    const targetY = currentY + rect.top - (typeof offset === 'number' ? offset : 0);
+    const safeY = Math.max(0, Math.min(targetY, document.body.scrollHeight - viewportH));
+
+    if (typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: safeY, behavior: 'smooth' });
+    } else if (typeof element.scrollIntoView === 'function') {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' });
+    }
+  } catch (e) {
+    console.warn('[TeacherSchedule] scrollElementToViewportTop failed:', e);
+  }
+}
+
+// Smoothly center a child element inside a scrollable container (horizontal)
+function centerElementInContainer(container, element) {
+  if (!container || !element) return;
+  try {
+    const containerRect = container.getBoundingClientRect();
+    const elemRect = element.getBoundingClientRect();
+
+    // Compute element's left relative to container's scrollable content
+    const elementLeft = element.offsetLeft;
+    const desired = elementLeft - (container.clientWidth / 2 - element.clientWidth / 2);
+    const maxScroll = container.scrollWidth - container.clientWidth;
+    const targetLeft = Math.max(0, Math.min(desired, maxScroll));
+
+    if (typeof container.scrollTo === 'function') {
+      container.scrollTo({ left: targetLeft, behavior: 'smooth' });
+    } else {
+      container.scrollLeft = targetLeft;
+    }
+  } catch (e) {
+    console.warn('[TeacherSchedule] centerElementInContainer error:', e);
+  }
 }
 
 // =============================================================================
@@ -1216,7 +1284,7 @@ async function prepareTeacherExportData(teacherId, context) {
       const cellData = scheduleData.matrix[dayNumber]?.[period];
 
       if (cellData) {
-        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.class.class_name}\n${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}`;
+        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.class.class_name}\n${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}`;
       } else {
         rowData[`คาบ ${period}`] = '-';
       }
