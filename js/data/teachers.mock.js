@@ -350,8 +350,18 @@ export const teachersData = {
     { id: 32, name: "ครูไทย สาม", email: "thai3@school.ac.th", phone: "082-200-0003", subject_group: "ภาษาไทย", role: "teacher", user_id: null, created_at: "2027-05-15T00:00:00Z"},
     { id: 33, name: "ครูคณิต สาม", email: "math3@school.ac.th", phone: "082-200-0013", subject_group: "คณิตศาสตร์", role: "teacher", user_id: null, created_at: "2027-05-15T00:00:00Z"},
     { id: 34, name: "ครูวิทย์ สาม", email: "sci3@school.ac.th", phone: "082-200-0023", subject_group: "วิทยาศาสตร์", role: "teacher", user_id: null, created_at: "2027-05-15T00:00:00Z"},
-    { id: 35, name: "ครูอังกฤษ สาม", email: "eng3@school.ac.th", phone: "082-200-0033", subject_group: "ภาษาอังกฤษ", role: "teacher", user_id: null, created_at: "2027-05-15T00:00:00Z"}
-  ]
+    { id: 35, name: "ครูอังกฤษ สาม", email: "eng3@school.ac.th", phone: "082-200-0033", subject_group: "ภาษาอังกฤษ", role: "teacher", user_id: null, created_at: "2027-05-15T00:00:00Z"},
+      // Added 10 Science teachers (UTF-16 escapes to avoid encoding issues)
+    { id: 101, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 01", email: "sci01@school.ac.th", phone: "082-210-0001", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 102, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 02", email: "sci02@school.ac.th", phone: "082-210-0002", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 103, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 03", email: "sci03@school.ac.th", phone: "082-210-0003", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 104, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 04", email: "sci04@school.ac.th", phone: "082-210-0004", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 105, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 05", email: "sci05@school.ac.th", phone: "082-210-0005", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 106, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 06", email: "sci06@school.ac.th", phone: "082-210-0006", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 107, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 07", email: "sci07@school.ac.th", phone: "082-210-0007", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 108, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 08", email: "sci08@school.ac.th", phone: "082-210-0008", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 109, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 09", email: "sci09@school.ac.th", phone: "082-210-0009", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" },
+    { id: 110, name: "\u0e04\u0e23\u0e39\u0e27\u0e34\u0e17\u0e22\u0e4c 10", email: "sci10@school.ac.th", phone: "082-210-0010", subject_group: "\u0e27\u0e34\u0e17\u0e22\u0e32\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c", role: "teacher", user_id: null, created_at: "2027-05-16T00:00:00Z" }]
 };
 
 // Helper Functions
@@ -410,3 +420,4 @@ export function normalizeTeacherRowForExport(teacher, context) {
 }
 
 export default teachersData;
+
