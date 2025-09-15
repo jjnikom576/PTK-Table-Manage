@@ -5,6 +5,8 @@
 // Import dataService with correct path
 import * as dataService from './services/dataService.js';
 import * as teacherSchedule from './pages/teacherSchedule.js';
+// Ensure student page data populates when navigating back
+import * as studentSchedule from './pages/studentSchedule.js';
 import * as globalContext from './context/globalContext.js';
 import { formatClassName, getClassDisplayName } from './data/classes.mock.js';
 // ⭐ FIX: Import event listener fix
@@ -158,6 +160,17 @@ async function initStudentPage() {
   // อัพเดท semester display
   updateSemesterDisplay();
   
+  // Sync dataService context with global context to avoid stale year (e.g., 2568 default)
+  try {
+    const ctx = globalContext.getContext();
+    if (ctx?.currentYear && ctx?.currentSemester?.id) {
+      await dataService.setGlobalContext(ctx.currentYear, ctx.currentSemester.id);
+      console.log('[Navigation] Synced dataService context to', ctx.currentYear, '/', ctx.currentSemester.id);
+    }
+  } catch (e) {
+    console.warn('[Navigation] Failed syncing dataService context for student page:', e);
+  }
+  
   const classSelector = document.getElementById('class-dropdown');
   if (classSelector && !classSelector.dataset.initialized) {
     
@@ -172,6 +185,23 @@ async function initStudentPage() {
     
     classSelector.dataset.initialized = 'true';
     console.log('[Navigation] ✅ Class selector initialized (empty) - waiting for studentSchedule.js to populate');
+  }
+  
+  // Always refresh class options when arriving at student page
+  try {
+    const context = globalContext.getContext();
+    const selector = document.getElementById('class-dropdown');
+    const preserve = selector ? selector.value : null;
+    console.log('[Navigation] Refreshing student page data on show...', { preserve });
+    if (studentSchedule) {
+      if (typeof studentSchedule.refreshPage === 'function') {
+        await studentSchedule.refreshPage(context, preserve || null);
+      } else if (typeof studentSchedule.refreshClassSelector === 'function') {
+        await studentSchedule.refreshClassSelector(context, preserve || null);
+      }
+    }
+  } catch (e) {
+    console.warn('[Navigation] Failed to refresh student class selector on page show:', e);
   }
   
   setupBasicExportHandlers();
@@ -736,5 +766,3 @@ export function getNavigationState() {
     initialized
   };
 }
-
-
