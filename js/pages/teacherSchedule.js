@@ -111,10 +111,10 @@ async function loadTeachersData(context) {
 
     // Load all required data
     const [teachersResult, schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
-      dataService.getTeachers(),
+      dataService.getTeachers(context.currentYear),
       dataService.getSchedules(),
       dataService.getSubjects(),
-      dataService.getClasses(),
+      dataService.getClasses(context.currentYear),
       dataService.getRooms()
     ]);
 
