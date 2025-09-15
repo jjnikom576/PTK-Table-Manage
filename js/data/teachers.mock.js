@@ -1,4 +1,4 @@
-// Enhanced Teachers Mock Data - Multi-Year (2566-2568)
+﻿// Enhanced Teachers Mock Data - Multi-Year (2566-2568)
 // 6 ครูสายชั้น ม.1 จัดเต็ม
 
 export const teachersData = {

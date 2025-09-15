@@ -417,26 +417,52 @@ async function renderTeacherTabs(context) {
   const tabsContainer = document.getElementById('teacher-tabs');
   if (!tabsContainer || !pageState.teachers.length) return;
 
-  // FIX: เรียงครูตามกลุ่มสาระก่อน แล้วค่อยเรียงตามชื่อ
-  const sortedTeachers = [...pageState.teachers].sort((a, b) => {
-    // เรียงตามกลุ่มสาระก่อน
-    if (a.subject_group !== b.subject_group) {
-      return a.subject_group.localeCompare(b.subject_group, 'th');
-    }
-    // ถ้ากลุ่มสาระเดียวกัน ให้เรียงตามชื่อ
-    return a.name.localeCompare(b.name, 'th');
-  });
+  // Build group names and buckets
+  const groups = pageState.teachers.reduce((acc, t) => {
+    const key = t.subject_group || 'อื่นๆ';
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(t);
+    return acc;
+  }, {});
+  const groupNames = Object.keys(groups).sort((a, b) => a.localeCompare(b, 'th'));
 
-  tabsContainer.innerHTML = sortedTeachers.map(teacher => `
-    <button class="teacher-tab" 
-            data-teacher-id="${teacher.id}" 
-            role="tab"
-            aria-selected="false"
-            style="display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.75rem; cursor: pointer;">
-      <div style="font-weight: bold; margin-bottom: 0.25rem; pointer-events: none;">${teacher.name}</div>
-      <div style="font-size: 0.85rem; color: #666; pointer-events: none;">${teacher.subject_group}</div>
-    </button>
-  `).join('');
+  // Render group filter chips
+  const filterBar = `
+    <div id="teacher-group-filter" class="group-filter" role="tablist" aria-label="กรองตามกลุ่มสาระ">
+      <button class="group-chip ${pageState.selectedGroup === 'ALL' ? 'active' : ''}" data-group="ALL">ทั้งหมด</button>
+      ${groupNames.map(g => `
+        <button class="group-chip ${pageState.selectedGroup === g ? 'active' : ''}" data-group="${g}">${g}</button>
+      `).join('')}
+    </div>
+  `;
+
+  // Selected group -> render only that group, otherwise render all
+  const selected = pageState.selectedGroup || 'ALL';
+  const visibleGroups = selected === 'ALL' ? groupNames : groupNames.filter(g => g === selected);
+  const groupsHTML = `
+    <div class="teacher-groups">
+      ${visibleGroups.map(g => {
+        const list = groups[g]
+          .slice()
+          .sort((a, b) => a.name.localeCompare(b.name, 'th'))
+          .map(t => `
+            <button class="teacher-tab" data-teacher-id="${t.id}" role="tab" aria-selected="false">
+              <span class="teacher-tab__name">${t.name}</span>
+            </button>
+          `).join('');
+        return `
+          <div class="group-section">
+            <div class="group-title">${g}</div>
+            <div class="group-list" role="tablist" aria-label="${g}">
+              ${list}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  tabsContainer.innerHTML = filterBar + groupsHTML;
 }
 
 /**
