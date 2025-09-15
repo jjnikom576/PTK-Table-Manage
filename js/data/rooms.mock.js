@@ -343,6 +343,39 @@ export const roomsData = {
       created_at: "2025-05-15T00:00:00Z"
     }
   ]
+  ,
+  // ปี 2569 (Mockup Dense)
+  rooms_2569: [
+    { id: 1, name: "101", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 2, name: "102", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 3, name: "103", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 4, name: "104", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 5, name: "105", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 6, name: "106", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 7, name: "ห้องวิทยาศาสตร์ 1", room_type: "LAB_SCI", capacity: 40, location: "อาคาร 2 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 8, name: "ห้องวิทยาศาสตร์ 2", room_type: "LAB_SCI", capacity: 40, location: "อาคาร 2 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 9, name: "ห้องคอมพิวเตอร์ 1", room_type: "LAB_COMP", capacity: 35, location: "อาคาร 2 ชั้น 2", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 10, name: "ห้องคอมพิวเตอร์ 2", room_type: "LAB_COMP", capacity: 35, location: "อาคาร 2 ชั้น 2", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 11, name: "ห้องดนตรี", room_type: "TECH", capacity: 30, location: "อาคาร 3 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 12, name: "ห้องศิลปะ", room_type: "TECH", capacity: 35, location: "อาคาร 3 ชั้น 1", is_active: true, created_at: "2026-05-15T00:00:00Z" },
+    { id: 13, name: "ห้องการงาน", room_type: "TECH", capacity: 32, location: "อาคาร 3 ชั้น 2", is_active: true, created_at: "2026-05-15T00:00:00Z" }
+  ],
+  // ปี 2570 (Mockup Dense)
+  rooms_2570: [
+    { id: 1, name: "101", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 2, name: "102", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 3, name: "103", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 4, name: "104", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 5, name: "105", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 6, name: "106", room_type: "CLASS", capacity: 45, location: "อาคาร 1 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 7, name: "ห้องวิทยาศาสตร์ 1", room_type: "LAB_SCI", capacity: 40, location: "อาคาร 2 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 8, name: "ห้องวิทยาศาสตร์ 2", room_type: "LAB_SCI", capacity: 40, location: "อาคาร 2 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 9, name: "ห้องคอมพิวเตอร์ 1", room_type: "LAB_COMP", capacity: 35, location: "อาคาร 2 ชั้น 2", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 10, name: "ห้องคอมพิวเตอร์ 2", room_type: "LAB_COMP", capacity: 35, location: "อาคาร 2 ชั้น 2", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 11, name: "ห้องดนตรี", room_type: "TECH", capacity: 30, location: "อาคาร 3 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 12, name: "ห้องศิลปะ", room_type: "TECH", capacity: 35, location: "อาคาร 3 ชั้น 1", is_active: true, created_at: "2027-05-15T00:00:00Z" },
+    { id: 13, name: "ห้องการงาน", room_type: "TECH", capacity: 32, location: "อาคาร 3 ชั้น 2", is_active: true, created_at: "2027-05-15T00:00:00Z" }
+  ]
 };
 
 // Helper Functions

@@ -89,15 +89,21 @@ async function loadMockSchedule(classId) {
 function buildScheduleTable(matrix) {
   const dayNames = { 1: 'จันทร์', 2: 'อังคาร', 3: 'พุธ', 4: 'พฤหัสบดี', 5: 'ศุกร์' };
   const timePeriods = {
-    1: '08:20-09:10', 2: '09:10-10:00', 3: '10:20-11:10', 4: '11:10-12:00',
-    5: '13:00-13:50', 6: '13:50-14:40', 7: '14:40-15:30', 8: '15:30-16:20'
+    1: '08:40\u00A0-\u00A009:30',
+    2: '09:30\u00A0-\u00A010:20',
+    3: '10:20\u00A0-\u00A011:10',
+    4: '11:10\u00A0-\u00A012:00',
+    5: '13:00\u00A0-\u00A013:50',
+    6: '13:50\u00A0-\u00A014:40',
+    7: '14:40\u00A0-\u00A015:30',
+    8: '15:30\u00A0-\u00A016:20'
   };
   
   let html = `<table class="schedule-table"><thead><tr><th>วัน/เวลา</th>`;
   
   // หัวตาราง
   for (let period = 1; period <= 8; period++) {
-    html += `<th>คาบ ${period}<br><small>${timePeriods[period]}</small></th>`;
+    html += `<th class="period-header"><span class="period-number">คาบ ${period}</span><span class="time-slot">${timePeriods[period]}</span></th>`;
   }
   html += `</tr></thead><tbody>`;
   

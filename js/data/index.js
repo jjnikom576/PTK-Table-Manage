@@ -43,6 +43,24 @@ export const mockData = {
     schedules: schedulesData.schedules_2568,
     substitutions: substitutionsData.substitutions_2568,
     substitution_schedules: substitutionsData.substitution_schedules_2568
+  },
+  2569: {
+    teachers: teachersData.teachers_2569,
+    classes: classesData.classes_2569,
+    rooms: roomsData.rooms_2569,
+    subjects: subjectsData.subjects_2569,
+    schedules: schedulesData.schedules_2569,
+    substitutions: [],
+    substitution_schedules: []
+  },
+  2570: {
+    teachers: teachersData.teachers_2570,
+    classes: classesData.classes_2570,
+    rooms: roomsData.rooms_2570,
+    subjects: subjectsData.subjects_2570,
+    schedules: schedulesData.schedules_2570,
+    substitutions: [],
+    substitution_schedules: []
   }
 };
 

@@ -102,6 +102,49 @@ const SEMESTERS = [
         is_active: false,
         created_at: '2025-05-01T00:00:00.000Z'
     }
+    ,
+    // ปีการศึกษา 2569
+    {
+        id: 11,
+        academic_year_id: 4,
+        semester_number: 1,
+        semester_name: 'ภาคเรียนที่ 1',
+        start_date: '2026-05-15',
+        end_date: '2026-09-30',
+        is_active: false,
+        created_at: '2026-05-01T00:00:00.000Z'
+    },
+    {
+        id: 12,
+        academic_year_id: 4,
+        semester_number: 2,
+        semester_name: 'ภาคเรียนที่ 2',
+        start_date: '2026-10-01',
+        end_date: '2027-02-28',
+        is_active: false,
+        created_at: '2026-05-01T00:00:00.000Z'
+    },
+    // ปีการศึกษา 2570
+    {
+        id: 13,
+        academic_year_id: 5,
+        semester_number: 1,
+        semester_name: 'ภาคเรียนที่ 1',
+        start_date: '2027-05-15',
+        end_date: '2027-09-30',
+        is_active: false,
+        created_at: '2027-05-01T00:00:00.000Z'
+    },
+    {
+        id: 14,
+        academic_year_id: 5,
+        semester_number: 2,
+        semester_name: 'ภาคเรียนที่ 2',
+        start_date: '2027-10-01',
+        end_date: '2028-02-28',
+        is_active: false,
+        created_at: '2027-05-01T00:00:00.000Z'
+    }
 ];
 
 // Semester Helper Functions

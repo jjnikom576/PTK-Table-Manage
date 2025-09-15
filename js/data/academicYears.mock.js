@@ -28,6 +28,22 @@ const ACADEMIC_YEARS = [
         end_date: '2026-04-30',
         is_active: false,
         created_at: '2025-05-01T00:00:00.000Z'
+    },
+    {
+        id: 4,
+        year: 2569,
+        start_date: '2026-05-15',
+        end_date: '2027-04-30',
+        is_active: false,
+        created_at: '2026-05-01T00:00:00.000Z'
+    },
+    {
+        id: 5,
+        year: 2570,
+        start_date: '2027-05-15',
+        end_date: '2028-04-30',
+        is_active: false,
+        created_at: '2027-05-01T00:00:00.000Z'
     }
 ];
 

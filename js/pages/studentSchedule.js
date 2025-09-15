@@ -74,23 +74,17 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   
   let classes = [];
   if (result.ok && result.data.length > 0) {
-    // ⭐ FIX: กรอง duplicate จาก dataService
+    // ⭐ FIX: แสดงทุกระดับชั้น (ม.1–ม.6) และลบ duplicate ตาม class_name
     const uniqueClasses = new Map();
-    
     result.data.forEach(cls => {
-      if (cls.grade_level === 'ม.1') {
-        const key = cls.class_name;
-        if (!uniqueClasses.has(key)) {
-          uniqueClasses.set(key, cls);
-        }
+      const key = cls.class_name;
+      if (!uniqueClasses.has(key)) {
+        uniqueClasses.set(key, cls);
       }
     });
-    
     classes = Array.from(uniqueClasses.values())
-      .sort((a, b) => a.class_name.localeCompare(b.class_name));
-      
-    console.log('[StudentSchedule] ✅ Filtered unique classes from dataService:', classes.map(c => c.class_name));
-    
+      .sort((a, b) => a.class_name.localeCompare(b.class_name, 'th'));
+    console.log('[StudentSchedule] ✅ Filtered unique classes from dataService:', classes.map(c => `${c.grade_level} ${c.class_name}`));
   } else {
     // Fallback: ใช้ mock data โดยตรงเหมือน navigation.js
     console.warn('[StudentSchedule] No classes from service, using mock data fallback');
@@ -107,11 +101,9 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     const uniqueClasses = new Map();
     
     allClasses.forEach(cls => {
-      if (cls.grade_level === 'ม.1') {
-        const key = cls.class_name;
-        if (!uniqueClasses.has(key)) {
-          uniqueClasses.set(key, cls);
-        }
+      const key = cls.class_name;
+      if (!uniqueClasses.has(key)) {
+        uniqueClasses.set(key, cls);
       }
     });
     
@@ -564,15 +556,20 @@ export function generateScheduleTable(scheduleData, className, context) {
           </td>
         `;
       } else {
+        const emptyText = (period === 8) ? '-' : 'ว่าง';
         tableHTML += `
           <td class="schedule-cell empty" data-day="${dayNumber}" data-period="${period}">
-            <div class="empty-cell">ว่าง</div>
+            <div class="empty-cell">${emptyText}</div>
           </td>
         `;
       }
     });
     
     tableHTML += '</tr>';
+    if (period === 4) {
+      // Insert lunch row after period 4
+      tableHTML += `<tr class="lunch-row"><td colspan="6">พักเที่ยง 12:00 น. - 13:00 น.</td></tr>`;
+    }
   });
   
   tableHTML += `

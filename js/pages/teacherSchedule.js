@@ -778,9 +778,10 @@ function renderScheduleTable(scheduleData, teacher, context) {
           <tr>
             <th class="day-header">วัน/เวลา</th>
             ${timeSlots.map((timeSlot, index) =>
-    `<th class="period-header">คาบ ${index + 1}<br><small>${timeSlot}</small></th>`
+    `<th class="period-header"><span class="period-number">คาบ ${index + 1}</span><span class="time-slot">${timeSlot}</span></th>`
   ).join('')}
           </tr>
+          <tr class="lunch-row"><th colspan="${1 + timeSlots.length}">พักเที่ยง 12:00 น. - 13:00 น.</th></tr>
         </thead>
         <tbody>
   `;

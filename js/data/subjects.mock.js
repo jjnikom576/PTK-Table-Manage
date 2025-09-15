@@ -3,6 +3,8 @@
 
 import subjects_2566 from './subjects_2566.mock.js';
 import { subjects_2566_semester2, subjects_2567, subjects_2568 } from './subjects_additional.mock.js';
+import { classesData } from './classes.mock.js';
+import { teachersData } from './teachers.mock.js';
 
 export const subjectsData = {
   // ปี 2566 (รวมทั้ง 2 ภาคเรียน)
@@ -27,7 +29,9 @@ export function getSubjectsBySemester(semesterId) {
   const allSubjects = [
     ...subjectsData.subjects_2566,
     ...subjectsData.subjects_2567, 
-    ...subjectsData.subjects_2568
+    ...subjectsData.subjects_2568,
+    ...(subjectsData.subjects_2569 || []),
+    ...(subjectsData.subjects_2570 || [])
   ];
   return allSubjects.filter(s => s.semester_id === semesterId);
 }
@@ -181,3 +185,67 @@ export function getSubjectEvolution(subjectName, years = [2566, 2567, 2568]) {
 }
 
 export default subjectsData;
+
+// ================================
+// Auto generate subjects for 2569, 2570 (both semesters)
+// ================================
+
+function buildYearSubjects(year, semIds, classKey) {
+  const classes = classesData[classKey] || [];
+  const teachers = teachersData[`teachers_${year}`] || [];
+  // Build rotating pools per subject group
+  const pool = new Map();
+  const idx = new Map();
+  teachers.forEach(t => {
+    const g = t.subject_group;
+    const arr = pool.get(g) || [];
+    arr.push(t.id);
+    pool.set(g, arr);
+  });
+  function nextTeacherId(group, fallbackId) {
+    const arr = pool.get(group);
+    if (!arr || arr.length === 0) return fallbackId;
+    const i = idx.get(group) || 0;
+    const id = arr[i % arr.length];
+    idx.set(group, (i + 1) % arr.length);
+    return id;
+  }
+  const subjectPlan = [
+    { name: 'ภาษาไทย', code: 'ท', perWeek: 5, group: 'ภาษาไทย', room: 'CLASS' },
+    { name: 'คณิตศาสตร์', code: 'ค', perWeek: 4, group: 'คณิตศาสตร์', room: 'CLASS' },
+    { name: 'วิทยาศาสตร์', code: 'ว', perWeek: 4, group: 'วิทยาศาสตร์', room: 'LAB_SCI' },
+    { name: 'ภาษาอังกฤษ', code: 'อ', perWeek: 3, group: 'ภาษาอังกฤษ', room: 'CLASS' },
+    { name: 'สังคมศึกษา', code: 'ส', perWeek: 3, group: 'สังคมศึกษา', room: 'CLASS' },
+    { name: 'ศิลปะ', code: 'ศ', perWeek: 2, group: 'ศิลปะ', room: 'TECH' },
+    { name: 'พลศึกษา', code: 'พ', perWeek: 2, group: 'พลศึกษา', room: null },
+    { name: 'วิทยาการคำนวณ', code: 'วค', perWeek: 2, group: 'วิทยาการคำนวณ', room: 'LAB_COMP' },
+    { name: 'การงานอาชีพ', code: 'กง', perWeek: 2, group: 'การงานอาชีพ', room: 'TECH' },
+    { name: 'ดนตรี', code: 'ด', perWeek: 1, group: 'ศิลปะ', room: 'TECH' },
+  ];
+  let idCounter = 1000 + (year % 100); // unique-ish per year
+  const list = [];
+  classes.forEach(cls => {
+    if (!semIds.includes(cls.semester_id)) return;
+    subjectPlan.forEach(sp => {
+      idCounter += 1;
+      const teacher_id = nextTeacherId(sp.group, 1);
+      list.push({
+        id: idCounter,
+        semester_id: cls.semester_id,
+        teacher_id,
+        class_id: cls.id,
+        subject_name: sp.name,
+        subject_code: `${sp.code}${cls.grade_level === 'ม.1' ? '11' : '21'}${('0' + (cls.section)).slice(-2)}`,
+        periods_per_week: sp.perWeek,
+        subject_constraints: sp.room ? { requires_room_type: sp.room } : {},
+        default_room_id: null,
+        room_preferences: {},
+        created_at: new Date().toISOString()
+      });
+    });
+  });
+  return list;
+}
+
+subjectsData.subjects_2569 = buildYearSubjects(2569, [11,12], 'classes_2569');
+subjectsData.subjects_2570 = buildYearSubjects(2570, [13,14], 'classes_2570');
