@@ -68,6 +68,15 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     console.warn('Class selector not found');
     return;
   }
+  // Bind change event to use renderer (avoid external bindings)
+  if (!classSelector.dataset.bound) {
+    classSelector.addEventListener('change', async (e) => {
+      const val = e.target.value;
+      console.log('[StudentSchedule] Class changed:', val);
+      await loadScheduleForContext(val, globalContext.getContext());
+    });
+    classSelector.dataset.bound = 'true';
+  }
   
   // Get fresh classes data with current context
   const result = await dataService.getClasses(currentContext.currentYear);
@@ -118,8 +127,8 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   
   classes.forEach(cls => {
     const option = document.createElement('option');
-    option.value = cls.class_name; // ใช้ "1/1" แทน ID
-    option.textContent = `${cls.grade_level}/${cls.section} (${cls.student_count || 0} คน)`; // "ม.1/1 (40 คน)"
+    option.value = cls.id; // ใช้ id เป็นค่าอ้างอิงหลัก
+    option.textContent = `${cls.class_name} (${cls.student_count || 0} คน)`;
     classSelector.appendChild(option);
   });
   
@@ -137,8 +146,8 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   } else if (!preserveSelection && classes.length > 0) {
     // ⭐ FIX: Auto-select first class เมื่อไม่มี selection เดิม
     const firstClass = classes[0];
-    classSelector.value = firstClass.class_name;
-    console.log('[StudentSchedule] ✅ Auto-selected first class:', firstClass.class_name);
+    classSelector.value = String(firstClass.id);
+    console.log('[StudentSchedule] ✅ Auto-selected first class (by id):', firstClass.class_name, firstClass.id);
     
     // Trigger change event เพื่อโหลด schedule
     setTimeout(() => {
@@ -344,47 +353,71 @@ export async function updatePageForContext(newContext) {
 /**
  * Load Schedule For Context
  */
-export async function loadScheduleForContext(className, context) {
-  if (!className || !context.currentSemester) return;
-  
+export async function loadScheduleForContext(classRef, context) {
+  if (!classRef) return;
+
   try {
     setLoading(true);
-    
-    // Get class ID
-    const classId = getClassIdByName(className);
-    if (!classId) {
-      throw new Error(`ไม่พบห้องเรียน: ${className}`);
+
+    // Resolve class id (accept numeric ID or class name)
+    let classId = null;
+
+    // 1) If classRef is a number or numeric string, use it directly
+    if (typeof classRef === 'number' || (/^\d+$/.test(String(classRef)))) {
+      classId = parseInt(classRef, 10);
     }
-    
-    // Load schedule data
-    const scheduleResult = await dataService.normalizeStudentScheduleForExport({
-      classId,
-      semesterId: context.currentSemester.id
-    });
-    
-    if (scheduleResult && scheduleResult.length > 0) {
-      pageState.currentSchedule = scheduleResult;
-      pageState.selectedClass = className;
-      
+
+    // 2) Try resolve by name from current cached classes
+    if (!classId) {
+      const byNameLocal = pageState.availableClasses.find(c => c.class_name === String(classRef));
+      if (byNameLocal) classId = byNameLocal.id;
+    }
+
+    // 3) Fallback: fetch classes for the context year and resolve by id or name
+    if (!classId) {
+      const year = context.currentYear || context.year;
+      const classesRes = await dataService.getClasses(year);
+      if (classesRes.ok && classesRes.data?.length) {
+        pageState.availableClasses = classesRes.data;
+
+        // Prefer ID match first (supports numeric dropdown values like "63")
+        const byId = classesRes.data.find(c => c.id === parseInt(String(classRef), 10));
+        if (byId) {
+          classId = byId.id;
+        } else {
+          const byName = classesRes.data.find(c => c.class_name === String(classRef));
+          if (byName) classId = byName.id;
+        }
+      }
+    }
+
+    if (!classId || Number.isNaN(classId)) throw new Error(`ไม่พบห้องเรียน: ${classRef}`);
+
+    // Load schedule (matrix-based) from dataService
+    const result = await dataService.getStudentSchedule(classId);
+    if (result && result.ok && result.data?.matrix) {
+      pageState.currentSchedule = result.data;
+      pageState.selectedClass = classId;
+
       // Render schedule
-      renderScheduleHeader(className, context);
-      renderScheduleTable(scheduleResult, context);
-      
+      renderScheduleHeader(result.data.classInfo?.class_name || String(classId), context);
+      renderScheduleTable(result.data, context);
+
       // Setup export functionality
       renderExportBar(context);
-      setupExportHandlers(className, context);
-      
+      setupExportHandlers(result.data.classInfo?.class_name || String(classId), context);
+
       // Highlight current period if active semester
       if (isActiveSemester(context.currentSemester)) {
         highlightCurrentPeriod(context);
       }
     } else {
-      renderEmptyScheduleState(className, context);
+      renderEmptyScheduleState(String(classRef), context);
     }
-    
+
     // Save selected class
-    saveSelectedClass(className);
-    
+    saveSelectedClass(String(classRef));
+
   } catch (error) {
     console.error('[StudentSchedule] Failed to load schedule:', error);
     showError(`โหลดตารางเรียนล้มเหลว: ${error.message}`);
@@ -463,9 +496,9 @@ export function renderClassSelector(availableClasses, selectedClass) {
     
     classes.forEach(cls => {
       const option = document.createElement('option');
-      option.value = cls.class_name;
+      option.value = cls.id;
       option.textContent = `${cls.class_name} (${cls.student_count || 'ไม่ระบุ'} คน)`;
-      option.selected = cls.class_name === selectedClass;
+      option.selected = String(cls.id) === String(selectedClass);
       optgroup.appendChild(option);
     });
     
@@ -498,17 +531,77 @@ export function renderScheduleHeader(className, context) {
 /**
  * Render Schedule Table
  */
-export function renderScheduleTable(scheduleData, context) {
-  const tableContainer = document.getElementById('schedule-table-container');
+export function renderScheduleTable(resultData, context) {
+  const tableContainer = getScheduleContainer();
   if (!tableContainer) return;
-  
-  if (!scheduleData || scheduleData.length === 0) {
+
+  const matrix = resultData?.matrix;
+  if (!matrix) {
     tableContainer.innerHTML = '<p class="no-schedule">ไม่มีตารางเรียนสำหรับห้องนี้</p>';
     return;
   }
-  
-  const scheduleTable = generateScheduleTable(scheduleData, pageState.selectedClass, context);
-  tableContainer.innerHTML = scheduleTable;
+
+  const timeSlots = generateTimeSlots();
+  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
+
+  // Build header: วัน/เวลา | คาบ 1 | คาบ 2 | ...
+  let html = '<div class="schedule-table-wrapper">';
+  html += '<table class="schedule-table">';
+  html += '<thead><tr>';
+  html += '<th class="day-header">วัน/เวลา</th>';
+  timeSlots.forEach((slot, idx) => {
+    const period = idx + 1;
+    html += `<th class="period-header"><div class="period-info"><span class="period-number">คาบ ${period}</span><span class="time-slot">${slot}</span></div></th>`;
+    if (period === 4) {
+      html += `<th class="lunch-header lunch-column"><div class="lunch-info">พักเที่ยง<br><small>12:00 - 13:00</small></div></th>`;
+    }
+  });
+  html += '</tr></thead>';
+
+  // Rows: each day on its own row, columns for periods 1..8 with a lunch column between 4 and 5
+  html += '<tbody>';
+  days.forEach((dayName, dayIndex) => {
+    const day = dayIndex + 1;
+    html += `<tr class="day-row" data-day="${day}">`;
+    html += `<td class="day-cell">${dayName}</td>`;
+
+    timeSlots.forEach((_, idx) => {
+      const period = idx + 1;
+      const cell = matrix[day]?.[period];
+      if (cell) {
+        html += `<td class="schedule-cell has-subject" data-day="${day}" data-period="${period}">` +
+                `<div class="schedule-cell-content">` +
+                `<div class="subject-name">${cell.subject?.subject_name || '-'}</div>` +
+                `<div class="teacher-name">${cell.teacher?.name || ''}</div>` +
+                `<div class="room-info">${cell.room?.name || ''}</div>` +
+                `</div>` +
+                `</td>`;
+      } else {
+        const emptyText = (period === 8) ? '-' : 'ว่าง';
+        html += `<td class="schedule-cell empty" data-day="${day}" data-period="${period}">` +
+                `<div class="empty-cell">${emptyText}</div>` +
+                `</td>`;
+      }
+
+      // Insert lunch column right after period 4 (merged across all day rows)
+      if (period === 4) {
+        if (dayIndex === 0) {
+          // Only render once with rowspan to merge Mon-Fri
+          html += `<td class="lunch-cell lunch-column" aria-label="พักเที่ยง" rowspan="${days.length}">พักเที่ยง</td>`;
+        }
+        // For other days, no extra cell so the rowspan cell spans over them
+      }
+    });
+    html += '</tr>';
+  });
+  html += '</tbody>';
+  html += '</table></div>';
+  tableContainer.innerHTML = html;
+}
+
+function getScheduleContainer() {
+  return document.getElementById('student-schedule-table') ||
+         document.getElementById('schedule-table-container');
 }
 
 /**
@@ -621,6 +714,56 @@ export function renderEmptyScheduleState(className, context) {
       </div>
     </div>
   `;
+}
+
+// =============================================================================
+// ROBUST LOADER (override legacy duplicates)
+// =============================================================================
+
+async function robustLoadSchedule(classRef, context) {
+  try {
+    console.log('[StudentSchedule] robustLoadSchedule called with:', classRef);
+    setLoading(true);
+    const ctx = context || globalContext.getContext();
+    let classId = null;
+    // Resolve id
+    if (typeof classRef === 'number' || (/^\d+$/.test(String(classRef)))) {
+      classId = parseInt(classRef, 10);
+    } else {
+      const byName = pageState.availableClasses.find(c => c.class_name === String(classRef));
+      if (byName) classId = byName.id;
+      if (!classId) {
+        const clsRes = await dataService.getClasses(ctx.currentYear || ctx.year);
+        if (clsRes.ok) {
+          pageState.availableClasses = clsRes.data;
+          const found = clsRes.data.find(c => c.class_name === String(classRef));
+          if (found) classId = found.id;
+        }
+      }
+    }
+    if (!classId) throw new Error(`ไม่พบห้องเรียน: ${classRef}`);
+
+    const result = await dataService.getStudentSchedule(classId);
+    if (result?.ok && result.data?.matrix) {
+      pageState.currentSchedule = result.data;
+      pageState.selectedClass = classId;
+      renderScheduleHeader(result.data.classInfo?.class_name || String(classId), ctx);
+      renderScheduleTable(result.data, ctx);
+    } else {
+      renderEmptyScheduleState(String(classRef), ctx);
+    }
+  } catch (e) {
+    console.error('[StudentSchedule] robustLoadSchedule failed:', e);
+    showError(e.message || 'โหลดตารางล้มเหลว');
+  } finally {
+    setLoading(false);
+  }
+}
+
+// Override global export to ensure our robust loader is used everywhere
+if (typeof window !== 'undefined') {
+  window.studentSchedulePage = window.studentSchedulePage || {};
+  window.studentSchedulePage.loadScheduleForContext = robustLoadSchedule;
 }
 
 /**

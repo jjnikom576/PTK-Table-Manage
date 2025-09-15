@@ -10,7 +10,7 @@ import * as studentSchedule from './pages/studentSchedule.js';
 import * as globalContext from './context/globalContext.js';
 import { formatClassName, getClassDisplayName } from './data/classes.mock.js';
 // ⭐ FIX: Import event listener fix
-import { fixStudentPageEventListeners } from './fix-navigation.js';
+// Merged fix-navigation: student page event handling delegated to studentSchedule.js
 
 // =============================================================================
 // NAVIGATION STATE
@@ -179,9 +179,6 @@ async function initStudentPage() {
     
     // เพิ่ม empty option ไว้ก่อน
     classSelector.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
-    
-    // ⭐ FIX: ใช้ fix function เพื่อป้องกัน event listener ซ้ำ
-    fixStudentPageEventListeners();
     
     classSelector.dataset.initialized = 'true';
     console.log('[Navigation] ✅ Class selector initialized (empty) - waiting for studentSchedule.js to populate');
@@ -391,6 +388,8 @@ function extractTableDataFromDOM(className) {
       console.log('[Navigation] Skipping header/empty row');
       return;
     }
+    
+
     
     const rowData = { 'วัน/เวลา': dayName };
     
