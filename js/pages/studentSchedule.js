@@ -73,6 +73,11 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     classSelector.addEventListener('change', async (e) => {
       const val = e.target.value;
       console.log('[StudentSchedule] Class changed:', val);
+      // Hide empty state immediately when a class is chosen
+      if (val) {
+        const emptyState = document.getElementById('student-empty-state');
+        if (emptyState) emptyState.style.display = 'none';
+      }
       await loadScheduleForContext(val, globalContext.getContext());
     });
     classSelector.dataset.bound = 'true';
@@ -510,7 +515,8 @@ export function renderClassSelector(availableClasses, selectedClass) {
  * Render Schedule Header
  */
 export function renderScheduleHeader(className, context) {
-  const headerContainer = document.getElementById('schedule-header');
+  // Use the actual header element id from index.html
+  const headerContainer = document.getElementById('student-schedule-header');
   if (!headerContainer) return;
   
   const semesterText = context.currentSemester?.semester_name || 'ไม่ระบุภาคเรียน';
@@ -526,6 +532,11 @@ export function renderScheduleHeader(className, context) {
       </div>
     </div>
   `;
+
+  // Ensure header is visible and empty state is hidden
+  headerContainer.classList.remove('hidden');
+  const emptyState = document.getElementById('student-empty-state');
+  if (emptyState) emptyState.style.display = 'none';
 }
 
 /**
@@ -598,6 +609,10 @@ export function renderScheduleTable(resultData, context) {
   html += '</table></div>';
   tableContainer.innerHTML = html;
   try { fitStudentTableFonts(tableContainer); } catch (e) { console.warn('[StudentSchedule] font fit failed:', e); }
+
+  // Hide empty state when table is rendered
+  const emptyState = document.getElementById('student-empty-state');
+  if (emptyState) emptyState.style.display = 'none';
 }
 
 // Determine a global font size that makes all cells fit, then apply uniformly

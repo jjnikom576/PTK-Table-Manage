@@ -157,11 +157,15 @@ export async function refreshPageData(newContext, preserveSelection = null) {
     await renderTeacherTabs(newContext);
     
     // Clear any selected teacher (let user reselect)
+    const contentWrapper = document.getElementById('teacher-schedule-content');
     const teacherInfoContainer = document.getElementById('teacher-info');
     const scheduleContainer = document.getElementById('teacher-schedule-table');
     const workloadContainer = document.getElementById('teacher-workload');
     const emptyState = document.getElementById('teacher-details-empty');
-    
+
+    const exportBar = document.getElementById('export-bar-teacher');
+    if (exportBar) exportBar.classList.add('hidden');
+    if (contentWrapper) contentWrapper.classList.add('hidden');
     if (teacherInfoContainer) teacherInfoContainer.classList.add('hidden');
     if (scheduleContainer) scheduleContainer.classList.add('hidden');
     if (workloadContainer) workloadContainer.classList.add('hidden');
@@ -487,6 +491,8 @@ async function renderTeacherSchedule(teacherId, context) {
     renderWorkloadDetailsSection(scheduleData, teacher);
 
     // Show content
+    document.getElementById('export-bar-teacher')?.classList.remove('hidden');
+    document.getElementById('teacher-schedule-content')?.classList.remove('hidden');
     document.getElementById('teacher-info')?.classList.remove('hidden');
     document.getElementById('teacher-schedule-table')?.classList.remove('hidden');
     document.getElementById('teacher-workload')?.classList.remove('hidden');
