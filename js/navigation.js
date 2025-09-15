@@ -6,6 +6,7 @@
 import * as dataService from './services/dataService.js';
 import * as teacherSchedule from './pages/teacherSchedule.js';
 import * as globalContext from './context/globalContext.js';
+import { formatClassName, getClassDisplayName } from './data/classes.mock.js';
 
 // =============================================================================
 // NAVIGATION STATE
@@ -25,6 +26,9 @@ export function initNavigation() {
   console.log('[Navigation] Initializing...');
   
   if (initialized) return;
+
+  // Setup context listeners
+  setupContextListeners();
 
   // Setup click handlers for nav links
   const navLinks = document.querySelectorAll('.nav-link[data-page]');
@@ -149,64 +153,154 @@ function initializePage(pageId) {
 async function initStudentPage() {
   console.log('[Navigation] Init student page');
   
+  // อัพเดท semester display
+  updateSemesterDisplay();
+  
   const classSelector = document.getElementById('class-dropdown');
   if (classSelector && !classSelector.dataset.initialized) {
     try {
-      // ดึงข้อมูล classes จาก dataService
       const classes = await dataService.getClasses();
       
       if (classes.ok && classes.data.length > 0) {
-        // สร้าง options จาก mock data
         let optionsHTML = '<option value="">-- เลือกห้องเรียน --</option>';
         
         classes.data.forEach(cls => {
-          // แปลง class_name เป็น value (ม.1/1 -> m1-1)
-          const value = cls.class_name.replace('ม.', 'm').replace('/', '-');
-          optionsHTML += `<option value="${value}">${cls.class_name} (${cls.student_count || 0} คน)</option>`;
+          const value = cls.class_name; // ใช้ "1/1" โดยตรง
+          const displayName = getClassDisplayName(cls); // "ม.1/1 (40 คน)"
+          optionsHTML += `<option value="${value}">${displayName}</option>`;
         });
         
         classSelector.innerHTML = optionsHTML;
         console.log('[Navigation] Loaded classes from dataService:', classes.data.length, 'classes');
         
       } else {
-        // Fallback to hardcode if no data
-        console.warn('[Navigation] No classes data, using fallback');
-        classSelector.innerHTML = `
-          <option value="">-- เลือกห้องเรียน --</option>
-          <option value="m1-1">ม.1/1</option>
-          <option value="m1-2">ม.1/2</option>
-          <option value="m2-1">ม.2/1</option>
-          <option value="m2-2">ม.2/2</option>
-          <option value="m3-1">ม.3/1</option>
-        `;
+        console.warn('[Navigation] No classes data from service, loading direct from mock');
+        // ใช้ direct access ไปยัง mock data
+        const { mockData } = await import('./data/index.js');
+        
+        // หาข้อมูลจากปีที่มีข้อมูล (2566, 2567, 2568)
+        let allClasses = [];
+        
+        // รวม classes จากทุกปี
+        [2566, 2567, 2568].forEach(year => {
+          if (mockData[year] && mockData[year].classes) {
+            allClasses = allClasses.concat(mockData[year].classes);
+          }
+        });
+        
+        if (allClasses.length > 0) {
+          let optionsHTML = '<option value="">-- เลือกห้องเรียน --</option>';
+          
+          // กรองเฉพาะ ม.1 และลบ duplicate
+          const uniqueClasses = [];
+          const seenNames = new Set();
+          
+          allClasses.forEach(cls => {
+            if (cls.grade_level === 'ม.1' && !seenNames.has(cls.class_name)) {
+              seenNames.add(cls.class_name);
+              uniqueClasses.push(cls);
+            }
+          });
+          
+          // เรียงตามชื่อ
+          uniqueClasses.sort((a, b) => a.class_name.localeCompare(b.class_name));
+          
+          uniqueClasses.forEach(cls => {
+            const value = cls.class_name; // ใช้ "1/1" โดยตรง
+            const displayName = getClassDisplayName(cls); // "ม.1/1 (40 คน)"
+            optionsHTML += `<option value="${value}">${displayName}</option>`;
+          });
+          
+          classSelector.innerHTML = optionsHTML;
+          console.log('[Navigation] Loaded classes from direct mock:', uniqueClasses.length, 'ม.1 classes');
+        } else {
+          console.error('[Navigation] No classes in any mock data');
+          classSelector.innerHTML = '<option value="">ไม่พบข้อมูลห้องเรียน</option>';
+        }
       }
     } catch (error) {
       console.error('[Navigation] Error loading classes:', error);
-      // Fallback to hardcode on error
-      classSelector.innerHTML = `
-        <option value="">-- เลือกห้องเรียน --</option>
-        <option value="m1-1">ม.1/1</option>
-        <option value="m1-2">ม.1/2</option>
-      `;
     }
     
     classSelector.addEventListener('change', (e) => {
       if (e.target.value) {
-        loadMockSchedule(e.target.value);
-      }
-    });
-    
-    classSelector.addEventListener('change', (e) => {
-      if (e.target.value) {
-        loadMockSchedule(e.target.value);
+        const selectedValue = e.target.value; // "1/1"
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        const optionText = selectedOption ? selectedOption.text : '';
+        const selectedClassName = optionText.split(' (')[0]; // "ม.1/1"
+        
+        console.log('[Navigation] Selected value:', selectedValue, '-> Class name:', selectedClassName);
+        
+        updateSelectedClassName(selectedClassName);
+        loadMockSchedule(selectedValue);
+      } else {
+        updateSelectedClassName('');
       }
     });
     
     classSelector.dataset.initialized = 'true';
   }
   
-  // เพิ่ม export handlers
   setupBasicExportHandlers();
+}
+
+// Helper functions for UI updates
+function updateSemesterDisplay() {
+  try {
+    // เข้าถึง context ปัจจุบัน
+    const yearSelector = document.getElementById('year-selector');
+    const semesterSelector = document.getElementById('semester-selector');
+    const display = document.getElementById('current-semester-display');
+    
+    if (display && yearSelector && semesterSelector) {
+      const selectedYear = yearSelector.options[yearSelector.selectedIndex]?.text || 'ไม่ระบุ';
+      const selectedSemester = semesterSelector.options[semesterSelector.selectedIndex]?.text || 'ไม่ระบุ';
+      
+      if (selectedYear !== 'ไม่ระบุ' && selectedSemester !== 'ไม่ระบุ') {
+        display.textContent = `${selectedSemester} ${selectedYear}`;
+        console.log('[Navigation] Updated semester display:', display.textContent);
+      } else {
+        display.textContent = '';
+      }
+    }
+  } catch (error) {
+    console.error('[Navigation] Error updating semester display:', error);
+  }
+}
+
+function updateSelectedClassName(className) {
+  try {
+    const classNameSpan = document.getElementById('selected-class-name');
+    if (classNameSpan) {
+      classNameSpan.textContent = className;
+      console.log('[Navigation] Updated selected class name:', className);
+    }
+  } catch (error) {
+    console.error('[Navigation] Error updating class name:', error);
+  }
+}
+
+// Listen for context changes
+function setupContextListeners() {
+  // Listen for app.js context changes (เมื่อกด OK)
+  document.addEventListener('DOMContentLoaded', () => {
+    const applyButton = document.getElementById('context-apply-btn');
+    if (applyButton) {
+      applyButton.addEventListener('click', () => {
+        // รอสักครู่ให้ context อัพเดทก่อน
+        setTimeout(updateSemesterDisplay, 300);
+      });
+    }
+  });
+  
+  // อัพเดทตอนโหลดหน้าแรก
+  if (document.readyState === 'complete') {
+    setTimeout(updateSemesterDisplay, 500);
+  } else {
+    window.addEventListener('load', () => {
+      setTimeout(updateSemesterDisplay, 500);
+    });
+  }
 }
 
 function setupBasicExportHandlers() {
@@ -502,6 +596,17 @@ function showSubPage(subPageId) {
 function loadMockSchedule(classId) {
   console.log(`[Navigation] Loading schedule for: ${classId}`);
   
+  // classId ตอนนี้เป็น "1/1" แล้ว หาชื่อแสดงจาก dropdown
+  let displayName;
+  
+  const classSelector = document.getElementById('class-dropdown');
+  if (classSelector && classSelector.selectedIndex > 0) {
+    const selectedOption = classSelector.options[classSelector.selectedIndex];
+    displayName = selectedOption.text.split(' (')[0]; // "ม.1/1"
+  } else {
+    displayName = `ม.${classId}`; // fallback: "ม.1/1"
+  }
+  
   const scheduleContainer = document.getElementById('student-schedule-table');
   const emptyState = document.getElementById('student-empty-state');
   const scheduleHeader = document.getElementById('student-schedule-header');
@@ -509,10 +614,11 @@ function loadMockSchedule(classId) {
   
   if (emptyState) emptyState.style.display = 'none';
   if (scheduleHeader) scheduleHeader.classList.remove('hidden');
-  if (classTitle) classTitle.textContent = `ตารางเรียน ${classId.toUpperCase()}`;
+  if (classTitle) classTitle.innerHTML = `ตารางเรียน <span id="selected-class-name">${displayName}</span>`;
+  
+  updateSelectedClassName(displayName);
   
   if (scheduleContainer) {
-    // เรียก dataService จริง ๆ 
     loadStudentScheduleFromService(classId, scheduleContainer);
   }
 }

@@ -4,7 +4,6 @@
  */
 
 import { getYearBasedEndpoint, getTableName, apiError } from './config.js';
-import { ROOM_TYPES } from '../data/rooms.mock.js';
 
 // Simple mock data
 const mockRooms = [

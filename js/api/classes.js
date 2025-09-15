@@ -4,7 +4,7 @@
  */
 
 import { getYearBasedEndpoint, getTableName, apiError } from './config.js';
-import { classesData, getClassesByYear, getClassesBySemester } from '../data/classes.mock.js';
+import { classesData } from '../data/classes.mock.js';
 
 /**
  * Get all classes for a specific year

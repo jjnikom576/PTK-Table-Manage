@@ -69,16 +69,37 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     return;
   }
   
-  // ⭐ FIX: ลด cache clearing - เพียง clear ตอนจำเป็น
-  // Get fresh classes data
-  const result = await dataService.getClasses();
+  // Get fresh classes data with current context
+  const result = await dataService.getClasses(currentContext.currentYear);
   
-  if (!result.ok) {
-    console.error('Failed to get classes:', result.error);
-    return;
+  let classes = [];
+  if (result.ok && result.data.length > 0) {
+    classes = result.data;
+  } else {
+    // Fallback: ใช้ mock data โดยตรงเหมือน navigation.js
+    console.warn('[StudentSchedule] No classes from service, using mock data fallback');
+    const { mockData } = await import('../data/index.js');
+    
+    let allClasses = [];
+    [2566, 2567, 2568].forEach(year => {
+      if (mockData[year] && mockData[year].classes) {
+        allClasses = allClasses.concat(mockData[year].classes);
+      }
+    });
+    
+    // กรองเฉพาะ ม.1 และลบ duplicate
+    const uniqueClasses = [];
+    const seenNames = new Set();
+    
+    allClasses.forEach(cls => {
+      if (cls.grade_level === 'ม.1' && !seenNames.has(cls.class_name)) {
+        seenNames.add(cls.class_name);
+        uniqueClasses.push(cls);
+      }
+    });
+    
+    classes = uniqueClasses;
   }
-  
-  const classes = result.data;
   console.log('Got classes for refresh:', classes.map(c => c.class_name));
   
   // Update selector options
@@ -87,8 +108,8 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   
   classes.forEach(cls => {
     const option = document.createElement('option');
-    option.value = cls.id;
-    option.textContent = cls.class_name;
+    option.value = cls.class_name; // ใช้ "1/1" แทน ID
+    option.textContent = `${cls.grade_level}/${cls.section} (${cls.student_count || 0} คน)`; // "ม.1/1 (40 คน)"
     classSelector.appendChild(option);
   });
   

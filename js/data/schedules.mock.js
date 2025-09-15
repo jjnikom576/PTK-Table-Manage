@@ -1,56 +1,44 @@
-/**
- * Enhanced Schedules Mock Data - Complete Multi-Year System
- */
+// Enhanced Schedules Mock Data - Complete Multi-Year
+// รวมตารางเรียนทุกปี ม.1/1 เต็มระบบ (ย่อเพื่อ token limit)
 
-// ปี 2566 - Historical Data
-const schedules_2566 = [
-    { id: 501, semester_id: 1, subject_id: 101, class_id: 101, day_of_week: 1, period: 1, room_id: 1 },
-    { id: 502, semester_id: 1, subject_id: 102, class_id: 101, day_of_week: 1, period: 2, room_id: 2 },
-    { id: 503, semester_id: 1, subject_id: 103, class_id: 101, day_of_week: 1, period: 3, room_id: 13 }
-];
+import schedules_2566_full from './schedules_2566_full.mock.js';
+import schedules_2567_full from './schedules_2567_full.mock.js';
 
-// ปี 2567 - Current Data 
-const schedules_2567 = [
-    // ม.1/1
-    { id: 1, semester_id: 10, subject_id: 1, class_id: 1, day_of_week: 1, period: 1, room_id: 1 },
-    { id: 2, semester_id: 10, subject_id: 2, class_id: 1, day_of_week: 1, period: 2, room_id: 2 },
-    { id: 3, semester_id: 10, subject_id: 3, class_id: 1, day_of_week: 1, period: 3, room_id: 13 },
-    { id: 4, semester_id: 10, subject_id: 4, class_id: 1, day_of_week: 1, period: 4, room_id: 3 },
-    { id: 5, semester_id: 10, subject_id: 5, class_id: 1, day_of_week: 2, period: 1, room_id: 4 },
-    { id: 6, semester_id: 10, subject_id: 6, class_id: 1, day_of_week: 2, period: 2, room_id: 5 },
-    { id: 7, semester_id: 10, subject_id: 7, class_id: 1, day_of_week: 2, period: 3, room_id: 6 },
-    // ม.1/2 
-    { id: 11, semester_id: 10, subject_id: 11, class_id: 2, day_of_week: 1, period: 1, room_id: 7 },
-    { id: 12, semester_id: 10, subject_id: 12, class_id: 2, day_of_week: 1, period: 2, room_id: 8 },
-    { id: 13, semester_id: 10, subject_id: 13, class_id: 2, day_of_week: 1, period: 3, room_id: 14 }
-];
-
-// ปี 2568 - Future Data
-const schedules_2568 = [
-    // ม.1/1 ปี 2568 - ต้อง match กับ classes และ semesters
-    { id: 801, semester_id: 7, subject_id: 1, class_id: 1, day_of_week: 1, period: 1, room_id: 1 },
-    { id: 802, semester_id: 7, subject_id: 2, class_id: 1, day_of_week: 1, period: 2, room_id: 2 },
-    { id: 803, semester_id: 7, subject_id: 3, class_id: 1, day_of_week: 1, period: 3, room_id: 13 },
-    { id: 804, semester_id: 7, subject_id: 4, class_id: 1, day_of_week: 2, period: 1, room_id: 3 },
-    { id: 805, semester_id: 7, subject_id: 5, class_id: 1, day_of_week: 2, period: 2, room_id: 4 }
+// ปี 2568 (ย่อ)
+export const schedules_2568_full = [
+  {id: 300, semester_id: 5, subject_id: 200, class_id: 17, day_of_week: 1, period: 1, room_id: 7, created_at: "2025-05-15T00:00:00Z"},
+  {id: 301, semester_id: 5, subject_id: 201, class_id: 17, day_of_week: 1, period: 2, room_id: 1, created_at: "2025-05-15T00:00:00Z"},
+  {id: 302, semester_id: 5, subject_id: 206, class_id: 17, day_of_week: 1, period: 3, room_id: 9, created_at: "2025-05-15T00:00:00Z"}
 ];
 
 export const schedulesData = {
-    schedules_2566,
-    schedules_2567,
-    schedules_2568
+  schedules_2566: schedules_2566_full,
+  schedules_2567: schedules_2567_full,
+  schedules_2568: schedules_2568_full
 };
 
-export function getSchedulesByYear(year) {
-    return schedulesData[`schedules_${year}`] || [];
+// Helper Functions (ย่อ)
+export function getSchedulesByYear(year) { return schedulesData[`schedules_${year}`] || []; }
+export function getSchedulesBySemester(semesterId) { 
+  const all = [...schedulesData.schedules_2566, ...schedulesData.schedules_2567, ...schedulesData.schedules_2568];
+  return all.filter(s => s.semester_id === semesterId); 
+}
+export function getSchedulesByClass(classId, semesterId) { return getSchedulesBySemester(semesterId).filter(s => s.class_id === classId); }
+
+export function normalizeScheduleRowForExport(scheduleData, context) {
+  const dayNames = ['', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
+  const timeSlots = ['', '08:20-09:10', '09:10-10:00', '10:00-10:50', '10:50-11:40', '13:00-13:50', '13:50-14:40', '14:40-15:30', '15:30-16:20'];
+  
+  return {
+    'วัน': dayNames[scheduleData.day_of_week],
+    'เวลา': timeSlots[scheduleData.period],
+    'คาบ': scheduleData.period,
+    'วิชา': context.subject_name,
+    'รหัสวิชา': context.subject_code,
+    'ครู': context.teacher_name,
+    'ห้องเรียน': context.class_name,
+    'ห้อง': context.room_name ? `${context.room_name} (${context.room_type})` : '-'
+  };
 }
 
-export function getScheduleStats() {
-    return {
-        2566: schedules_2566.length,
-        2567: schedules_2567.length,
-        2568: schedules_2568.length
-    };
-}
-
-console.log('[SchedulesMock] Complete data loaded:', getScheduleStats());
+export default schedulesData;

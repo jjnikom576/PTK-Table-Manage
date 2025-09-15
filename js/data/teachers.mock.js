@@ -1,309 +1,336 @@
-/**
- * Enhanced Teachers Mock Data
- * Part 1: Teachers 2567 (Current Year)
- * Multi-Year System with Teacher Evolution
- */
+// Enhanced Teachers Mock Data - Multi-Year (2566-2568)
+// 6 ครูสายชั้น ม.1 จัดเต็ม
 
-// Teachers 2567 (Current Year - 10 คน)
-const teachers_2567 = [
-    // วิทยาศาสตร์ - 3 คน
+export const teachersData = {
+  // ปี 2566 (Historical)
+  teachers_2566: [
     {
-        id: 1,
-        name: 'นายวิทย์ ศาสตร์วิทยา',
-        email: 'wit.science@school.ac.th',
-        phone: '081-111-1001',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 1,
+      name: "นายสมชาย วิทยาการ",
+      email: "somchai.science@school.ac.th",
+      phone: "081-234-5678",
+      subject_group: "วิทยาศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
     {
-        id: 2,
-        name: 'นางสาวเคมี โมเลกุล',
-        email: 'chemistry@school.ac.th',
-        phone: '081-111-1002',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'admin',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 2,
+      name: "นางสาววิภา คณิตกุล",
+      email: "wipa.math@school.ac.th", 
+      phone: "081-345-6789",
+      subject_group: "คณิตศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
     {
-        id: 3,
-        name: 'นายชีววิทยา เซลล์',
-        email: 'biology@school.ac.th',
-        phone: '081-111-1003',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
-    },
-
-    // คณิตศาสตร์ - 3 คน
-    {
-        id: 4,
-        name: 'นายคณิต สมการ',
-        email: 'math.equation@school.ac.th',
-        phone: '081-222-2001',
-        subject_group: 'คณิตศาสตร์',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 3,
+      name: "นางสุดา ภาษาดี",
+      email: "suda.thai@school.ac.th",
+      phone: "081-456-7890", 
+      subject_group: "ภาษาไทย",
+      role: "teacher",
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
     {
-        id: 5,
-        name: 'นางสาวเรขา คณิต',
-        email: 'geometry@school.ac.th',
-        phone: '081-222-2002',
-        subject_group: 'คณิตศาสตร์',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 4,
+      name: "Mr. John English",
+      email: "john.english@school.ac.th",
+      phone: "081-567-8901",
+      subject_group: "ภาษาอังกฤษ", 
+      role: "teacher",
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
     {
-        id: 6,
-        name: 'นายพีชคณิต เบส',
-        email: 'algebra@school.ac.th',
-        phone: '081-222-2003',
-        subject_group: 'คณิตศาสตร์',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
-    },
-
-    // ภาษาไทย - 2 คน
-    {
-        id: 7,
-        name: 'นางสาวไทย ภาษา',
-        email: 'thai.lang@school.ac.th',
-        phone: '081-333-3001',
-        subject_group: 'ภาษาไทย',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 5,
+      name: "นายประยุทธ์ สังคมศาสตร์",
+      email: "prayut.social@school.ac.th",
+      phone: "081-678-9012",
+      subject_group: "สังคมศึกษา",
+      role: "teacher", 
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
     {
-        id: 8,
-        name: 'นายวรรณกรรม การเขียน',
-        email: 'literature@school.ac.th',
-        phone: '081-333-3002',
-        subject_group: 'ภาษาไทย',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 6,
+      name: "นางสาวศิลปิน ครีเอทีฟ",
+      email: "silpin.art@school.ac.th",
+      phone: "081-789-0123",
+      subject_group: "ศิลปะ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
-
-    // ภาษาอังกฤษ - 1 คน
+    // เพิ่มครูอื่น ๆ ในปี 2566
     {
-        id: 9,
-        name: 'Miss English Grammar',
-        email: 'english@school.ac.th',
-        phone: '081-444-4001',
-        subject_group: 'ภาษาอังกฤษ',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 7,
+      name: "นายกีฬา ฟิตเนส",
+      email: "keela.sport@school.ac.th", 
+      phone: "081-890-1234",
+      subject_group: "พลศึกษา",
+      role: "teacher",
+      user_id: null,
+      created_at: "2023-05-15T00:00:00Z"
     },
-
-    // สังคมศึกษา - 1 คน
     {
-        id: 10,
-        name: 'นายสังคม ประวัติศาสตร์',
-        email: 'history@school.ac.th',
-        phone: '081-555-5001',
-        subject_group: 'สังคมศึกษา',
-        role: 'teacher',
-        created_at: '2024-05-01T00:00:00.000Z'
+      id: 8,
+      name: "นางดนตรี เสียงใส",
+      email: "dontree.music@school.ac.th",
+      phone: "081-901-2345",
+      subject_group: "ศิลปะ",
+      role: "teacher",
+      user_id: null, 
+      created_at: "2023-05-15T00:00:00Z"
     }
-];
+  ],
 
-// Teachers 2566 (Previous Year - 8 คน)
-const teachers_2566 = [
-    // วิทยาศาสตร์ - 2 คน (น้อยกว่า)
+  // ปี 2567 (Current)
+  teachers_2567: [
     {
-        id: 1,
-        name: 'นายวิทย์ ศาสตร์วิทยา',
-        email: 'wit.science@school.ac.th',
-        phone: '081-111-1001',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
+      id: 1,
+      name: "นายสมชาย วิทยาการ",
+      email: "somchai.science@school.ac.th",
+      phone: "081-234-5678",
+      subject_group: "วิทยาศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
     },
     {
-        id: 2,
-        name: 'นางสาวเคมี โมเลกุล',
-        email: 'chemistry@school.ac.th',
-        phone: '081-111-1002',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher', // ยังไม่เป็น admin
-        created_at: '2023-05-01T00:00:00.000Z'
-    },
-
-    // คณิตศาสตร์ - 2 คน
-    {
-        id: 3,
-        name: 'นายคณิต สมการ',
-        email: 'math.equation@school.ac.th',
-        phone: '081-222-2001',
-        subject_group: 'คณิตศาสตร์',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
+      id: 2,
+      name: "นางสาววิภา คณิตกุล",
+      email: "wipa.math@school.ac.th",
+      phone: "081-345-6789", 
+      subject_group: "คณิตศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
     },
     {
-        id: 4,
-        name: 'นางสาวเรขา คณิต',
-        email: 'geometry@school.ac.th',
-        phone: '081-222-2002',
-        subject_group: 'คณิตศาสตร์',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
-    },
-
-    // ภาษาไทย - 2 คน
-    {
-        id: 5,
-        name: 'นางสาวไทย ภาษา',
-        email: 'thai.lang@school.ac.th',
-        phone: '081-333-3001',
-        subject_group: 'ภาษาไทย',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
+      id: 3,
+      name: "นางสุดา ภาษาดี",
+      email: "suda.thai@school.ac.th",
+      phone: "081-456-7890",
+      subject_group: "ภาษาไทย", 
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
     },
     {
-        id: 6,
-        name: 'นายวรรณกรรม การเขียน',
-        email: 'literature@school.ac.th',
-        phone: '081-333-3002',
-        subject_group: 'ภาษาไทย',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
+      id: 4,
+      name: "Ms. Emily Wilson",
+      email: "emily.english@school.ac.th",
+      phone: "081-567-8901",
+      subject_group: "ภาษาอังกฤษ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
     },
-
-    // ภาษาอังกฤษ - 1 คน
     {
-        id: 7,
-        name: 'Miss English Grammar',
-        email: 'english@school.ac.th',
-        phone: '081-444-4001',
-        subject_group: 'ภาษาอังกฤษ',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
+      id: 5,
+      name: "นายประยุทธ์ สังคมศาสตร์",
+      email: "prayut.social@school.ac.th", 
+      phone: "081-678-9012",
+      subject_group: "สังคมศึกษา",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
     },
-
-    // สังคมศึกษา - 1 คน
     {
-        id: 8,
-        name: 'นายสังคม ประวัติศาสตร์',
-        email: 'history@school.ac.th',
-        phone: '081-555-5001',
-        subject_group: 'สังคมศึกษา',
-        role: 'teacher',
-        created_at: '2023-05-01T00:00:00.000Z'
+      id: 6,
+      name: "นางสาวศิลปิน ครีเอทีฟ",
+      email: "silpin.art@school.ac.th",
+      phone: "081-789-0123",
+      subject_group: "ศิลปะ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
+    },
+    // ครูใหม่ในปี 2567
+    {
+      id: 7,
+      name: "นายเทคโน โลยี",
+      email: "techno.computer@school.ac.th",
+      phone: "081-890-1234",
+      subject_group: "เทคโนโลยี",
+      role: "teacher", 
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
+    },
+    {
+      id: 8,
+      name: "นางการงาน ฝีมือ",
+      email: "karngaan.skill@school.ac.th",
+      phone: "081-901-2345",
+      subject_group: "การงานอาชีพ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
+    },
+    {
+      id: 9,
+      name: "นายลูกเสือ กิจกรรม",
+      email: "lookseua.activity@school.ac.th",
+      phone: "081-012-3456",
+      subject_group: "กิจกรรมพัฒนาผู้เรียน",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
+    },
+    {
+      id: 10,
+      name: "นางสาวชีววิทยา เซลล์",
+      email: "cheewa.bio@school.ac.th",
+      phone: "081-123-4567",
+      subject_group: "วิทยาศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2024-05-15T00:00:00Z"
     }
-];
+  ],
 
-// Teachers 2568 (Future Planning - 8 คน)
-const teachers_2568 = [
-    // วิทยาศาสตร์ - 4 คน (ครูใหม่เข้ามา)
+  // ปี 2568 (Future)
+  teachers_2568: [
     {
-        id: 1,
-        name: 'นายวิทย์ ศาสตร์วิทยา',
-        email: 'wit.science@school.ac.th',
-        phone: '081-111-1001',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher',
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 1,
+      name: "นายสมชาย วิทยาการ",
+      email: "somchai.science@school.ac.th",
+      phone: "081-234-5678",
+      subject_group: "วิทยาศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     },
     {
-        id: 2,
-        name: 'นางสาวเคมี โมเลกุล',
-        email: 'chemistry@school.ac.th',
-        phone: '081-111-1002',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'admin',
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 2,
+      name: "นางสาววิภา คณิตกุล", 
+      email: "wipa.math@school.ac.th",
+      phone: "081-345-6789",
+      subject_group: "คณิตศาสตร์",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     },
     {
-        id: 3,
-        name: 'นายชีววิทยา เซลล์',
-        email: 'biology@school.ac.th',
-        phone: '081-111-1003',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher',
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 3,
+      name: "นางสุดา ภาษาดี",
+      email: "suda.thai@school.ac.th",
+      phone: "081-456-7890",
+      subject_group: "ภาษาไทย",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     },
     {
-        id: 4,
-        name: 'นางสาวฟิสิกส์ ควอนตัม', // ครูใหม่
-        email: 'physics.new@school.ac.th',
-        phone: '081-111-1005',
-        subject_group: 'วิทยาศาสตร์',
-        role: 'teacher',
-        created_at: '2025-05-01T00:00:00.000Z'
-    },
-
-    // คณิตศาสตร์ - 2 คน (ลดลง)
-    {
-        id: 5,
-        name: 'นายคณิต สมการ',
-        email: 'math.equation@school.ac.th',
-        phone: '081-222-2001',
-        subject_group: 'คณิตศาสตร์',
-        role: 'admin', // เลื่อนเป็น admin
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 4,
+      name: "Ms. Emily Wilson",
+      email: "emily.english@school.ac.th",
+      phone: "081-567-8901",
+      subject_group: "ภาษาอังกฤษ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     },
     {
-        id: 6,
-        name: 'นางสาวเรขา คณิต',
-        email: 'geometry@school.ac.th',
-        phone: '081-222-2002',
-        subject_group: 'คณิตศาสตร์',
-        role: 'teacher',
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 5,
+      name: "นายประยุทธ์ สังคมศาสตร์",
+      email: "prayut.social@school.ac.th",
+      phone: "081-678-9012",
+      subject_group: "สังคมศึกษา",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     },
-
-    // ภาษาไทย - 1 คน (ลดลง)
     {
-        id: 7,
-        name: 'นางสาวไทย ภาษา',
-        email: 'thai.lang@school.ac.th',
-        phone: '081-333-3001',
-        subject_group: 'ภาษาไทย',
-        role: 'teacher',
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 6,
+      name: "นางสาวศิลปิน ครีเอทีฟ",
+      email: "silpin.art@school.ac.th",
+      phone: "081-789-0123", 
+      subject_group: "ศิลปะ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     },
-
-    // ภาษาอังกฤษ - 1 คน (เหมือนเดิม)
+    // ครูใหม่ล่าสุดในปี 2568
     {
-        id: 8,
-        name: 'Miss English Grammar',
-        email: 'english@school.ac.th',
-        phone: '081-444-4001',
-        subject_group: 'ภาษาอังกฤษ',
-        role: 'teacher',
-        created_at: '2025-05-01T00:00:00.000Z'
+      id: 7,
+      name: "นายเอไอ อัจฉริยะ",
+      email: "ai.smart@school.ac.th",
+      phone: "081-890-1234",
+      subject_group: "วิทยาการคำนวณ",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
+    },
+    {
+      id: 8,
+      name: "นางสาวโรบอท เทคโนโลยี",
+      email: "robot.tech@school.ac.th",
+      phone: "081-901-2345",
+      subject_group: "เทคโนโลยี",
+      role: "teacher",
+      user_id: null,
+      created_at: "2025-05-15T00:00:00Z"
     }
-];
-
-// Teacher utility functions
-export const TeacherUtils = {
-    getTeachersByYear(year) {
-        const yearData = {
-            2566: teachers_2566,
-            2567: teachers_2567,
-            2568: teachers_2568
-        };
-        return yearData[year] || [];
-    },
-
-    findTeacherByName(name, year = 2567) {
-        const teachers = this.getTeachersByYear(year);
-        return teachers.find(t => t.name.includes(name));
-    }
+  ]
 };
 
-// Export for backward compatibility
-export const teachersData = [...teachers_2567];
-export const getTeachersByYear = TeacherUtils.getTeachersByYear;
-export const findTeacherByName = TeacherUtils.findTeacherByName;
-export { teachers_2567, teachers_2566, teachers_2568 };
+// Helper Functions
+export function getTeachersByYear(year) {
+  return teachersData[`teachers_${year}`] || [];
+}
 
-// Export default
-export default {
-    data: {
-        teachers_2566: teachers_2566,
-        teachers_2567: teachers_2567,
-        teachers_2568: teachers_2568
-    },
-    utils: TeacherUtils
-};
+export function findTeacherByName(name, year) {
+  const teachers = getTeachersByYear(year);
+  return teachers.find(t => t.name === name);
+}
+
+export function getTeacherSubjectGroup(teacher) {
+  return teacher.subject_group;
+}
+
+export function calculateTeacherEvolution(teacherName, years = [2566, 2567, 2568]) {
+  const evolution = {};
+  years.forEach(year => {
+    const teacher = findTeacherByName(teacherName, year);
+    if (teacher) {
+      evolution[year] = {
+        present: true,
+        subject_group: teacher.subject_group,
+        email: teacher.email,
+        phone: teacher.phone
+      };
+    } else {
+      evolution[year] = { present: false };
+    }
+  });
+  return evolution;
+}
+
+export function getTeachersForM1(year) {
+  // กรองครูที่สอนชั้น ม.1 (6 คนหลัก)
+  const teachers = getTeachersByYear(year);
+  return teachers.slice(0, 6); // 6 คนแรกเป็นครูสายชั้น ม.1
+}
+
+export function getAvailableSubjectGroups(year) {
+  const teachers = getTeachersByYear(year);
+  return [...new Set(teachers.map(t => t.subject_group))];
+}
+
+// Export normalization for teacher schedule
+export function normalizeTeacherRowForExport(teacher, context) {
+  return {
+    'ชื่อครู': teacher.name,
+    'กลุ่มสาระ': teacher.subject_group,
+    'เบอร์โทร': teacher.phone,
+    'อีเมล': teacher.email,
+    'ปีการศึกษา': context.year,
+    'สถานะ': teacher.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ครู'
+  };
+}
+
+export default teachersData;
