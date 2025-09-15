@@ -18,7 +18,9 @@ let pageState = {
   teacherSchedules: {},
   workloadSummary: null,
   isLoading: false,
-  error: null
+  error: null,
+  // For group filter in "ตารางรายครู"
+  selectedGroup: 'ALL'
 };
 
 // =============================================================================
@@ -439,8 +441,9 @@ async function renderTeacherTabs(context) {
   // Selected group -> render only that group, otherwise render all
   const selected = pageState.selectedGroup || 'ALL';
   const visibleGroups = selected === 'ALL' ? groupNames : groupNames.filter(g => g === selected);
+  const singleClass = visibleGroups.length === 1 ? ' single' : '';
   const groupsHTML = `
-    <div class="teacher-groups">
+    <div class="teacher-groups${singleClass}">
       ${visibleGroups.map(g => {
         const list = groups[g]
           .slice()
@@ -984,6 +987,20 @@ function setupEventListeners(context) {
 
   // Teacher tab clicks (for teacher-details tab)
   document.addEventListener('click', async (e) => {
+    // Group filter chip (use delegation to survive re-renders)
+    const chip = e.target.closest('.group-chip');
+    if (chip) {
+      const grp = chip.getAttribute('data-group');
+      // Toggle behavior: clicking the same chip again returns to ALL
+      if (!grp || grp === 'ALL' || pageState.selectedGroup === grp) {
+        pageState.selectedGroup = 'ALL';
+      } else {
+        pageState.selectedGroup = grp;
+      }
+      await renderTeacherTabs(context);
+      return;
+    }
+
     if (e.target.matches('.teacher-tab')) {
       console.log('[TeacherSchedule] Teacher tab clicked:', e.target.dataset.teacherId);
       const teacherId = parseInt(e.target.dataset.teacherId);
