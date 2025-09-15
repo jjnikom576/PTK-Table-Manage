@@ -577,7 +577,7 @@ export function renderScheduleTable(resultData, context) {
                 `</div>` +
                 `</td>`;
       } else {
-        const emptyText = (period === 8) ? '-' : 'ว่าง';
+        const emptyText = '-';
         html += `<td class="schedule-cell empty" data-day="${day}" data-period="${period}">` +
                 `<div class="empty-cell">${emptyText}</div>` +
                 `</td>`;
@@ -597,6 +597,38 @@ export function renderScheduleTable(resultData, context) {
   html += '</tbody>';
   html += '</table></div>';
   tableContainer.innerHTML = html;
+  try { adjustStudentCellTextSizing(tableContainer); } catch (e) { console.warn('[StudentSchedule] text sizing adjust failed:', e); }
+}
+
+// Auto-shrink long text per cell to fit within the fixed cell height
+function adjustStudentCellTextSizing(root) {
+  const contents = root.querySelectorAll('.schedule-cell.has-subject .schedule-cell-content');
+  contents.forEach(content => {
+    const subject = content.querySelector('.subject-name');
+    const teacher = content.querySelector('.teacher-name');
+    const room = content.querySelector('.room-info');
+    if (!subject) return;
+
+    const getSize = el => parseFloat(window.getComputedStyle(el).fontSize) || 12;
+    const setSize = (el, s) => { if (el) el.style.fontSize = s + 'px'; };
+
+    let subj = getSize(subject);
+    let tsize = teacher ? getSize(teacher) : null;
+    let rsize = room ? getSize(room) : null;
+
+    const minSubj = 9, minMeta = 9;
+    const cell = content.closest('td');
+    const maxH = (cell?.clientHeight || 64) - 6;
+    let guard = 0;
+
+    // Shrink subject first, then meta lines until content fits
+    while (content.scrollHeight > maxH && guard++ < 24) {
+      if (subj > minSubj) { subj -= 1; setSize(subject, subj); continue; }
+      if (teacher && tsize && tsize > minMeta) { tsize -= 1; setSize(teacher, tsize); continue; }
+      if (room && rsize && rsize > minMeta) { rsize -= 1; setSize(room, rsize); continue; }
+      break;
+    }
+  });
 }
 
 function getScheduleContainer() {
@@ -649,7 +681,7 @@ export function generateScheduleTable(scheduleData, className, context) {
           </td>
         `;
       } else {
-        const emptyText = (period === 8) ? '-' : 'ว่าง';
+        const emptyText = '-';
         tableHTML += `
           <td class="schedule-cell empty" data-day="${dayNumber}" data-period="${period}">
             <div class="empty-cell">${emptyText}</div>

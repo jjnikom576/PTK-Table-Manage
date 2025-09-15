@@ -518,14 +518,20 @@ function renderScheduleTableSection(scheduleData, teacher, context) {
           <thead>
             <tr>
               <th class="day-header">วัน/เวลา</th>
-              ${timeSlots.map((timeSlot, index) =>
-    `<th class="period-header">
+              ${timeSlots.map((timeSlot, index) => {
+                const periodNum = index + 1;
+                let headerCell = `
+                <th class="period-header">
                   <div class="period-info">
-                    <div class="period-number">คาบ ${index + 1}</div>
+                    <div class="period-number">คาบ ${periodNum}</div>
                     <div class="time-slot">${timeSlot}</div>
                   </div>
-                </th>`
-  ).join('')}
+                </th>`;
+                if (periodNum === 4) {
+                  headerCell += `<th class=\"lunch-header lunch-column\"><div class=\"lunch-info\">พักเที่ยง<br><small>12:00 - 13:00</small></div></th>`;
+                }
+                return headerCell;
+              }).join('')}
             </tr>
           </thead>
           <tbody>
@@ -563,6 +569,13 @@ function renderScheduleTableSection(scheduleData, teacher, context) {
             <div class="empty-period">-</div>
           </td>
         `;
+      }
+
+      // Insert lunch column after period 4; merge cells for all days using rowspan
+      if (period === 4) {
+        if (dayIndex === 0) {
+          tableHTML += `<td class=\"lunch-cell lunch-column\" aria-label=\"พักเที่ยง\" rowspan=\"${days.length}\">พักเที่ยง</td>`;
+        }
       }
     });
 
