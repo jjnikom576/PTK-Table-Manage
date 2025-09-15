@@ -597,38 +597,58 @@ export function renderScheduleTable(resultData, context) {
   html += '</tbody>';
   html += '</table></div>';
   tableContainer.innerHTML = html;
-  try { adjustStudentCellTextSizing(tableContainer); } catch (e) { console.warn('[StudentSchedule] text sizing adjust failed:', e); }
+  try { fitStudentTableFonts(tableContainer); } catch (e) { console.warn('[StudentSchedule] font fit failed:', e); }
 }
 
-// Auto-shrink long text per cell to fit within the fixed cell height
-function adjustStudentCellTextSizing(root) {
-  const contents = root.querySelectorAll('.schedule-cell.has-subject .schedule-cell-content');
-  contents.forEach(content => {
-    const subject = content.querySelector('.subject-name');
-    const teacher = content.querySelector('.teacher-name');
-    const room = content.querySelector('.room-info');
-    if (!subject) return;
+// Determine a global font size that makes all cells fit, then apply uniformly
+function fitStudentTableFonts(container) {
+  const subjects = container.querySelectorAll('.schedule-cell .subject-name');
+  const contents = container.querySelectorAll('.schedule-cell .schedule-cell-content');
+  if (!subjects.length || !contents.length) return;
 
-    const getSize = el => parseFloat(window.getComputedStyle(el).fontSize) || 12;
-    const setSize = (el, s) => { if (el) el.style.fontSize = s + 'px'; };
+  // Helper: do all subject names fit in one line at a given font size?
+  const subjectsFitAt = (px) => {
+    container.style.setProperty('--subject-font', px + 'px');
+    // Force reflow
+    void container.offsetHeight;
+    let ok = true;
+    subjects.forEach(el => {
+      // Compare content width vs available width of the subject line
+      const margin = 6; // leave slightly larger safety margin due to added padding
+      const available = (el.clientWidth || (el.parentElement?.clientWidth || 0)) - margin;
+      const needed = el.scrollWidth;
+      if (needed > available) ok = false;
+    });
+    // Also ensure total content height fits inside the cell height (prevents slight overlaps)
+    if (ok) {
+      contents.forEach(content => {
+        const cell = content.closest('td');
+        const maxH = (cell?.clientHeight || 64) - 6; // leave small breathing room
+        if (content.scrollHeight > maxH) ok = false;
+      });
+    }
+    return ok;
+  };
 
-    let subj = getSize(subject);
-    let tsize = teacher ? getSize(teacher) : null;
-    let rsize = room ? getSize(room) : null;
+  const maxPx = 18; // upper bound
+  const minPx = 5;  // lower bound (allow smaller to avoid overlap)
+  let chosen = 12;
 
-    const minSubj = 9, minMeta = 9;
-    const cell = content.closest('td');
-    const maxH = (cell?.clientHeight || 64) - 6;
-    let guard = 0;
-
-    // Shrink subject first, then meta lines until content fits
-    while (content.scrollHeight > maxH && guard++ < 24) {
-      if (subj > minSubj) { subj -= 1; setSize(subject, subj); continue; }
-      if (teacher && tsize && tsize > minMeta) { tsize -= 1; setSize(teacher, tsize); continue; }
-      if (room && rsize && rsize > minMeta) { rsize -= 1; setSize(room, rsize); continue; }
+  // Find the largest size between min..max that still fits one-line for all subjects
+  for (let s = maxPx; s >= minPx; s--) {
+    if (subjectsFitAt(s)) {
+      chosen = s;
       break;
     }
-  });
+  }
+
+  // Reduce subject font further (8px from chosen) as requested
+  // Force subject font to 14px (only subject)
+  const finalSubject = 14;
+  container.style.setProperty('--subject-font', finalSubject + 'px');
+  // Ensure other lines use their defaults
+  container.style.removeProperty('--teacher-font');
+  container.style.removeProperty('--room-font');
 }
 
 function getScheduleContainer() {
@@ -1441,3 +1461,4 @@ if (typeof window !== 'undefined') {
     getPageState
   };
 }
+
