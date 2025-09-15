@@ -28,12 +28,15 @@ let pageState = {
 /**
  * Initialize Teacher Schedule Page
  */
-export async function initTeacherSchedulePage(context) {
-  console.log('[TeacherSchedule] Initializing page with context:', context);
+export async function initTeacherSchedulePage(context = null) {
+  // ⭐ FIX: ใช้ global context แทน parameter
+  const currentContext = context || globalContext.getContext();
+  
+  console.log('[TeacherSchedule] Initializing page with context:', currentContext);
 
   try {
     // Validate context
-    if (!context.currentYear || !context.currentSemester) {
+    if (!currentContext.currentYear || !currentContext.currentSemester) {
       throw new Error('ไม่ได้เลือกปีการศึกษาหรือภาคเรียน');
     }
 
@@ -51,22 +54,22 @@ export async function initTeacherSchedulePage(context) {
 
     // Set up dataService context first
     console.log('[TeacherSchedule] Setting up dataService context');
-    await dataService.setGlobalContext(context.currentYear, context.currentSemester.id);
+    await dataService.setGlobalContext(currentContext.currentYear, currentContext.currentSemester.id);
 
     // Load teachers and data
     console.log('[TeacherSchedule] Loading teachers data');
-    await loadTeachersData(context);
+    await loadTeachersData(currentContext);
 
     // Render components
     console.log('[TeacherSchedule] Rendering workload summary');
-    await renderWorkloadSummary(context);
+    await renderWorkloadSummary(currentContext);
 
     console.log('[TeacherSchedule] Rendering teacher tabs');
-    await renderTeacherTabs(context);
+    await renderTeacherTabs(currentContext);
 
     // Setup event listeners
     console.log('[TeacherSchedule] Setting up event listeners');
-    setupEventListeners(context);
+    setupEventListeners(currentContext);
 
     console.log('[TeacherSchedule] Page initialized successfully');
 
@@ -99,9 +102,36 @@ export async function updatePageForContext(newContext) {
 }
 
 /**
+ * Refresh Page (NEW - สำหรับ app.js)
+ */
+export async function refreshPage(newContext = null) {
+  console.log('[TeacherSchedule] Refreshing page with context:', newContext);
+  
+  // ⭐ FIX: ใช้ global context ถ้าไม่มี newContext
+  const currentContext = newContext || globalContext.getContext();
+  
+  try {
+    // Clear current state
+    pageState.teachers = [];
+    pageState.selectedTeacher = null;
+    pageState.teacherSchedules = {};
+    pageState.workloadSummary = null;
+
+    // Reload with new context
+    await initTeacherSchedulePage(currentContext);
+    
+    console.log('[TeacherSchedule] ✅ Page refreshed successfully');
+
+  } catch (error) {
+    console.error('[TeacherSchedule] Failed to refresh page:', error);
+    showError(error.message);
+  }
+}
+
+/**
  * Refresh Page Data (NEW - สำหรับ context switching)
  */
-export async function refreshPage(newContext, preserveSelection = null) {
+export async function refreshPageData(newContext, preserveSelection = null) {
   console.log('[TeacherSchedule] Refreshing page data with context:', newContext);
   
   try {

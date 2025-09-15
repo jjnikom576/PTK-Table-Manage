@@ -177,24 +177,31 @@ async function initStudentPage() {
   setupBasicExportHandlers();
 }
 
-// Helper functions for UI updates
+// ⭐ FIX: Helper functions for UI updates
 function updateSemesterDisplay() {
   try {
     // เข้าถึง context ปัจจุบัน
-    const yearSelector = document.getElementById('year-selector');
-    const semesterSelector = document.getElementById('semester-selector');
-    const display = document.getElementById('current-semester-display');
+    const context = globalContext.getContext();
     
-    if (display && yearSelector && semesterSelector) {
-      const selectedYear = yearSelector.options[yearSelector.selectedIndex]?.text || 'ไม่ระบุ';
-      const selectedSemester = semesterSelector.options[semesterSelector.selectedIndex]?.text || 'ไม่ระบุ';
+    if (context && context.currentSemester) {
+      const semesterText = `${context.currentSemester.semester_name} ปีการศึกษา ${context.currentYear}`;
       
-      if (selectedYear !== 'ไม่ระบุ' && selectedSemester !== 'ไม่ระบุ') {
-        display.textContent = `${selectedSemester} ${selectedYear}`;
-        console.log('[Navigation] Updated semester display:', display.textContent);
-      } else {
-        display.textContent = '';
+      // ⭐ FIX: อัพเดททั้ง student และ teacher page
+      const studentDisplay = document.getElementById('current-semester-display');
+      const teacherDisplay = document.getElementById('teacher-semester-display');
+      
+      if (studentDisplay) {
+        studentDisplay.textContent = semesterText;
+        console.log('[Navigation] Updated student semester display:', semesterText);
       }
+      
+      if (teacherDisplay) {
+        teacherDisplay.textContent = semesterText;
+        console.log('[Navigation] Updated teacher semester display:', semesterText);
+      }
+      
+    } else {
+      console.warn('[Navigation] No context available for semester display');
     }
   } catch (error) {
     console.error('[Navigation] Error updating semester display:', error);
@@ -402,6 +409,9 @@ function extractTableDataFromDOM(className) {
 
 async function initTeacherPage() {
   console.log('[Navigation] Init teacher page');
+  
+  // ⭐ FIX: อัพเดท semester display สำหรับ teacher page
+  updateSemesterDisplay();
   
   try {
     // สร้าง context ง่าย ๆ
@@ -726,3 +736,5 @@ export function getNavigationState() {
     initialized
   };
 }
+
+
