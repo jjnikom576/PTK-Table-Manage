@@ -378,6 +378,28 @@ export const roomsData = {
   ]
 };
 
+// Sanitize room names in mock data: remove leading "ห้อง"
+function sanitizeRoomNames(data) {
+  try {
+    const keyNames = Object.keys(data).filter(k => k.startsWith('rooms_'));
+    keyNames.forEach(k => {
+      const arr = data[k];
+      if (Array.isArray(arr)) {
+        arr.forEach(r => {
+          if (r && typeof r.name === 'string') {
+            r.name = r.name.replace(/^ห้อง\s*/, '').trim();
+          }
+        });
+      }
+    });
+  } catch (e) {
+    // noop
+  }
+}
+
+// Apply sanitization at module load
+sanitizeRoomNames(roomsData);
+
 // Helper Functions
 export function getRoomsByYear(year) {
   return roomsData[`rooms_${year}`] || [];
@@ -478,3 +500,4 @@ export function normalizeRoomRowForExport(room, context) {
 }
 
 export default roomsData;
+

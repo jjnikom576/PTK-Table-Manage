@@ -559,7 +559,7 @@ function renderScheduleTableSection(scheduleData, teacher, context) {
             <div class="subject-info">
               <div class="subject-name">${cellData.subject.subject_name}</div>
               <div class="class-name">${cellData.class.class_name}</div>
-              <div class="room-name">${cellData.room.name}</div>
+              <div class="room-name">${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}</div>
             </div>
           </td>
         `;
@@ -822,7 +822,7 @@ function renderScheduleTable(scheduleData, teacher, context) {
               <div class="subject-name">${cellData.subject.subject_name}</div>
               <div class="class-name">${cellData.class.class_name}</div>
               <div class="room-name">
-                ${cellData.room.name}
+                ${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}
                 ${cellData.room.room_type ? `<span class="room-type ${cellData.room.room_type.toLowerCase()}">${cellData.room.room_type}</span>` : ''}
               </div>
             </div>
@@ -1216,7 +1216,7 @@ async function prepareTeacherExportData(teacherId, context) {
       const cellData = scheduleData.matrix[dayNumber]?.[period];
 
       if (cellData) {
-        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.class.class_name}\n${cellData.room.name}`;
+        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.class.class_name}\n${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}`;
       } else {
         rowData[`คาบ ${period}`] = '-';
       }
@@ -1392,3 +1392,4 @@ function showExportError(message) {
 export function getPageState() {
   return { ...pageState };
 }
+

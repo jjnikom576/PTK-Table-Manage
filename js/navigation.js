@@ -664,7 +664,7 @@ function buildScheduleTable(matrix) {
               <div class="teacher">ครู: ${cellData.teacher.name}</div>
               -->
               <div class="teacher">${cellData.teacher.name}</div>
-              <div class="room">${cellData.room.name}</div>
+              <div class="room">${String(cellData.room.name || "").replace(/^��ͧ\s*/, "")}</div>
             </td>`;
       } else {
         tableHTML += `<td class="schedule-cell"><div class="subject">-</div></td>`;
@@ -757,3 +757,4 @@ export function getNavigationState() {
     initialized
   };
 }
+

@@ -736,7 +736,7 @@ export function formatScheduleCell(subject, teacher, room, context) {
       <div class="teacher-name">${teacher?.name || 'ไม่ระบุครู'}</div>
       <div class="room-info">
         ${room ? `
-          ${room.name} 
+          ${String(room.name || '').replace(/^ห้อง\s*/, '')} 
           <span class="badge ${getRoomTypeBadgeClass(room.room_type)}">
             ${room.room_type}
           </span>
@@ -1386,6 +1386,7 @@ async function prepareStudentExportData(className, context) {
   const timeSlots = generateTimeSlots();
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
   const exportData = [];
+  const cleanRoom = (n) => String(n || '').replace(/^ห้อง\s*/, '');
   
   // Header information
   exportData.push({
@@ -1418,7 +1419,7 @@ async function prepareStudentExportData(className, context) {
     'คาบ 4': '', 'คาบ 5': '', 'คาบ 6': '', 'คาบ 7': '', 'คาบ 8': ''
   });
   
-  // Table data
+  // Table data (insert lunch column between period 4 and 5)
   days.forEach((day, dayIndex) => {
     const dayNumber = dayIndex + 1;
     const rowData = { 'วัน/เวลา': day };
@@ -1428,9 +1429,13 @@ async function prepareStudentExportData(className, context) {
       const cellData = pageState.currentSchedule.matrix[dayNumber]?.[period];
       
       if (cellData) {
-        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cellData.room.name}`;
+        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cleanRoom(cellData.room.name)}`;
       } else {
         rowData[`คาบ ${period}`] = '-';
+      }
+
+      if (period === 4 && rowData['พักเที่ยง'] === undefined) {
+        rowData['พักเที่ยง'] = '';
       }
     });
     
