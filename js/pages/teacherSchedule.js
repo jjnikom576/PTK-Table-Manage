@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Enhanced Teacher Schedule Page for Multi-Year School Schedule System
  * Features: Teacher workload summary, Individual schedules, Export functionality
  */
