@@ -167,6 +167,33 @@ function adjustAuthInputWidth() {
     const form = document.querySelector('#page-admin .auth-form');
     if (!form) return;
     form.style.setProperty('--auth-input-width', '140px');
+    
+    // FIX: Center entire auth-form container
+    form.style.margin = '0 auto';
+    form.style.textAlign = 'center';
+    form.style.maxWidth = '300px';
+    
+    // FIX: Setup form as grid
+    const formElement = form.querySelector('form');
+    if (formElement) {
+      formElement.style.display = 'grid';
+      formElement.style.gridTemplateColumns = '120px 140px';
+      formElement.style.columnGap = '0.35rem';
+      formElement.style.rowGap = '0.55rem';
+      formElement.style.alignItems = 'center';
+      formElement.style.justifyContent = 'center';
+      formElement.style.margin = '0 auto';
+    }
+    
+    // FIX: Force center button - use text-align method instead
+    const button = form.querySelector('button[type="submit"]');
+    if (button) {
+      button.style.gridColumn = '1 / -1';
+      button.style.margin = '0.75rem auto 0';
+      button.style.width = 'auto';
+      button.style.display = 'block';
+      button.style.textAlign = 'center';
+    }
   } catch (e) {}
 }
 

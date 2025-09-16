@@ -770,14 +770,7 @@
 }
 
 /* Centered label + input rows; input width adjustable via CSS var */
-#page-admin .auth-form .form-group {
-  display: grid;
-  grid-template-columns: 140px var(--auth-input-width, 140px);
-  align-items: center;
-  justify-content: center; /* center the grid as a block */
-  gap: .5rem;
-  margin-bottom: .6rem;
-}
+#page-admin .auth-form .form-group { display: contents; }
 #page-admin .auth-form .form-group label {
   white-space: nowrap;
   text-align: right;
@@ -793,3 +786,41 @@
 #page-admin .auth-form h3 { text-align: center; }
 #page-admin .auth-form button[type="submit"] { display: block; margin: .5rem auto 0; }
 
+
+/* Center the 2-column auth grid as a whole */
+#page-admin .auth-form form {
+  display: inline-grid; /* shrink to content width */
+  grid-template-columns: 120px var(--auth-input-width, 140px);
+  column-gap: .35rem;
+  row-gap: .55rem;
+  align-items: center;
+  margin: 0 auto; /* center whole grid (label+input) */
+}
+#page-admin .auth-form label { white-space: nowrap; text-align: right; }
+#page-admin .auth-form input[type="text"],
+#page-admin .auth-form input[type="password"] {
+  width: 100%;
+  padding: .4rem .55rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+}
+
+/* FIX: Center login button - MORE SPECIFIC */
+#page-admin .auth-form form {
+  display: grid;
+  grid-template-columns: 120px 140px;
+  column-gap: .35rem;
+  row-gap: .55rem;
+  align-items: center;
+  margin: 0 auto;
+  text-align: left;
+}
+
+#page-admin .auth-form button[type="submit"] {
+  grid-column: 1 / -1 !important; /* span across both columns */
+  justify-self: center !important; /* center horizontally */
+  margin: .75rem auto 0 !important; /* extra top margin */
+  width: auto !important; /* don't stretch full width */
+  padding: .55rem 1.5rem !important; /* bigger padding for better look */
+  display: block !important;
+}
