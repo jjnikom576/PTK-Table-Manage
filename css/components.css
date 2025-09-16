@@ -787,69 +787,77 @@
 #page-admin .auth-form button[type="submit"] { display: block; margin: .5rem auto 0; }
 
 
-/* 🎯 FIXED: Admin Login Form - Input Alignment (รองรับ JS Generated Form) */
+/* 🎯 FIXED: Admin Login Form - Simply Centered! */
+#page-admin .auth-form {
+  max-width: 280px !important;
+  margin: 0 auto !important;
+  text-align: center !important;
+}
+
+#page-admin .auth-form h3 {
+  text-align: center !important;
+  margin-bottom: 1rem !important;
+}
+
 #page-admin .auth-form form {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   gap: 0.75rem !important;
-  margin: 0 auto;
-  text-align: left;
+  margin: 0 auto !important;
+  text-align: center !important;
 }
 
-/* Container แต่ละแถว */
+/* Container แต่ละแถว - กลางจริง ๆ */
 #page-admin .auth-form form > div {
   display: flex !important;
   align-items: center !important;
   gap: 0.5rem !important;
-  justify-content: flex-start !important; /* เปลี่ยนจาก center */
+  justify-content: center !important;
   width: 100% !important;
-  max-width: 320px !important; /* จำกัดความกว้างสูงสุด */
+  max-width: 220px !important;
+  margin-right: 30px !important; /* ขยับไปซ้าย */
 }
 
-/* Labels - ความกว้างคงที่เพื่อให้ input เริ่มต้น x เดียวกัน */
+/* Labels - สั้นและกว้างเท่ากัน */
 #page-admin .auth-form label {
-  width: 80px !important; /* ความกว้างคงที่ */
-  min-width: 80px !important;
+  width: 70px !important;
   text-align: right !important;
   font-weight: var(--font-weight-medium) !important;
   color: var(--color-dark) !important;
-  white-space: nowrap !important;
-  flex-shrink: 0 !important; /* ไม่ให้ย่อขนาด */
-}
-
-/* Input boxes - จัดให้เริ่มต้นแนวเดียวกัน */
-#page-admin .auth-form input[type="text"],
-#page-admin .auth-form input[type="password"] {
-  width: 200px !important; /* ความกว้างคงที่ */
-  padding: .6rem .75rem !important;
-  border: 1px solid var(--color-gray-300) !important;
-  border-radius: var(--radius-md) !important;
-  font-size: .95rem !important;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+  font-size: 0.85rem !important;
   flex-shrink: 0 !important;
 }
 
-/* Input focus states */
+/* Input boxes - กะทัดรัดและกลาง */
+#page-admin .auth-form input[type="text"],
+#page-admin .auth-form input[type="password"] {
+  width: 130px !important;
+  padding: .5rem .6rem !important;
+  border: 1px solid var(--color-gray-300) !important;
+  border-radius: var(--radius-md) !important;
+  font-size: .85rem !important;
+  flex-shrink: 0 !important;
+}
+
 #page-admin .auth-form input[type="text"]:focus,
 #page-admin .auth-form input[type="password"]:focus {
   border-color: var(--color-primary) !important;
-  box-shadow: 0 0 0 3px rgba(66,153,225,.12) !important;
+  box-shadow: 0 0 0 2px rgba(66,153,225,.1) !important;
   outline: none !important;
 }
 
-/* ปุ่ม เข้าสู่ระบบ */
+/* ปุ่ม - กลางและเรียบง่าย */
 #page-admin .auth-form button[type="submit"] {
   margin: 1rem auto 0 !important;
-  width: auto !important;
-  padding: .65rem 2rem !important;
+  padding: .55rem 1.4rem !important;
   background: var(--color-primary) !important;
   color: white !important;
   border: none !important;
   border-radius: var(--radius-md) !important;
   font-weight: var(--font-weight-semibold) !important;
+  font-size: .85rem !important;
   cursor: pointer !important;
-  transition: background var(--transition-fast), transform var(--transition-fast) !important;
 }
 
 #page-admin .auth-form button[type="submit"]:hover {
