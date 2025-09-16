@@ -85,23 +85,27 @@ function bindLogout() {
 function showAuthOnly() {
   const auth = document.getElementById('admin-auth-check');
   const sections = document.querySelectorAll('#page-admin .admin-section');
+  const page = document.getElementById('page-admin');
   if (auth) auth.classList.remove('hidden');
   sections.forEach(s => s.classList.add('hidden'));
   const headerBtn = document.querySelector('#page-admin .btn-logout-admin');
   if (headerBtn) headerBtn.classList.add('hidden');
   const userBox = document.querySelector('#page-admin .admin-user-actions');
   if (userBox) userBox.classList.add('hidden');
+  if (page) page.classList.add('auth-only');
 }
 
 function showAdminSections() {
   const auth = document.getElementById('admin-auth-check');
   const sections = document.querySelectorAll('#page-admin .admin-section');
+  const page = document.getElementById('page-admin');
   if (auth) auth.classList.add('hidden');
   sections.forEach(s => s.classList.remove('hidden'));
   const headerBtn = document.querySelector('#page-admin .btn-logout-admin');
   if (headerBtn) headerBtn.classList.remove('hidden');
   const userBox = document.querySelector('#page-admin .admin-user-actions');
   if (userBox) userBox.classList.remove('hidden');
+  if (page) page.classList.remove('auth-only');
 }
 
 function normalizeContext(ctx) {
