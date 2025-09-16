@@ -453,138 +453,184 @@
                 <div id="admin-data" class="sub-page active admin-section" role="tabpanel" 
                      aria-labelledby="tab-admin-data">
                     
+                    <!-- Sub-Sub Navigation for Data Management -->
+                    <nav class="data-sub-navigation" aria-label="เมนูย่อยเพิ่มข้อมูล">
+                        <ul class="data-sub-nav-tabs" role="tablist">
+                            <li role="none">
+                                <button type="button" class="data-sub-nav-tab active" role="tab" 
+                                        aria-selected="true" data-target="add-teacher"
+                                        id="tab-add-teacher" aria-controls="add-teacher">
+                                    👨‍🏫 เพิ่มครู
+                                </button>
+                            </li>
+                            <li role="none">
+                                <button type="button" class="data-sub-nav-tab" role="tab" 
+                                        aria-selected="false" data-target="add-class"
+                                        id="tab-add-class" aria-controls="add-class">
+                                    🏫 เพิ่มชั้นเรียน
+                                </button>
+                            </li>
+                            <li role="none">
+                                <button type="button" class="data-sub-nav-tab" role="tab" 
+                                        aria-selected="false" data-target="add-room"
+                                        id="tab-add-room" aria-controls="add-room">
+                                    🏠 เพิ่มห้องเรียน
+                                </button>
+                            </li>
+                            <li role="none">
+                                <button type="button" class="data-sub-nav-tab" role="tab" 
+                                        aria-selected="false" data-target="add-subject"
+                                        id="tab-add-subject" aria-controls="add-subject">
+                                    📚 เพิ่มวิชาเรียน
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                    
                     <div class="admin-forms-grid">
-                        <!-- Teacher Management -->
-                        <div class="admin-form-section">
-                            <h3>👨‍🏫 เพิ่มครู</h3>
-                            <form id="teacher-form" class="admin-form">
-                                <div class="form-group">
-                                    <label for="teacher-name">ชื่อ:</label>
-                                    <input type="text" id="teacher-name" name="name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="teacher-subject-group">กลุ่มสาระ:</label>
-                                    <select id="teacher-subject-group" name="subject_group" required>
-                                        <option value="">-- เลือกกลุ่มสาระ --</option>
-                                        <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
-                                        <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                                        <option value="ภาษาไทย">ภาษาไทย</option>
-                                        <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
-                                        <option value="สังคมศึกษา">สังคมศึกษา</option>
-                                        <option value="ศิลปะ">ศิลปะ</option>
-                                        <option value="พลศึกษา">พลศึกษา</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="teacher-phone">เบอร์โทร:</label>
-                                    <input type="tel" id="teacher-phone" name="phone">
-                                </div>
-                                <div class="form-group">
-                                    <label for="teacher-email">อีเมล:</label>
-                                    <input type="email" id="teacher-email" name="email">
-                                </div>
-                                <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                            </form>
+                        <!-- Add Teacher Tab -->
+                        <div id="add-teacher" class="data-sub-page active" role="tabpanel" 
+                             aria-labelledby="tab-add-teacher">
+                            <div class="admin-form-section">
+                                <h3>👨‍🏫 เพิ่มครู</h3>
+                                <form id="teacher-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="teacher-name">ชื่อ:</label>
+                                        <input type="text" id="teacher-name" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="teacher-subject-group">กลุ่มสาระ:</label>
+                                        <select id="teacher-subject-group" name="subject_group" required>
+                                            <option value="">-- เลือกกลุ่มสาระ --</option>
+                                            <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                                            <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                                            <option value="ภาษาไทย">ภาษาไทय</option>
+                                            <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
+                                            <option value="สังคมศึกษา">สังคมศึกษา</option>
+                                            <option value="ศิลปะ">ศิลปะ</option>
+                                            <option value="พลศึกษา">พลศึกษา</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="teacher-phone">เบอร์โทร:</label>
+                                        <input type="tel" id="teacher-phone" name="phone">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="teacher-email">อีเมล:</label>
+                                        <input type="email" id="teacher-email" name="email">
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
                         </div>
 
-                        <!-- Class Management -->
-                        <div class="admin-form-section">
-                            <h3>🏫 เพิ่มชั้นเรียน</h3>
-                            <form id="class-form" class="admin-form">
-                                <div class="form-group">
-                                    <label for="class-grade">ชั้น:</label>
-                                    <select id="class-grade" name="grade_level" required>
-                                        <option value="">-- เลือกชั้น --</option>
-                                        <option value="ม.1">ม.1</option>
-                                        <option value="ม.2">ม.2</option>
-                                        <option value="ม.3">ม.3</option>
-                                        <option value="ม.4">ม.4</option>
-                                        <option value="ม.5">ม.5</option>
-                                        <option value="ม.6">ม.6</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="class-section">ห้อง:</label>
-                                    <input type="number" id="class-section" name="section" min="1" max="20" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="class-student-count">จำนวนนักเรียน:</label>
-                                    <input type="number" id="class-student-count" name="student_count" min="1" max="50">
-                                </div>
-                                <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                            </form>
+                        <!-- Add Class Tab -->
+                        <div id="add-class" class="data-sub-page hidden" role="tabpanel" 
+                             aria-labelledby="tab-add-class">
+                            <div class="admin-form-section">
+                                <h3>🏫 เพิ่มชั้นเรียน</h3>
+                                <form id="class-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="class-grade">ชั้น:</label>
+                                        <select id="class-grade" name="grade_level" required>
+                                            <option value="">-- เลือกชั้น --</option>
+                                            <option value="ม.1">ม.1</option>
+                                            <option value="ม.2">ม.2</option>
+                                            <option value="ม.3">ม.3</option>
+                                            <option value="ม.4">ม.4</option>
+                                            <option value="ม.5">ม.5</option>
+                                            <option value="ม.6">ม.6</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="class-section">ห้อง:</label>
+                                        <input type="number" id="class-section" name="section" min="1" max="20" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="class-student-count">จำนวนนักเรียน:</label>
+                                        <input type="number" id="class-student-count" name="student_count" min="1" max="50">
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
                         </div>
 
-                        <!-- Room Management -->
-                        <div class="admin-form-section">
-                            <h3>🏠 เพิ่มห้องเรียน</h3>
-                            <form id="room-form" class="admin-form">
-                                <div class="form-group">
-                                    <label for="room-name">ชื่อห้อง:</label>
-                                    <input type="text" id="room-name" name="name" required placeholder="เช่น 401, เทค-1, แล็บฟิสิกส์">
-                                </div>
-                                <div class="form-group">
-                                    <label for="room-type">ประเภทห้อง:</label>
-                                    <select id="room-type" name="room_type" required>
-                                        <option value="">-- เลือกประเภท --</option>
-                                        <option value="CLASS">ห้องเรียนทั่วไป</option>
-                                        <option value="TECH">ห้องเทคโนโลยี</option>
-                                        <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
-                                        <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="room-capacity">ความจุ:</label>
-                                    <input type="number" id="room-capacity" name="capacity" min="1" max="100">
-                                </div>
-                                <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                            </form>
+                        <!-- Add Room Tab -->
+                        <div id="add-room" class="data-sub-page hidden" role="tabpanel" 
+                             aria-labelledby="tab-add-room">
+                            <div class="admin-form-section">
+                                <h3>🏠 เพิ่มห้องเรียน</h3>
+                                <form id="room-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="room-name">ชื่อห้อง:</label>
+                                        <input type="text" id="room-name" name="name" required placeholder="เช่น 401, เทค-1, แล็บฟิสิกส์">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="room-type">ประเภทห้อง:</label>
+                                        <select id="room-type" name="room_type" required>
+                                            <option value="">-- เลือกประเภท --</option>
+                                            <option value="CLASS">ห้องเรียนทั่วไป</option>
+                                            <option value="TECH">ห้องเทคโนโลยี</option>
+                                            <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
+                                            <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="room-capacity">ความจุ:</label>
+                                        <input type="number" id="room-capacity" name="capacity" min="1" max="100">
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
                         </div>
 
-                        <!-- Subject Management -->
-                        <div class="admin-form-section">
-                            <h3>📚 เพิ่มวิชา</h3>
-                            <form id="subject-form" class="admin-form">
-                                <div class="form-group">
-                                    <label for="subject-teacher">ครู:</label>
-                                    <select id="subject-teacher" name="teacher_id" required>
-                                        <option value="">-- เลือกครู --</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="subject-class">ห้องเรียน:</label>
-                                    <select id="subject-class" name="class_id" required>
-                                        <option value="">-- เลือกห้องเรียน --</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label for="subject-name">วิชา:</label>
-                                    <input type="text" id="subject-name" name="subject_name" required>
-                                </div>
-                                <div class="form-group">
-                                    <label for="subject-code">รหัสวิชา:</label>
-                                    <input type="text" id="subject-code" name="subject_code">
-                                </div>
-                                <div class="form-group">
-                                    <label for="subject-periods">คาบ/สัปดาห์:</label>
-                                    <input type="number" id="subject-periods" name="periods_per_week" min="1" max="10" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>
-                                        <input type="checkbox" id="subject-requires-room" name="requires_room">
-                                        ต้องใช้ห้องพิเศษ
-                                    </label>
-                                </div>
-                                <div class="form-group hidden" id="subject-room-type-group">
-                                    <label for="subject-room-type">ประเภทห้องที่ต้องการ:</label>
-                                    <select id="subject-room-type" name="required_room_type">
-                                        <option value="TECH">ห้องเทคโนโลยี</option>
-                                        <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
-                                        <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                            </form>
+                        <!-- Add Subject Tab -->
+                        <div id="add-subject" class="data-sub-page hidden" role="tabpanel" 
+                             aria-labelledby="tab-add-subject">
+                            <div class="admin-form-section">
+                                <h3>📚 เพิ่มวิชาเรียน</h3>
+                                <form id="subject-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="subject-teacher">ครู:</label>
+                                        <select id="subject-teacher" name="teacher_id" required>
+                                            <option value="">-- เลือกครู --</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subject-class">ห้องเรียน:</label>
+                                        <select id="subject-class" name="class_id" required>
+                                            <option value="">-- เลือกห้องเรียน --</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subject-name">วิชา:</label>
+                                        <input type="text" id="subject-name" name="subject_name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subject-code">รหัสวิชา:</label>
+                                        <input type="text" id="subject-code" name="subject_code">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="subject-periods">คาบ/สัปดาห์:</label>
+                                        <input type="number" id="subject-periods" name="periods_per_week" min="1" max="10" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>
+                                            <input type="checkbox" id="subject-requires-room" name="requires_room">
+                                            ต้องใช้ห้องพิเศษ
+                                        </label>
+                                    </div>
+                                    <div class="form-group hidden" id="subject-room-type-group">
+                                        <label for="subject-room-type">ประเภทห้องที่ต้องการ:</label>
+                                        <select id="subject-room-type" name="required_room_type">
+                                            <option value="TECH">ห้องเทคโนโลยี</option>
+                                            <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
+                                            <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
+                                        </select>
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>

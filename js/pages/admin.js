@@ -28,6 +28,7 @@ export async function initAdminPage(context = null) {
 
 
   bindLogout();
+  bindDataSubNavigation();
   adminState.initialized = true;
 }
 
@@ -162,6 +163,46 @@ function updateUsernameHeader() {
 
 
 
+function bindDataSubNavigation() {
+  // Bind data sub-navigation tabs
+  const dataSubNavTabs = document.querySelectorAll('.data-sub-nav-tab');
+  
+  dataSubNavTabs.forEach(tab => {
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      // Remove active class from all tabs
+      dataSubNavTabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      
+      // Add active class to clicked tab
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      
+      // Hide all data sub-pages
+      const dataSubPages = document.querySelectorAll('.data-sub-page');
+      dataSubPages.forEach(page => {
+        page.classList.add('hidden');
+      });
+      
+      // Show target page
+      const targetId = tab.getAttribute('data-target');
+      const targetPage = document.getElementById(targetId);
+      if (targetPage) {
+        targetPage.classList.remove('hidden');
+      }
+    });
+  });
+  
+  // Initialize first tab as active if none are active
+  const activeTab = document.querySelector('.data-sub-nav-tab.active');
+  if (!activeTab && dataSubNavTabs.length > 0) {
+    dataSubNavTabs[0].click();
+  }
+}
+
 function adjustAuthInputWidth() {
   try {
     const form = document.querySelector('#page-admin .auth-form');
@@ -213,4 +254,5 @@ function adjustAuthInputWidth() {
     }
   } catch (e) {}
 }
+
 
