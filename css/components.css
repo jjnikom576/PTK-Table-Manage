@@ -32,6 +32,34 @@
 .schedule-header h3 { margin: 0; }
 .schedule-context { margin: 0; }
 
+/* Student header: center-only title, with pastel card UI */
+#student-schedule-header {
+  display: block !important;
+  text-align: center;
+  background: #f7fbff; /* pastel blue */
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: .6rem .8rem;
+  margin: .5rem 0 .75rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,.03);
+}
+
+#student-schedule-header::before {
+  content: "";
+  display: block;
+  width: 40px;
+  height: 4px;
+  background: var(--color-primary-light);
+  border-radius: 2px;
+  margin: 0 auto .35rem;
+}
+
+#student-schedule-header .schedule-title {
+  margin: 0.25rem 0 0;
+  text-align: center;
+  color: var(--color-dark);
+}
+
 /* Table (rendered by JS into #student-schedule-table / #teacher-schedule-table) */
 .schedule-table {
   width: 100%;

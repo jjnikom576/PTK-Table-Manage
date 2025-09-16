@@ -519,18 +519,9 @@ export function renderScheduleHeader(className, context) {
   const headerContainer = document.getElementById('student-schedule-header');
   if (!headerContainer) return;
   
-  const semesterText = context.currentSemester?.semester_name || 'ไม่ระบุภาคเรียน';
-  const yearText = context.currentYear ? `ปีการศึกษา ${context.currentYear}` : '';
-  
+  // Show only class title; term/year already shown in the main header
   headerContainer.innerHTML = `
-    <div class="schedule-header">
-      <h3>ตารางเรียน ${className}</h3>
-      <div class="schedule-meta">
-        <span>${semesterText}</span>
-        ${yearText ? `<span class="separator">•</span><span>${yearText}</span>` : ''}
-        ${isActiveSemester(context.currentSemester) ? '<span class="badge badge--active">ภาคเรียนปัจจุบัน</span>' : ''}
-      </div>
-    </div>
+    <h3 class="schedule-title centered">ตารางเรียน ${className}</h3>
   `;
 
   // Ensure header is visible and empty state is hidden
