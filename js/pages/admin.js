@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Enhanced Admin Page - Multi-Year System with Rooms Management & Export
  * Features: Context-aware CRUD, Room management, Export/Import, Year transitions
  */
