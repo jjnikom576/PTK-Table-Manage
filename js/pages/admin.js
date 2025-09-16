@@ -15,6 +15,9 @@ export async function initAdminPage(context = null) {
   const section = document.getElementById('page-admin');
   if (section) { section.classList.remove('hidden'); section.style.display = 'block'; }
 
+  // Ensure sub-nav has user actions on the right
+  try { ensureUserActionsInSubnav(); } catch (e) {}
+
   adminState.context = normalizeContext(context) || getContext();
   showAuthOnly();
   bindAuthForm();
@@ -86,6 +89,8 @@ function showAuthOnly() {
   sections.forEach(s => s.classList.add('hidden'));
   const headerBtn = document.querySelector('#page-admin .btn-logout-admin');
   if (headerBtn) headerBtn.classList.add('hidden');
+  const userBox = document.querySelector('#page-admin .admin-user-actions');
+  if (userBox) userBox.classList.add('hidden');
 }
 
 function showAdminSections() {
@@ -95,6 +100,8 @@ function showAdminSections() {
   sections.forEach(s => s.classList.remove('hidden'));
   const headerBtn = document.querySelector('#page-admin .btn-logout-admin');
   if (headerBtn) headerBtn.classList.remove('hidden');
+  const userBox = document.querySelector('#page-admin .admin-user-actions');
+  if (userBox) userBox.classList.remove('hidden');
 }
 
 function normalizeContext(ctx) {
@@ -104,6 +111,33 @@ function normalizeContext(ctx) {
   }
   if (ctx.year && ctx.semesterId) return ctx;
   return null;
+}
+
+function ensureUserActionsInSubnav() {
+  const nav = document.querySelector('#page-admin nav.sub-navigation');
+  if (!nav) return;
+  // If already present, skip
+  if (nav.querySelector('.admin-subnav')) return;
+  const ul = nav.querySelector('ul.sub-nav-tabs');
+  if (!ul) return;
+  // Create wrapper and move ul inside
+  const wrap = document.createElement('div');
+  wrap.className = 'admin-subnav';
+  ul.parentNode.insertBefore(wrap, ul);
+  wrap.appendChild(ul);
+  // Add user actions box
+  const actions = document.createElement('div');
+  actions.className = 'admin-user-actions hidden';
+  const nameSpan = document.createElement('span');
+  nameSpan.className = 'admin-username';
+  nameSpan.id = 'admin-username-display';
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'btn btn--outline btn-logout-admin';
+  btn.textContent = 'ออกจากระบบ';
+  actions.appendChild(nameSpan);
+  actions.appendChild(btn);
+  wrap.appendChild(actions);
 }
 
 
