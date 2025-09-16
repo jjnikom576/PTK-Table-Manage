@@ -768,3 +768,27 @@
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 2px rgba(0,0,0,.03);
 }
+
+/* Centered label + input rows; input width adjustable via CSS var */
+#page-admin .auth-form .form-group {
+  display: grid;
+  grid-template-columns: 140px var(--auth-input-width, 180px);
+  align-items: center;
+  justify-content: center; /* center the grid as a block */
+  gap: .5rem;
+  margin-bottom: .6rem;
+}
+#page-admin .auth-form .form-group label {
+  white-space: nowrap;
+  text-align: right;
+}
+#page-admin .auth-form .form-group input {
+  width: var(--auth-input-width, 180px);
+  padding: .4rem .55rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+}
+
+/* Center title and submit button */
+#page-admin .auth-form h3 { text-align: center; }
+#page-admin .auth-form button[type="submit"] { display: block; margin: .5rem auto 0; }

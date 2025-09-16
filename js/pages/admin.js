@@ -21,6 +21,7 @@ export async function initAdminPage(context = null) {
   adminState.context = normalizeContext(context) || getContext();
   showAuthOnly();
   bindAuthForm();
+  adjustAuthInputWidth();
 
 
 
@@ -160,3 +161,20 @@ function updateUsernameHeader() {
 
 
 
+
+function adjustAuthInputWidth() {
+  try {
+    const title = document.querySelector('#page-admin .auth-form h3');
+    const form = document.querySelector('#page-admin .auth-form');
+    if (!title || !form) return;
+    const w = Math.max(220, Math.min(360, Math.floor(title.clientWidth)));
+    form.style.setProperty('--auth-input-width', w + 'px');
+    if (!window.__adminAuthResizeBound) {
+      window.addEventListener('resize', () => {
+        const w2 = Math.max(220, Math.min(360, Math.floor(title.clientWidth)));
+        form.style.setProperty('--auth-input-width', w2 + 'px');
+      });
+      window.__adminAuthResizeBound = true;
+    }
+  } catch (e) {}
+}
