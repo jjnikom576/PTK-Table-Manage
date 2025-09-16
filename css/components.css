@@ -732,5 +732,25 @@
 /* ========== Admin sub-navigation with user actions ========== */
 #page-admin .sub-navigation .admin-subnav { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
 #page-admin .admin-user-actions { display: flex; align-items: center; gap: .5rem; }
-#page-admin .admin-user-actions .admin-username { color: var(--color-dark-lighter); font-size: .9rem; }
+#page-admin .admin-user-actions .admin-username {
+  font-size: .9rem;
+  color: var(--color-dark);
+  background: #f5f9ff; /* soft blue */
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-full);
+  padding: .25rem .6rem;
+  font-weight: var(--font-weight-medium);
+}
 #page-admin .admin-user-actions.hidden { display: none; }
+
+/* Logout button: light red style */
+#page-admin .admin-user-actions .btn-logout-admin {
+  background: #ffefef;
+  border-color: #ffcccc;
+  color: #b80d0d;
+}
+#page-admin .admin-user-actions .btn-logout-admin:hover {
+  background: #ffdede;
+  border-color: #ffbaba;
+  color: #a00000;
+}
