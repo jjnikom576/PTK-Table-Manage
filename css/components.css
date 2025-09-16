@@ -1,5 +1,5 @@
-/* =========================================
-   COMPONENTS.CSS — Components tied to current HTML
+﻿/* =========================================
+   COMPONENTS.CSS โ€” Components tied to current HTML
    ========================================= */
 
 /* ========== Sub Navigation (page header area) ========== */
@@ -371,8 +371,8 @@
 
 
 /* =========================================
-   COMPONENTS.CSS — part 2/2
-   (ต่อจาก part 1/2)
+   COMPONENTS.CSS โ€” part 2/2
+   (เธ•เนเธญเธเธฒเธ part 1/2)
    ========================================= */
 
 /* ========== Sub Navigation: tab buttons (Teacher / Substitution / Admin) ========== */
@@ -460,18 +460,18 @@
 .sub-page { display: none; }
 .sub-page.active { display: block; }
 .teacher-content { 
-  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  display: block !important; /* FIX: เน€เธฅเธดเธ grid เนเธฅเนเธงเนเธเน block */
   gap: .75rem; 
 }
 
-/* FIX: Teacher Info Container - จัดกึ่งกลางเต็มความกว้าง */
+/* FIX: Teacher Info Container - เธเธฑเธ”เธเธถเนเธเธเธฅเธฒเธเน€เธ•เนเธกเธเธงเธฒเธกเธเธงเนเธฒเธ */
 #teacher-info {
   width: 100% !important;
   text-align: center !important;
   display: block !important;
 }
 
-/* ========== FIX: Teacher Schedule Table - จัดกึ่งกลาง ========== */
+/* ========== FIX: Teacher Schedule Table - เธเธฑเธ”เธเธถเนเธเธเธฅเธฒเธ ========== */
 #teacher-details .schedule-table thead th {
   text-align: center !important;
   vertical-align: middle !important;
@@ -506,7 +506,7 @@
   text-align: center !important;
 }
 
-/* ========== FIX: Teacher Info Card - จัดกึ่งกลาง ========== */
+/* ========== FIX: Teacher Info Card - เธเธฑเธ”เธเธถเนเธเธเธฅเธฒเธ ========== */
 .teacher-info-card {
   text-align: center !important;
 }
@@ -516,39 +516,39 @@
 }
 
 .teacher-details-grid {
-  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  display: block !important; /* FIX: เน€เธฅเธดเธ grid เนเธฅเนเธงเนเธเน block */
   text-align: center !important;
 }
 
 .detail-item {
-  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  display: block !important; /* FIX: เน€เธฅเธดเธ grid เนเธฅเนเธงเนเธเน block */
   text-align: center !important;
   margin-bottom: 0.5rem;
 }
 
-/* ========== FIX: Workload Summary Card - จัดกึ่งกลาง ========== */
+/* ========== FIX: Workload Summary Card - เธเธฑเธ”เธเธถเนเธเธเธฅเธฒเธ ========== */
 .workload-summary-card {
-  text-align: left !important; /* FIX: เปลี่ยนกลับเป็นชิดซ้าย */
+  text-align: left !important; /* FIX: เน€เธเธฅเธตเนเธขเธเธเธฅเธฑเธเน€เธเนเธเธเธดเธ”เธเนเธฒเธข */
 }
 
 .workload-summary-card h4 {
-  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+  text-align: center !important; /* FIX: เธซเธฑเธงเธเนเธญเธเธถเนเธเธเธฅเธฒเธ */
 }
 
-/* FIX: เพิ่ม selector ที่เฉพาะเจาะจง */
+/* FIX: เน€เธเธดเนเธก selector เธ—เธตเนเน€เธเธเธฒเธฐเน€เธเธฒเธฐเธเธ */
 #teacher-workload h4 {
-  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+  text-align: center !important; /* FIX: เธซเธฑเธงเธเนเธญเธเธถเนเธเธเธฅเธฒเธ */
 }
 
 .workload-details h4 {
-  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+  text-align: center !important; /* FIX: เธซเธฑเธงเธเนเธญเธเธถเนเธเธเธฅเธฒเธ */
 }
 
 .subjects-list {
   display: block !important;
   text-align: center !important;
   padding-left: 0;
-  max-width: 446px; /* FIX: ปรับตามความกว้างหน้าจอ */
+  max-width: 446px; /* FIX: เธเธฃเธฑเธเธ•เธฒเธกเธเธงเธฒเธกเธเธงเนเธฒเธเธซเธเนเธฒเธเธญ */
   margin: 0 auto;
 }
 
@@ -561,16 +561,16 @@
   padding: 0.5rem;
   border-bottom: 1px solid #f0f0f0;
   width: 100%;
-  align-items: center; /* FIX: จัดแนวตั้งให้อยู่แนวเดียวกัน */
+  align-items: center; /* FIX: เธเธฑเธ”เนเธเธงเธ•เธฑเนเธเนเธซเนเธญเธขเธนเนเนเธเธงเน€เธ”เธตเธขเธงเธเธฑเธ */
 }
 
-/* จัดรูปแบบแต่ละคอลัมน์ */
+/* เธเธฑเธ”เธฃเธนเธเนเธเธเนเธ•เนเธฅเธฐเธเธญเธฅเธฑเธกเธเน */
 .subject-code {
   text-align: left !important;
   font-family: monospace;
   font-weight: bold;
   color: #666;
-  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+  font-size: 1rem; /* FIX: เน€เธเธดเนเธกเธเธเธฒเธ”เธ•เธฑเธงเธญเธฑเธเธฉเธฃ */
 }
 
 .subject-name {
@@ -584,21 +584,21 @@
   text-align: center !important;
   color: #0066cc;
   font-weight: medium;
-  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+  font-size: 1rem; /* FIX: เน€เธเธดเนเธกเธเธเธฒเธ”เธ•เธฑเธงเธญเธฑเธเธฉเธฃ */
 }
 
 .periods-count {
   text-align: right !important;
   font-weight: bold;
   color: #007700;
-  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+  font-size: 1rem; /* FIX: เน€เธเธดเนเธกเธเธเธฒเธ”เธ•เธฑเธงเธญเธฑเธเธฉเธฃ */
 }
 
 .total-workload {
-  text-align: center !important; /* FIX: สรุปกึ่งกลาง */
+  text-align: center !important; /* FIX: เธชเธฃเธธเธเธเธถเนเธเธเธฅเธฒเธ */
 }
 
-/* ========== FIX: Teacher Info ใช้ class ที่มีอยู่แล้ว ========== */
+/* ========== FIX: Teacher Info เนเธเน class เธ—เธตเนเธกเธตเธญเธขเธนเนเนเธฅเนเธง ========== */
 .teacher-info {
   text-align: center !important;
 }
@@ -619,17 +619,17 @@
   text-align: center !important;
 }
 
-/* ========== FIX: Workload Details ใช้ class ที่มีอยู่แล้ว ========== */
+/* ========== FIX: Workload Details เนเธเน class เธ—เธตเนเธกเธตเธญเธขเธนเนเนเธฅเนเธง ========== */
 .workload-details {
   text-align: center !important;
-  margin-bottom: 2rem; /* เพิ่มระยะห่างจาก footer */
+  margin-bottom: 2rem; /* เน€เธเธดเนเธกเธฃเธฐเธขเธฐเธซเนเธฒเธเธเธฒเธ footer */
 }
 
 .workload-details .work-card {
   text-align: center !important;
 }
 
-/* ========== FIX: หัวข้อชื่อครู - จัดกึ่งกลาง ========== */
+/* ========== FIX: เธซเธฑเธงเธเนเธญเธเธทเนเธญเธเธฃเธน - เธเธฑเธ”เธเธถเนเธเธเธฅเธฒเธ ========== */
 #teacher-details h3 {
   text-align: center !important;
 }
@@ -638,7 +638,7 @@
   text-align: center !important;
 }
 
-/* สำหรับ element ที่มีชื่อครู */
+/* เธชเธณเธซเธฃเธฑเธ element เธ—เธตเนเธกเธตเธเธทเนเธญเธเธฃเธน */
 #teacher-details [class*="teacher"] {
   text-align: center !important;
 }
@@ -647,7 +647,7 @@
   text-align: center !important;
 }
 
-/* ========== FIX: Period Header - แยกบรรทัด ========== */
+/* ========== FIX: Period Header - เนเธขเธเธเธฃเธฃเธ—เธฑเธ” ========== */
 .period-info {
   display: flex !important;
   flex-direction: column !important;
@@ -772,7 +772,7 @@
 /* Centered label + input rows; input width adjustable via CSS var */
 #page-admin .auth-form .form-group {
   display: grid;
-  grid-template-columns: 140px var(--auth-input-width, 180px);
+  grid-template-columns: 140px var(--auth-input-width, 140px);
   align-items: center;
   justify-content: center; /* center the grid as a block */
   gap: .5rem;
@@ -783,7 +783,7 @@
   text-align: right;
 }
 #page-admin .auth-form .form-group input {
-  width: var(--auth-input-width, 180px);
+  width: var(--auth-input-width, 140px);
   padding: .4rem .55rem;
   border: 1px solid var(--color-gray-300);
   border-radius: var(--radius-md);
@@ -792,3 +792,4 @@
 /* Center title and submit button */
 #page-admin .auth-form h3 { text-align: center; }
 #page-admin .auth-form button[type="submit"] { display: block; margin: .5rem auto 0; }
+

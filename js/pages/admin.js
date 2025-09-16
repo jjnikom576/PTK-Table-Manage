@@ -164,17 +164,9 @@ function updateUsernameHeader() {
 
 function adjustAuthInputWidth() {
   try {
-    const title = document.querySelector('#page-admin .auth-form h3');
     const form = document.querySelector('#page-admin .auth-form');
-    if (!title || !form) return;
-    const w = Math.max(220, Math.min(360, Math.floor(title.clientWidth)));
-    form.style.setProperty('--auth-input-width', w + 'px');
-    if (!window.__adminAuthResizeBound) {
-      window.addEventListener('resize', () => {
-        const w2 = Math.max(220, Math.min(360, Math.floor(title.clientWidth)));
-        form.style.setProperty('--auth-input-width', w2 + 'px');
-      });
-      window.__adminAuthResizeBound = true;
-    }
+    if (!form) return;
+    form.style.setProperty('--auth-input-width', '140px');
   } catch (e) {}
 }
+
