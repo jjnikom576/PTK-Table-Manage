@@ -1,0 +1,28 @@
+                        <!-- Add Room Tab -->
+                        <div id="add-room" class="data-sub-page hidden" role="tabpanel" 
+                             aria-labelledby="tab-add-room">
+                            <div class="admin-form-section">
+                                <h3>🏠 เพิ่มห้องเรียน</h3>
+                                <form id="room-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="room-name">ชื่อห้อง:</label>
+                                        <input type="text" id="room-name" name="name" required placeholder="เช่น 401, เทค-1, แล็บฟิสิกส์">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="room-type">ประเภทห้อง:</label>
+                                        <select id="room-type" name="room_type" required>
+                                            <option value="">-- เลือกประเภท --</option>
+                                            <option value="CLASS">ห้องเรียนทั่วไป</option>
+                                            <option value="TECH">ห้องเทคโนโลยี</option>
+                                            <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
+                                            <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="room-capacity">ความจุ:</label>
+                                        <input type="number" id="room-capacity" name="capacity" min="1" max="100">
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
+                        </div>

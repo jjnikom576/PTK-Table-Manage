@@ -1,0 +1,30 @@
+                        <!-- Add Class Tab -->
+                        <div id="add-class" class="data-sub-page hidden" role="tabpanel" 
+                             aria-labelledby="tab-add-class">
+                            <div class="admin-form-section">
+                                <h3>🏫 เพิ่มชั้นเรียน</h3>
+                                <form id="class-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="class-grade">ชั้น:</label>
+                                        <select id="class-grade" name="grade_level" required>
+                                            <option value="">-- เลือกชั้น --</option>
+                                            <option value="ม.1">ม.1</option>
+                                            <option value="ม.2">ม.2</option>
+                                            <option value="ม.3">ม.3</option>
+                                            <option value="ม.4">ม.4</option>
+                                            <option value="ม.5">ม.5</option>
+                                            <option value="ม.6">ม.6</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="class-section">ห้อง:</label>
+                                        <input type="number" id="class-section" name="section" min="1" max="20" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="class-student-count">จำนวนนักเรียน:</label>
+                                        <input type="number" id="class-student-count" name="student_count" min="1" max="50">
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
+                        </div>

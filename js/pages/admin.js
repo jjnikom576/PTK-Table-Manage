@@ -1,13 +1,15 @@
 ﻿/**
- * Admin Page – Minimal login integration using existing static HTML in index.html
+ * Admin Page – Template-based with minimal login integration
  */
 
 import { isLoggedIn, login, logout } from '../api/auth.js';
 import { getContext } from '../context/globalContext.js';
+import templateLoader from '../templateLoader.js';
 
 let adminState = {
   context: null,
-  initialized: false
+  initialized: false,
+  templatesLoaded: false
 };
 
 export async function initAdminPage(context = null) {
@@ -29,6 +31,10 @@ export async function initAdminPage(context = null) {
 
   bindLogout();
   bindDataSubNavigation();
+  
+  // โหลด admin templates
+  await loadAdminTemplates();
+  
   adminState.initialized = true;
 }
 
@@ -51,6 +57,42 @@ export async function showClassManagement() {}
 export async function showRoomManagement() {}
 export async function showSubjectManagement() {}
 export async function showScheduleManagement() {}
+
+// ------------------------ Template Loading ------------------------
+
+async function loadAdminTemplates() {
+  if (adminState.templatesLoaded) return;
+  
+  try {
+    // โหลด admin form templates
+    const templates = await templateLoader.loadMultiple([
+      'forms/admin/add-teacher',
+      'forms/admin/add-class', 
+      'forms/admin/add-room',
+      'forms/admin/add-subject'
+    ]);
+    
+    // แทรก templates เข้าใน admin forms grid
+    const adminFormsGrid = document.querySelector('#admin-data .admin-forms-grid');
+    if (adminFormsGrid) {
+      // ล้างเนื้อหาเดิม
+      adminFormsGrid.innerHTML = '';
+      
+      // เพิ่ม templates ใหม่
+      adminFormsGrid.innerHTML = 
+        templates['forms/admin/add-teacher'] +
+        templates['forms/admin/add-class'] +
+        templates['forms/admin/add-room'] +
+        templates['forms/admin/add-subject'];
+      
+      console.log('✅ Admin templates loaded successfully');
+    }
+    
+    adminState.templatesLoaded = true;
+  } catch (error) {
+    console.error('❌ Error loading admin templates:', error);
+  }
+}
 
 // ------------------------ Helpers ------------------------
 

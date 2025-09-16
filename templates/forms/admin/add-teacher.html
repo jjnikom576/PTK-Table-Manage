@@ -1,0 +1,35 @@
+                        <!-- Add Teacher Tab -->
+                        <div id="add-teacher" class="data-sub-page active" role="tabpanel" 
+                             aria-labelledby="tab-add-teacher">
+                            <div class="admin-form-section">
+                                <h3>👨‍🏫 เพิ่มครู</h3>
+                                <form id="teacher-form" class="admin-form">
+                                    <div class="form-group">
+                                        <label for="teacher-name">ชื่อ:</label>
+                                        <input type="text" id="teacher-name" name="name" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="teacher-subject-group">กลุ่มสาระ:</label>
+                                        <select id="teacher-subject-group" name="subject_group" required>
+                                            <option value="">-- เลือกกลุ่มสาระ --</option>
+                                            <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                                            <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                                            <option value="ภาษาไทย">ภาษาไทย</option>
+                                            <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
+                                            <option value="สังคมศึกษา">สังคมศึกษา</option>
+                                            <option value="ศิลปะ">ศิลปะ</option>
+                                            <option value="พลศึกษา">พลศึกษา</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="teacher-phone">เบอร์โทร:</label>
+                                        <input type="tel" id="teacher-phone" name="phone">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="teacher-email">อีเมล:</label>
+                                        <input type="email" id="teacher-email" name="email">
+                                    </div>
+                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                </form>
+                            </div>
+                        </div>

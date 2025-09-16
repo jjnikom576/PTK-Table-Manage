@@ -9,6 +9,7 @@ import { initDataService, loadYearData } from './services/dataService.js';
 import { initYearService } from './services/yearService.js';
 import { initNavigation, navigateToPage, getCurrentPage, setupMobileMenu } from './navigation.js';
 import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets, generateExportFilename } from './utils/export.js';
+import templateLoader from './templateLoader.js';
 
 // Import page modules
 import { initStudentSchedulePage } from './pages/studentSchedule.js';
@@ -30,6 +31,44 @@ class SchoolScheduleApp {
   }
 
   /**
+   * โหลด Core Templates (หัวก่อน, เมนู, footer)
+   */
+  async loadCoreTemplates() {
+    try {
+      console.log('📦 Loading core templates...');
+      
+      const templates = await templateLoader.loadMultiple([
+        'components/global-context',
+        'components/navigation', 
+        'components/footer'
+      ]);
+      
+      // แทรก templates เข้า DOM
+      const globalContextContainer = document.getElementById('global-context-container');
+      const navigationContainer = document.getElementById('navigation-container');
+      const footerContainer = document.getElementById('footer-container');
+      
+      if (globalContextContainer) {
+        globalContextContainer.innerHTML = templates['components/global-context'];
+      }
+      
+      if (navigationContainer) {
+        navigationContainer.innerHTML = templates['components/navigation'];
+      }
+      
+      if (footerContainer) {
+        footerContainer.innerHTML = templates['components/footer'];
+      }
+      
+      console.log('✅ Core templates loaded');
+      
+    } catch (error) {
+      console.error('❌ Error loading core templates:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get semester name by ID (NEW)
    */
   async getSemesterName(semesterId) {
@@ -48,21 +87,32 @@ class SchoolScheduleApp {
    */
   async init() {
     try {
-      console.log('🚀 Initializing School Schedule System...');
+      console.log('🚀 Starting School Schedule App...');
       
-      await this.initializeCore();
-      await this.loadInitialContext();
-      await this.initializeModules();
-      await this.setupEventListeners();
-      await this.setupExportHandlers();
-      await this.loadInitialData();
-      await this.initializeRouting();
+      // โหลด core templates ก่อน
+      await this.loadCoreTemplates();
+      
+      // โหลด page templates (ปิดไว้ก่อน ใช้ hardcode)
+      // await this.loadStudentSchedulePage();
+      
+      // Initialize core services
+      await this.initCoreServices();
+      
+      // Initialize modules
+      await this.initModules();
+      
+      // Initialize student schedule page if needed
+      await this.initializeStudentPage();
+      
+      // Setup UI bindings
+      this.setupEventListeners();
+      this.bindExportHandlers();
       
       this.initialized = true;
-      console.log('✅ School Schedule System initialized successfully');
+      console.log('✅ App initialized successfully');
       
-      // ⭐ FIX: โหลด default class หลังจาก init เสร็จ
-      await this.loadDefaultClassSelection();
+      // โหลดหน้าแรกเป็น default
+      await this.loadDefaultPage();
       
     } catch (error) {
       await this.handleInitializationError(error);
@@ -95,14 +145,187 @@ class SchoolScheduleApp {
   /**
    * Initialize core services
    */
-  async initializeCore() {
+  async initCoreServices() {
     console.log('🔧 Initializing core services...');
     
     await initDataService({ mode: 'mock' });
     await initYearService();
     await initGlobalContext();
     
+    // ตั้ง context เป็น default ที่มีข้อมูล
+    // ใช้ context ที่มีอยู่แล้ว (2567/10)
+    // const defaultContext = { year: 2567, semesterId: 1 };
+    // await this.setDefaultContext(defaultContext);
+    
     console.log('✅ Core services initialized');
+  }
+
+  /**
+   * Initialize modules
+   */
+  async initModules() {
+    console.log('📦 Initializing modules...');
+    
+    // Initialize navigation
+    await initNavigation();
+    
+    // Initialize page modules
+    this.modules = {
+      studentSchedule: initStudentSchedulePage,
+      teacherSchedule: initTeacherSchedulePage,
+      substitution: initSubstitutionPage,
+      admin: initAdminPage
+    };
+    
+    console.log('✅ Modules initialized');
+  }
+
+  /**
+   * Setup event listeners
+   */
+  setupEventListeners() {
+    console.log('🎯 Setting up event listeners...');
+    
+    // Setup mobile menu
+    setupMobileMenu();
+    
+    console.log('✅ Event listeners set up');
+  }
+
+  /**
+   * Bind export handlers
+   */
+  bindExportHandlers() {
+    console.log('📤 Binding export handlers...');
+    
+    // Export handlers will be set up by individual pages
+    
+    console.log('✅ Export handlers bound');
+  }
+
+  /**
+   * Initialize Student Schedule Page
+   */
+  async initializeStudentPage() {
+    try {
+      console.log('📚 Initializing student schedule page...');
+      
+      // Initialize student schedule with context
+      const context = getContext();
+      if (this.modules.studentSchedule) {
+        await this.modules.studentSchedule(context);
+      }
+      
+      console.log('✅ Student schedule page initialized');
+      
+    } catch (error) {
+      console.error('❌ Error initializing student page:', error);
+    }
+  }
+
+  /**
+   * Load default page (Student Schedule)
+   */
+  async loadDefaultPage() {
+    try {
+      console.log('🏠 Loading default page...');
+      
+      // Show student schedule page
+      const studentPage = document.getElementById('page-student');
+      if (studentPage) {
+        studentPage.classList.remove('hidden');
+        this.currentPage = 'student';
+        
+        // Navigate to student page
+        if (typeof navigateToPage === 'function') {
+          await navigateToPage('student');
+        }
+        
+        // เปิด active class ให้ navigation
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.dataset.page === 'student') {
+            link.classList.add('active');
+          }
+        });
+      }
+      
+      console.log('✅ Default page loaded:', this.currentPage);
+      
+      // ตรวจสอบว่า page แสดงจริงหรือไม่
+      setTimeout(() => {
+        const studentPage = document.getElementById('page-student');
+        if (studentPage) {
+          console.log('🔍 Checking student page visibility:', {
+            classList: Array.from(studentPage.classList),
+            display: studentPage.style.display,
+            visible: !studentPage.classList.contains('hidden')
+          });
+        }
+      }, 1000);
+      
+    } catch (error) {
+      console.error('❌ Error loading default page:', error);
+    }
+  }
+
+  /**
+   * Set default context
+   */
+  async setDefaultContext(context) {
+    try {
+      console.log('📊 Setting default context:', context);
+      
+      const globalContext = await import('./context/globalContext.js');
+      if (globalContext.setContext) {
+        await globalContext.setContext(context.year, context.semesterId);
+      }
+      
+      this.context = context;
+      console.log('✅ Default context set');
+      
+    } catch (error) {
+      console.error('❌ Error setting default context:', error);
+    }
+  }
+
+  /**
+   * Navigate to page
+   */
+  navigateToPage(pageName) {
+    try {
+      console.log('📍 Navigating to page:', pageName);
+      
+      // ซ่อนทุกหน้า
+      const allPages = document.querySelectorAll('.page-content');
+      allPages.forEach(page => {
+        page.classList.add('hidden');
+      });
+      
+      // แสดงหน้าที่ต้องการ
+      const targetPage = document.getElementById(`page-${pageName}`);
+      if (targetPage) {
+        targetPage.classList.remove('hidden');
+        this.currentPage = pageName;
+        
+        // อัปเดต navigation active state
+        const navLinks = document.querySelectorAll('.nav-link');
+        navLinks.forEach(link => {
+          link.classList.remove('active');
+          if (link.dataset.page === pageName) {
+            link.classList.add('active');
+          }
+        });
+        
+        console.log('✅ Navigation completed:', pageName);
+      } else {
+        console.error('❌ Page not found:', `page-${pageName}`);
+      }
+      
+    } catch (error) {
+      console.error('❌ Navigation error:', error);
+    }
   }
 
   /**
@@ -166,6 +389,7 @@ class SchoolScheduleApp {
       if (e.target.matches('[data-page]')) {
         e.preventDefault();
         const page = e.target.dataset.page;
+        console.log('🔗 Navigation clicked:', page);
         this.navigateToPage(page);
       }
     });
@@ -897,6 +1121,30 @@ class SchoolScheduleApp {
     } catch (error) {
       console.error('Error refreshing current page:', error);
       this.showNotification('เกิดข้อผิดพลาดในการรีเฟรชหน้า: ' + error.message, 'error');
+    }
+  }
+
+  /**
+   * โหลด Student Schedule Page Template
+   */
+  async loadStudentSchedulePage() {
+    try {
+      console.log('📚 Loading student schedule page...');
+      
+      // โหลด template
+      const template = await templateLoader.load('pages/student-schedule');
+      
+      // แทรกเข้า page content container
+      const pageContainer = document.getElementById('page-content-container');
+      if (pageContainer) {
+        // เพิ่ม student schedule template
+        pageContainer.insertAdjacentHTML('beforeend', template);
+      }
+      
+      console.log('✅ Student schedule page loaded');
+      
+    } catch (error) {
+      console.error('❌ Error loading student schedule page:', error);
     }
   }
 

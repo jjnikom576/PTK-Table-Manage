@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🧪 Template System Test - ระบบจัดตารางสอน</title>
+    
+    <!-- CSS Stylesheets -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <style>
+        .test-container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 1rem;
+        }
+        .test-section {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: #f8fafc;
+        }
+        .test-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .test-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .test-btn--primary {
+            background: #3b82f6;
+            color: white;
+        }
+        .test-btn--success {
+            background: #10b981;
+            color: white;
+        }
+        .test-btn--warning {
+            background: #f59e0b;
+            color: white;
+        }
+        .test-result {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            background: white;
+            border-left: 4px solid #3b82f6;
+        }
+        .status {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .status.success { color: #10b981; }
+        .status.error { color: #ef4444; }
+        .status.loading { color: #f59e0b; }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <header style="text-align: center; margin-bottom: 2rem;">
+            <h1>🧪 Template System Test</h1>
+            <p>ทดสอบระบบ Template Loader สำหรับ School Schedule System</p>
+        </header>
+
+        <!-- Core Templates Test -->
+        <div class="test-section">
+            <h2>📦 Core Templates Test</h2>
+            <div class="test-buttons">
+                <button class="test-btn test-btn--primary" onclick="testCoreTemplates()">
+                    🔄 Test Core Templates
+                </button>
+                <button class="test-btn test-btn--success" onclick="clearCoreTemplates()">
+                    🗑️ Clear
+                </button>
+            </div>
+            <div id="core-test-result" class="test-result" style="display: none;">
+                <div class="status" id="core-status">Ready</div>
+                <div id="core-details"></div>
+            </div>
+            
+            <!-- Core Template Containers -->
+            <div id="global-context-container" style="margin-top: 1rem;">
+                <!-- Global context will be loaded here -->
+            </div>
+            <div id="navigation-container">
+                <!-- Navigation will be loaded here -->
+            </div>
+            <div id="footer-container">
+                <!-- Footer will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Page Templates Test -->
+        <div class="test-section">
+            <h2>📄 Page Templates Test</h2>
+            <div class="test-buttons">
+                <button class="test-btn test-btn--primary" onclick="testStudentSchedulePage()">
+                    📚 Student Schedule
+                </button>
+                <button class="test-btn test-btn--success" onclick="clearPageTemplates()">
+                    🗑️ Clear
+                </button>
+            </div>
+            <div id="page-test-result" class="test-result" style="display: none;">
+                <div class="status" id="page-status">Ready</div>
+                <div id="page-details"></div>
+            </div>
+            
+            <!-- Page Template Container -->
+            <div id="page-content-container" style="margin-top: 1rem; border: 1px dashed #ccc; min-height: 200px;">
+                <!-- Page templates will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Admin Forms Test -->
+        <div class="test-section">
+            <h2>📝 Admin Forms Test</h2>
+            <div class="test-buttons">
+                <button class="test-btn test-btn--primary" onclick="testAdminForms()">
+                    ⚙️ Load Admin Forms
+                </button>
+                <button class="test-btn test-btn--warning" onclick="testSingleForm('add-teacher')">
+                    👨‍🏫 Teacher Form
+                </button>
+                <button class="test-btn test-btn--warning" onclick="testSingleForm('add-class')">
+                    🏫 Class Form
+                </button>
+                <button class="test-btn test-btn--warning" onclick="testSingleForm('add-room')">
+                    🏠 Room Form
+                </button>
+                <button class="test-btn test-btn--warning" onclick="testSingleForm('add-subject')">
+                    📚 Subject Form
+                </button>
+                <button class="test-btn test-btn--success" onclick="clearAdminForms()">
+                    🗑️ Clear
+                </button>
+            </div>
+            <div id="admin-test-result" class="test-result" style="display: none;">
+                <div class="status" id="admin-status">Ready</div>
+                <div id="admin-details"></div>
+            </div>
+            
+            <!-- Admin Template Container -->
+            <div id="admin-forms-container" style="margin-top: 1rem; border: 1px dashed #ccc; min-height: 200px;">
+                <!-- Admin forms will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Template Cache Info -->
+        <div class="test-section">
+            <h2>💾 Template Cache Info</h2>
+            <div class="test-buttons">
+                <button class="test-btn test-btn--primary" onclick="showCacheInfo()">
+                    📊 Show Cache
+                </button>
+                <button class="test-btn test-btn--warning" onclick="clearCache()">
+                    🗑️ Clear Cache
+                </button>
+            </div>
+            <div id="cache-info" class="test-result" style="display: none;">
+                <div class="status" id="cache-status">Ready</div>
+                <div id="cache-details"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include Template Loader -->
+    <script type="module">
+        import templateLoader from './js/templateLoader.js';
+        
+        // Make templateLoader globally available for testing
+        window.templateLoader = templateLoader;
+        
+        // Test Functions
+        window.testCoreTemplates = async function() {
+            const resultDiv = document.getElementById('core-test-result');
+            const statusDiv = document.getElementById('core-status');
+            const detailsDiv = document.getElementById('core-details');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '🔄 Loading core templates...';
+            
+            try {
+                const startTime = performance.now();
+                
+                const templates = await templateLoader.loadMultiple([
+                    'components/global-context',
+                    'components/navigation',
+                    'components/footer'
+                ]);
+                
+                const endTime = performance.now();
+                const loadTime = Math.round(endTime - startTime);
+                
+                // Insert templates
+                document.getElementById('global-context-container').innerHTML = templates['components/global-context'];
+                document.getElementById('navigation-container').innerHTML = templates['components/navigation'];
+                document.getElementById('footer-container').innerHTML = templates['components/footer'];
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Core templates loaded successfully!';
+                detailsDiv.innerHTML = `
+                    <strong>Load Time:</strong> ${loadTime}ms<br>
+                    <strong>Templates:</strong> ${Object.keys(templates).length}<br>
+                    <strong>Global Context:</strong> ${templates['components/global-context'].length} chars<br>
+                    <strong>Navigation:</strong> ${templates['components/navigation'].length} chars<br>
+                    <strong>Footer:</strong> ${templates['components/footer'].length} chars
+                `;
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error loading core templates';
+                detailsDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        };
+        
+        window.clearCoreTemplates = function() {
+            document.getElementById('global-context-container').innerHTML = '';
+            document.getElementById('navigation-container').innerHTML = '';
+            document.getElementById('footer-container').innerHTML = '';
+            document.getElementById('core-test-result').style.display = 'none';
+        };
+        
+        window.testStudentSchedulePage = async function() {
+            const resultDiv = document.getElementById('page-test-result');
+            const statusDiv = document.getElementById('page-status');
+            const detailsDiv = document.getElementById('page-details');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '🔄 Loading student schedule page...';
+            
+            try {
+                const startTime = performance.now();
+                
+                const template = await templateLoader.load('pages/student-schedule');
+                
+                const endTime = performance.now();
+                const loadTime = Math.round(endTime - startTime);
+                
+                // Insert template
+                const container = document.getElementById('page-content-container');
+                container.innerHTML = template;
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Student schedule page loaded successfully!';
+                detailsDiv.innerHTML = `
+                    <strong>Load Time:</strong> ${loadTime}ms<br>
+                    <strong>Template Size:</strong> ${template.length} chars<br>
+                    <strong>Elements Added:</strong> ${container.querySelectorAll('*').length} elements
+                `;
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error loading student schedule page';
+                detailsDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        };
+        
+        window.clearPageTemplates = function() {
+            document.getElementById('page-content-container').innerHTML = '';
+            document.getElementById('page-test-result').style.display = 'none';
+        };
+        
+        window.testAdminForms = async function() {
+            const resultDiv = document.getElementById('admin-test-result');
+            const statusDiv = document.getElementById('admin-status');
+            const detailsDiv = document.getElementById('admin-details');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.className = 'status loading';
+            statusDiv.textContent = '🔄 Loading admin forms...';
+            
+            try {
+                const startTime = performance.now();
+                
+                const templates = await templateLoader.loadMultiple([
+                    'forms/admin/add-teacher',
+                    'forms/admin/add-class',
+                    'forms/admin/add-room',
+                    'forms/admin/add-subject'
+                ]);
+                
+                const endTime = performance.now();
+                const loadTime = Math.round(endTime - startTime);
+                
+                // Insert templates
+                const container = document.getElementById('admin-forms-container');
+                container.innerHTML = Object.values(templates).join('');
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Admin forms loaded successfully!';
+                detailsDiv.innerHTML = `
+                    <strong>Load Time:</strong> ${loadTime}ms<br>
+                    <strong>Forms:</strong> ${Object.keys(templates).length}<br>
+                    <strong>Total Size:</strong> ${Object.values(templates).join('').length} chars<br>
+                    <strong>Elements Added:</strong> ${container.querySelectorAll('*').length} elements
+                `;
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Error loading admin forms';
+                detailsDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        };
+        
+        window.testSingleForm = async function(formName) {
+            try {
+                const template = await templateLoader.load(`forms/admin/${formName}`);
+                const container = document.getElementById('admin-forms-container');
+                container.innerHTML = template;
+                
+                const statusDiv = document.getElementById('admin-status');
+                const detailsDiv = document.getElementById('admin-details');
+                const resultDiv = document.getElementById('admin-test-result');
+                
+                resultDiv.style.display = 'block';
+                statusDiv.className = 'status success';
+                statusDiv.textContent = `✅ ${formName} form loaded!`;
+                detailsDiv.innerHTML = `
+                    <strong>Form:</strong> ${formName}<br>
+                    <strong>Size:</strong> ${template.length} chars
+                `;
+                
+            } catch (error) {
+                console.error('Error loading single form:', error);
+            }
+        };
+        
+        window.clearAdminForms = function() {
+            document.getElementById('admin-forms-container').innerHTML = '';
+            document.getElementById('admin-test-result').style.display = 'none';
+        };
+        
+        window.showCacheInfo = function() {
+            const cacheInfo = templateLoader.getCacheInfo();
+            const resultDiv = document.getElementById('cache-info');
+            const statusDiv = document.getElementById('cache-status');
+            const detailsDiv = document.getElementById('cache-details');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.className = 'status success';
+            statusDiv.textContent = '📊 Cache Information';
+            
+            detailsDiv.innerHTML = `
+                <strong>Cached Templates:</strong> ${cacheInfo.cached.length}<br>
+                <strong>Currently Loading:</strong> ${cacheInfo.loading.length}<br>
+                <strong>Cache Size:</strong> ${cacheInfo.cacheSize}<br>
+                <strong>Cached Items:</strong><br>
+                ${cacheInfo.cached.map(item => `• ${item}`).join('<br>')}
+            `;
+        };
+        
+        window.clearCache = function() {
+            templateLoader.clearCache();
+            const statusDiv = document.getElementById('cache-status');
+            const detailsDiv = document.getElementById('cache-details');
+            const resultDiv = document.getElementById('cache-info');
+            
+            resultDiv.style.display = 'block';
+            statusDiv.className = 'status success';
+            statusDiv.textContent = '🗑️ Cache cleared!';
+            detailsDiv.innerHTML = 'All templates removed from cache.';
+        };
+    </script>
+</body>
+</html>

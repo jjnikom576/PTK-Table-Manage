@@ -1,0 +1,34 @@
+    <!-- Global Context Bar -->
+    <header class="global-context">
+        <div class="container">
+            <div class="context-controls">
+                <div class="context-selector">
+                    <label for="year-selector">📅 ปีการศึกษา:</label>
+                    <select id="year-selector" name="academic-year" aria-label="เลือกปีการศึกษา">
+                        <option value="">กำลังโหลด...</option>
+                    </select>
+                </div>
+                
+                <div class="context-divider">|</div>
+                
+                <div class="context-selector">
+                    <label for="semester-selector">ภาคเรียน:</label>
+                    <select id="semester-selector" name="semester" aria-label="เลือกภาคเรียน">
+                        <option value="">กำลังโหลด...</option>
+                    </select>
+                </div>
+                
+                <div class="context-action">
+                    <button type="button" id="context-apply-btn" class="btn btn--primary btn--sm">
+                        OK
+                    </button>
+                </div>
+                
+                <div class="context-status">
+                    <span id="context-loading" class="loading-indicator hidden" aria-live="polite">
+                        🔄 กำลังโหลด...
+                    </span>
+                </div>
+            </div>
+        </div>
+    </header>

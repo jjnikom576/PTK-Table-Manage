@@ -78,7 +78,8 @@ export async function refreshClassSelector(context = null, preserveSelection = n
         const emptyState = document.getElementById('student-empty-state');
         if (emptyState) emptyState.style.display = 'none';
       }
-      await loadScheduleForContext(val, globalContext.getContext());
+      // ⭐ FIX: Use the same context as the class selector
+      await loadScheduleForContext(val, currentContext);
     });
     classSelector.dataset.bound = 'true';
   }
@@ -147,6 +148,15 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     setTimeout(() => {
       const changeEvent = new Event('change', { bubbles: true });
       classSelector.dispatchEvent(changeEvent);
+      
+      // ⭐ FIX: Force load schedule if event doesn't work for restored selection
+      setTimeout(async () => {
+        const selectedClassId = classSelector.value;
+        if (selectedClassId && selectedClassId !== '') {
+          console.log('Force loading restored schedule for class:', selectedClassId);
+          await loadScheduleForContext(selectedClassId, currentContext);
+        }
+      }, 200);
     }, 100);
   } else if (!preserveSelection && classes.length > 0) {
     // ⭐ FIX: Auto-select first class เมื่อไม่มี selection เดิม
@@ -158,6 +168,16 @@ export async function refreshClassSelector(context = null, preserveSelection = n
     setTimeout(() => {
       const changeEvent = new Event('change', { bubbles: true });
       classSelector.dispatchEvent(changeEvent);
+      
+      // ⭐ FIX: Force load schedule if event doesn't trigger properly
+      setTimeout(async () => {
+        const selectedClassId = classSelector.value;
+        if (selectedClassId && selectedClassId !== '') {
+          console.log('Force loading schedule for class:', selectedClassId);
+          // ใช้ loadScheduleForContext แทน window.loadScheduleForClass เพื่อป้องกัน DOM replace
+          await loadScheduleForContext(selectedClassId, currentContext);
+        }
+      }, 200);
     }, 100);
   } else {
     // กรณีอื่นๆ ไม่ auto-select
@@ -193,107 +213,32 @@ export async function initStudentSchedulePage(context) {
     // ⭐ FIX: Use context directly without extra validation
     const currentContext = context || globalContext.getContext();
     
+    // ⭐ FIX: Ensure consistent context - use the latest global context
     if (!currentContext.year || !currentContext.semesterId) {
-      console.warn('Context missing year/semesterId, using defaults');
-      const fallbackContext = globalContext.getContext();
-      currentContext.year = fallbackContext.currentYear || 2568;
-      currentContext.semesterId = fallbackContext.currentSemester?.id || 7;
+      console.warn('Context missing year/semesterId, using latest global context');
+      const latestContext = globalContext.getContext();
+      currentContext.year = latestContext.currentYear;
+      currentContext.currentYear = latestContext.currentYear; 
+      currentContext.semesterId = latestContext.currentSemester?.id;
+      currentContext.currentSemester = latestContext.currentSemester;
+      console.log('[StudentSchedule] Updated context:', currentContext);
     }
     
-    console.log('Using context:', currentContext);
+    // ⭐ FIX: Set DataService context to match student schedule context (if function exists)
+    if (typeof dataService.setGlobalContext === 'function') {
+      await dataService.setGlobalContext(
+        currentContext.currentYear || currentContext.year,
+        currentContext.currentSemester?.id || currentContext.semesterId
+      );
+      console.log('[StudentSchedule] Set DataService context for initialization');
+    } else {
+      console.warn('[StudentSchedule] dataService.setGlobalContext not available');
+    }
+    
+    console.log('[StudentSchedule] Final context for initialization:', currentContext);
     
     // Render page components
     await renderContextControls(currentContext);
-    
-    /**
- * Refresh class selector dropdown (NEW)
- */
-async function refreshClassSelector(context) {
-  console.log('[StudentSchedule] Refreshing class selector');
-  
-  // ⭐ FIX: Try multiple selectors
-  const selectors = ['#class-selector', '.class-selector', '[data-class-selector]', 'select[name="class"]'];
-  let classSelector = null;
-  
-  for (const sel of selectors) {
-    classSelector = document.querySelector(sel);
-    if (classSelector) {
-      console.log(`Found class selector with: ${sel}`);
-      break;
-    }
-  }
-  
-  if (!classSelector) {
-    console.warn('Class selector not found with any selector:', selectors);
-    // ⭐ FIX: List all select elements for debugging
-    const allSelects = document.querySelectorAll('select');
-    console.log('All select elements found:', Array.from(allSelects).map(s => s.id || s.className || s.tagName));
-    return;
-  }
-  
-  // ⭐ FIX: Force clear cache before getting classes
-  await dataService.clearCache();
-  
-  // Get fresh classes data for current context
-  console.log('Getting classes for context:', context);
-  const result = await dataService.getClasses();
-  if (!result.ok) {
-    console.error('Failed to get classes:', result.error);
-    return;
-  }
-  
-  const classes = result.data;
-  console.log('Got classes for refresh:', classes.map(c => c.class_name));
-  
-  // ⭐ FIX: If no classes, show all available classes from mockData
-  if (classes.length === 0) {
-    console.warn('No classes found for current context, checking mockData...');
-    const { mockData } = await import('../data/index.js');
-    const contextKey = context.year || 2568;
-    const fallbackClasses = mockData[contextKey]?.classes || [];
-    console.log(`Fallback classes for year ${contextKey}:`, fallbackClasses.map(c => c.class_name));
-    
-    if (fallbackClasses.length > 0) {
-      classes.push(...fallbackClasses);
-    }
-  }
-  
-  // Clear and repopulate
-  classSelector.innerHTML = '<option value="">เลือกห้องเรียน</option>';
-  classes.forEach(classItem => {
-    const option = document.createElement('option');
-    option.value = classItem.id;
-    option.textContent = classItem.class_name;
-    classSelector.appendChild(option);
-  });
-  
-  // ⭐ FIX: Auto-select first class and trigger change event
-  if (classes.length > 0) {
-    classSelector.value = classes[0].id;
-    console.log(`Auto-selected class: ${classes[0].class_name}`);
-    
-    // ⭐ FIX: Use setTimeout to ensure DOM is ready
-    setTimeout(() => {
-      const changeEvent = new Event('change', { bubbles: true });
-      classSelector.dispatchEvent(changeEvent);
-      console.log('Change event dispatched');
-      
-      // ⭐ FIX: Force load schedule if event doesn't work
-      setTimeout(() => {
-        const selectedClassId = classSelector.value;
-        if (selectedClassId && classes.length > 0) {
-          console.log('Force loading schedule for class:', selectedClassId);
-          // Direct call to navigation's loadSchedule
-          if (window.loadScheduleForClass) {
-            window.loadScheduleForClass(`m${selectedClassId.replace('/', '-').toLowerCase()}`);
-          }
-        }
-      }, 200);
-    }, 100);
-  }
-  
-  console.log(`Class selector refreshed with ${classes.length} classes`);
-}
 
 // Load available classes
     await loadAvailableClasses(currentContext);
@@ -323,6 +268,23 @@ async function refreshClassSelector(context) {
       console.log('Re-setting up event listeners...');
       setupEventListeners(currentContext);  // Re-setup lost listeners
       await refreshClassSelector(currentContext);  // Then refresh selector
+      
+      // ⭐ FIX: Force load schedule if auto-select doesn't trigger properly  
+      setTimeout(async () => {
+        const classSelector = document.querySelector('#class-selector') || document.querySelector('.class-selector');
+        const selectedClassId = classSelector?.value;
+        const hasScheduleTable = document.querySelector('.schedule-table') !== null;
+        
+        if (selectedClassId && selectedClassId !== '' && !hasScheduleTable) {
+          console.log('[StudentSchedule] 🔥 FORCE Loading schedule for class:', selectedClassId, '(auto-select failed)');
+          // ใช้ loadScheduleForContext แทน window.loadScheduleForClass กับ current context
+          await loadScheduleForContext(selectedClassId, currentContext);
+        } else if (selectedClassId && hasScheduleTable) {
+          console.log('[StudentSchedule] ✅ Auto-select worked, schedule already loaded for class:', selectedClassId);
+        } else {
+          console.log('[StudentSchedule] 👍 No class selected yet, waiting for user action');
+        }
+      }, 500);
     }, 300);
     
   } catch (error) {
@@ -398,8 +360,25 @@ export async function loadScheduleForContext(classRef, context) {
 
     if (!classId || Number.isNaN(classId)) throw new Error(`ไม่พบห้องเรียน: ${classRef}`);
 
+    // ⭐ FIX: Ensure DataService context matches before loading schedule
+    console.log('[StudentSchedule] 📊 About to load schedule for classId:', classId);
+    
+    // Set dataService context to current year/semester
+    const loadYear = context.currentYear || context.year;
+    const loadSemester = context.currentSemester?.id || context.semesterId;
+    console.log('[StudentSchedule] Setting DataService context for schedule load - Year:', loadYear, 'Semester:', loadSemester);
+    
+    // Set dataService context to current year/semester (if function exists)
+    if (typeof dataService.setGlobalContext === 'function') {
+      await dataService.setGlobalContext(loadYear, loadSemester);
+      console.log('[StudentSchedule] DataService context set for schedule loading');
+    } else {
+      console.warn('[StudentSchedule] dataService.setGlobalContext not available for schedule loading');
+    }
+    
     // Load schedule (matrix-based) from dataService
     const result = await dataService.getStudentSchedule(classId);
+    console.log('[StudentSchedule] Schedule load result:', result?.ok ? '✅ Success' : '❌ Failed', result);
     if (result && result.ok && result.data?.matrix) {
       pageState.currentSchedule = result.data;
       pageState.selectedClass = classId;
