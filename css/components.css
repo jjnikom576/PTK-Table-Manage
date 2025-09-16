@@ -787,40 +787,72 @@
 #page-admin .auth-form button[type="submit"] { display: block; margin: .5rem auto 0; }
 
 
-/* Center the 2-column auth grid as a whole */
+/* 🎯 FIXED: Admin Login Form - Input Alignment (รองรับ JS Generated Form) */
 #page-admin .auth-form form {
-  display: inline-grid; /* shrink to content width */
-  grid-template-columns: 120px var(--auth-input-width, 140px);
-  column-gap: .35rem;
-  row-gap: .55rem;
-  align-items: center;
-  margin: 0 auto; /* center whole grid (label+input) */
-}
-#page-admin .auth-form label { white-space: nowrap; text-align: right; }
-#page-admin .auth-form input[type="text"],
-#page-admin .auth-form input[type="password"] {
-  width: 100%;
-  padding: .4rem .55rem;
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius-md);
-}
-
-/* FIX: Center login button - MORE SPECIFIC */
-#page-admin .auth-form form {
-  display: grid;
-  grid-template-columns: 120px 140px;
-  column-gap: .35rem;
-  row-gap: .55rem;
-  align-items: center;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.75rem !important;
   margin: 0 auto;
   text-align: left;
 }
 
+/* Container แต่ละแถว */
+#page-admin .auth-form form > div {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  justify-content: flex-start !important; /* เปลี่ยนจาก center */
+  width: 100% !important;
+  max-width: 320px !important; /* จำกัดความกว้างสูงสุด */
+}
+
+/* Labels - ความกว้างคงที่เพื่อให้ input เริ่มต้น x เดียวกัน */
+#page-admin .auth-form label {
+  width: 80px !important; /* ความกว้างคงที่ */
+  min-width: 80px !important;
+  text-align: right !important;
+  font-weight: var(--font-weight-medium) !important;
+  color: var(--color-dark) !important;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important; /* ไม่ให้ย่อขนาด */
+}
+
+/* Input boxes - จัดให้เริ่มต้นแนวเดียวกัน */
+#page-admin .auth-form input[type="text"],
+#page-admin .auth-form input[type="password"] {
+  width: 200px !important; /* ความกว้างคงที่ */
+  padding: .6rem .75rem !important;
+  border: 1px solid var(--color-gray-300) !important;
+  border-radius: var(--radius-md) !important;
+  font-size: .95rem !important;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast) !important;
+  flex-shrink: 0 !important;
+}
+
+/* Input focus states */
+#page-admin .auth-form input[type="text"]:focus,
+#page-admin .auth-form input[type="password"]:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(66,153,225,.12) !important;
+  outline: none !important;
+}
+
+/* ปุ่ม เข้าสู่ระบบ */
 #page-admin .auth-form button[type="submit"] {
-  grid-column: 1 / -1 !important; /* span across both columns */
-  justify-self: center !important; /* center horizontally */
-  margin: .75rem auto 0 !important; /* extra top margin */
-  width: auto !important; /* don't stretch full width */
-  padding: .55rem 1.5rem !important; /* bigger padding for better look */
-  display: block !important;
+  margin: 1rem auto 0 !important;
+  width: auto !important;
+  padding: .65rem 2rem !important;
+  background: var(--color-primary) !important;
+  color: white !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  font-weight: var(--font-weight-semibold) !important;
+  cursor: pointer !important;
+  transition: background var(--transition-fast), transform var(--transition-fast) !important;
+}
+
+#page-admin .auth-form button[type="submit"]:hover {
+  background: var(--color-primary-dark) !important;
+  transform: translateY(-1px) !important;
 }

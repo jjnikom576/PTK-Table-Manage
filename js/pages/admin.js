@@ -166,33 +166,50 @@ function adjustAuthInputWidth() {
   try {
     const form = document.querySelector('#page-admin .auth-form');
     if (!form) return;
-    form.style.setProperty('--auth-input-width', '140px');
     
     // FIX: Center entire auth-form container
     form.style.margin = '0 auto';
     form.style.textAlign = 'center';
-    form.style.maxWidth = '300px';
+    form.style.maxWidth = '350px';
     
-    // FIX: Setup form as grid
+    // FIX: Change form to flexbox layout for center alignment
     const formElement = form.querySelector('form');
     if (formElement) {
-      formElement.style.display = 'grid';
-      formElement.style.gridTemplateColumns = '120px 140px';
-      formElement.style.columnGap = '0.35rem';
-      formElement.style.rowGap = '0.55rem';
+      formElement.style.display = 'flex';
+      formElement.style.flexDirection = 'column';
       formElement.style.alignItems = 'center';
-      formElement.style.justifyContent = 'center';
-      formElement.style.margin = '0 auto';
+      formElement.style.gap = '0.75rem';
     }
     
-    // FIX: Force center button - use text-align method instead
+    // FIX: Create row containers for label + input pairs
+    const labels = form.querySelectorAll('label');
+    labels.forEach((label) => {
+      const input = label.nextElementSibling;
+      if (input && input.tagName === 'INPUT') {
+        // Create wrapper div
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.alignItems = 'center';
+        wrapper.style.gap = '0.5rem';
+        wrapper.style.justifyContent = 'center';
+        
+        // Move label and input into wrapper
+        label.parentNode.insertBefore(wrapper, label);
+        wrapper.appendChild(label);
+        wrapper.appendChild(input);
+        
+        // Style the input
+        input.style.padding = '0.4rem 0.55rem';
+        input.style.border = '1px solid #ccc';
+        input.style.borderRadius = '6px';
+      }
+    });
+    
+    // FIX: Center button
     const button = form.querySelector('button[type="submit"]');
     if (button) {
-      button.style.gridColumn = '1 / -1';
-      button.style.margin = '0.75rem auto 0';
-      button.style.width = 'auto';
-      button.style.display = 'block';
-      button.style.textAlign = 'center';
+      button.style.margin = '0.5rem auto 0';
+      button.style.padding = '0.55rem 1.5rem';
     }
   } catch (e) {}
 }
