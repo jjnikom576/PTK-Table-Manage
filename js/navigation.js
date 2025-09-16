@@ -31,7 +31,7 @@ export function initNavigation() {
   }
 }
 
-function showPage(pageId) {
+async function showPage(pageId) {
   try {
     // Hide all page sections
     document.querySelectorAll('[id^="page-"]').forEach(page => {
@@ -47,6 +47,20 @@ function showPage(pageId) {
       window.location.hash = pageId;
       currentPage = pageId;
       updateActiveNav(pageId);
+
+      // Initialize page modules when first shown
+      try {
+        if (pageId === 'admin') {
+          const mod = await import('./pages/admin.js');
+          const gc = await import('./context/globalContext.js');
+          const ctx = gc.getContext ? gc.getContext() : null;
+          if (mod && typeof mod.initAdminPage === 'function') {
+            await mod.initAdminPage(ctx);
+          }
+        }
+      } catch (e) {
+        console.warn('[nav] init page failed:', e);
+      }
     }
   } catch (e) {
     console.error('[nav] showPage error:', e);

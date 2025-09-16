@@ -728,3 +728,9 @@
   .ranking-item, .stat-card, .podium-card, .card { box-shadow: none !important; }
   .btn { border: 1px solid #000; background: #fff; color: #000; }
 }
+
+/* ========== Admin sub-navigation with user actions ========== */
+#page-admin .sub-navigation .admin-subnav { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+#page-admin .admin-user-actions { display: flex; align-items: center; gap: .5rem; }
+#page-admin .admin-user-actions .admin-username { color: var(--color-dark-lighter); font-size: .9rem; }
+#page-admin .admin-user-actions.hidden { display: none; }
