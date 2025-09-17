@@ -997,3 +997,90 @@ select:focus {
 .table-container::-webkit-scrollbar-corner {
   background: #f1f1f1;
 }
+
+/* ===== CLASSES MANAGEMENT STYLES ===== */
+
+/* Class Management Container - same structure as Teacher */
+.class-management-container {
+  display: flex !important;
+  gap: 1.5rem;
+  height: auto;
+  min-height: 500px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100% !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.class-data-grid {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 350px);
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.class-data-grid h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+/* Classes Table Columns */
+.col-class-name { 
+  width: 150px;
+  min-width: 120px; 
+}
+
+.col-created { 
+  width: 120px;
+  min-width: 100px; 
+}
+
+/* Classes table specific - smaller min-width */
+#classes-table {
+  min-width: 550px; /* Much smaller than teachers table */
+}
+
+/* Form hint styling */
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* Validation styling for classes */
+.form-group input.valid {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-group input.invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.validation-message {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.validation-message.success {
+  color: #28a745;
+}
+
+.validation-message.error {
+  color: #dc3545;
+}

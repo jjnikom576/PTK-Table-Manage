@@ -1,30 +1,114 @@
                         <!-- Add Class Tab -->
                         <div id="add-class" class="data-sub-page hidden" role="tabpanel" 
                              aria-labelledby="tab-add-class">
-                            <div class="admin-form-section">
-                                <h3>🏫 เพิ่มชั้นเรียน</h3>
-                                <form id="class-form" class="admin-form">
-                                    <div class="form-group">
-                                        <label for="class-grade">ชั้น:</label>
-                                        <select id="class-grade" name="grade_level" required>
-                                            <option value="">-- เลือกชั้น --</option>
-                                            <option value="ม.1">ม.1</option>
-                                            <option value="ม.2">ม.2</option>
-                                            <option value="ม.3">ม.3</option>
-                                            <option value="ม.4">ม.4</option>
-                                            <option value="ม.5">ม.5</option>
-                                            <option value="ม.6">ม.6</option>
-                                        </select>
+                            
+                            <!-- Class Management Container - like Teacher Management -->
+                            <div class="class-management-container">
+                                
+                                <!-- Add Class Form -->
+                                <div class="admin-form-section">
+                                    <h3>🏫 เพิ่มชั้นเรียน</h3>
+                                    <form id="class-form" class="admin-form">
+                                        <div class="form-group">
+                                            <label for="class-grade">ชั้น:</label>
+                                            <select id="class-grade" name="grade_level" required>
+                                                <option value="">-- เลือกชั้น --</option>
+                                                <option value="ม.1">ม.1</option>
+                                                <option value="ม.2">ม.2</option>
+                                                <option value="ม.3">ม.3</option>
+                                                <option value="ม.4">ม.4</option>
+                                                <option value="ม.5">ม.5</option>
+                                                <option value="ม.6">ม.6</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="class-section">ห้อง:</label>
+                                            <input type="number" id="class-section" name="section" min="1" max="20" required>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn--primary">
+                                            💾 บันทึก
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Classes Data Grid -->
+                                <div class="class-data-grid">
+                                    <h3>📋 รายการชั้นเรียน</h3>
+                                    
+                                    <!-- Grid Controls -->
+                                    <div class="grid-controls">
+                                        <div class="search-controls">
+                                            <label for="class-search" class="sr-only">ค้นหาชั้นเรียน</label>
+                                            <input type="text" id="class-search" 
+                                                   placeholder="🔍 ค้นหาชั้นเรียน..." 
+                                                   aria-label="ค้นหาชั้นเรียน">
+                                            <button type="button" class="btn btn--outline btn--sm" id="search-classes">
+                                                🔍 ค้นหา
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="grid-actions">
+                                            <select id="entries-per-page-classes" aria-label="จำนวนแถวต่อหน้า">
+                                                <option value="10">10</option>
+                                                <option value="25">25</option>
+                                                <option value="50">50</option>
+                                                <option value="100">100</option>
+                                            </select>
+                                            <label for="entries-per-page-classes">แถว/หน้า</label>
+                                            
+                                            <button type="button" class="btn btn--outline btn--sm" id="export-excel-classes">
+                                                📊 ส่งออก Excel
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="class-section">ห้อง:</label>
-                                        <input type="number" id="class-section" name="section" min="1" max="20" required>
+
+                                    <!-- Table Container -->
+                                    <div class="table-container">
+                                        <table id="classes-table" class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-checkbox">
+                                                        <input type="checkbox" id="select-all-classes" aria-label="เลือกทั้งหมด">
+                                                    </th>
+                                                    <th class="col-id" data-sortable data-sort-key="id">ID</th>
+                                                    <th class="col-class-name" data-sortable data-sort-key="class_name">ชื่อชั้นเรียน</th>
+                                                    <th class="col-created" data-sortable data-sort-key="created_at">วันที่เพิ่ม</th>
+                                                    <th class="col-actions">การดำเนินการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="classes-table-body">
+                                                <!-- Class data will be rendered here -->
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="class-student-count">จำนวนนักเรียน:</label>
-                                        <input type="number" id="class-student-count" name="student_count" min="1" max="50">
+
+                                    <!-- Grid Footer -->
+                                    <div class="grid-footer">
+                                        <div class="bulk-actions">
+                                            <label class="select-all-label">
+                                                <input type="checkbox" id="bulk-select-all-classes">
+                                                <span>เลือกทั้งหมด</span>
+                                            </label>
+                                            <button type="button" class="btn btn--danger btn--sm" id="bulk-delete-classes" disabled>
+                                                🗑️ ลบที่เลือก
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="pagination">
+                                            <button type="button" class="btn btn--outline btn--sm" id="prev-page-classes" disabled>
+                                                ‹ ก่อนหน้า
+                                            </button>
+                                            
+                                            <span class="page-info" id="page-info-classes">
+                                                หน้า 1 จาก 1 (0 รายการ)
+                                            </span>
+                                            
+                                            <button type="button" class="btn btn--outline btn--sm" id="next-page-classes" disabled>
+                                                ถัดไป ›
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                                </form>
+                                </div>
                             </div>
                         </div>
