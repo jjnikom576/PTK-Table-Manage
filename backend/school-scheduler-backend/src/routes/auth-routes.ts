@@ -1,20 +1,17 @@
 // src/routes/auth-routes.ts
 import { Hono, Context } from 'hono';
-import { getCookie, setCookie } from 'hono/cookie';
 import { AuthManager } from '../auth/auth-manager';
 import { requireJSON, requireSuperAdmin } from '../middleware/auth-middleware';
-import { Env, LoginRequest, AdminUser } from '../interfaces';
+import { Env, LoginRequest } from '../interfaces';
 
-type AppVariables = { user: AdminUser; sessionToken: string; requestId: string };
-
-const authRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
+const authRoutes = new Hono<{ Bindings: Env }>();
 
 // ===========================================
 // Public Auth Routes
 // ===========================================
 
 // POST /api/auth/login
-authRoutes.post('/login', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.post('/login', requireJSON, async (c: Context<{ Bindings: Env }>) => {
   try {
     const credentials = await c.req.json<LoginRequest>();
     
@@ -42,10 +39,10 @@ authRoutes.post('/login', requireJSON, async (c: Context<{ Bindings: Env; Variab
 
     // Set session cookie (optional - client can also use token in headers)
     if (result.session_token) {
-      setCookie(c, 'session_token', result.session_token, {
+      c.cookie('session_token', result.session_token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'Strict',
+        sameSite: 'strict',
         maxAge: 8 * 60 * 60 // 8 hours
       });
     }
@@ -62,9 +59,9 @@ authRoutes.post('/login', requireJSON, async (c: Context<{ Bindings: Env; Variab
 });
 
 // POST /api/auth/logout
-authRoutes.post('/logout', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.post('/logout', async (c: Context<{ Bindings: Env }>) => {
   try {
-    const sessionToken = c.get('sessionToken') || getCookie(c, 'session_token');
+    const sessionToken = c.get('sessionToken') || c.req.cookie('session_token');
     
     if (!sessionToken) {
       return c.json({
@@ -80,10 +77,10 @@ authRoutes.post('/logout', async (c: Context<{ Bindings: Env; Variables: AppVari
     const result = await authManager.logout(sessionToken, ip, userAgent);
 
     // Clear session cookie
-    setCookie(c, 'session_token', '', {
+    c.cookie('session_token', '', {
       httpOnly: true,
       secure: true,
-      sameSite: 'Strict',
+      sameSite: 'strict',
       maxAge: 0
     });
 
@@ -99,7 +96,7 @@ authRoutes.post('/logout', async (c: Context<{ Bindings: Env; Variables: AppVari
 });
 
 // GET /api/auth/me
-authRoutes.get('/me', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.get('/me', async (c: Context<{ Bindings: Env }>) => {
   try {
     const user = c.get('user');
     
@@ -132,7 +129,7 @@ authRoutes.get('/me', async (c: Context<{ Bindings: Env; Variables: AppVariables
 });
 
 // POST /api/auth/refresh
-authRoutes.post('/refresh', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.post('/refresh', async (c: Context<{ Bindings: Env }>) => {
   try {
     const sessionToken = c.get('sessionToken');
     
@@ -162,7 +159,7 @@ authRoutes.post('/refresh', async (c: Context<{ Bindings: Env; Variables: AppVar
 // ===========================================
 
 // GET /api/auth/users (Super Admin Only)
-authRoutes.get('/users', requireSuperAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.get('/users', requireSuperAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const authManager = new AuthManager(c.env.DB, c.env);
     const result = await authManager.getAdminUsers();
@@ -179,7 +176,7 @@ authRoutes.get('/users', requireSuperAdmin, async (c: Context<{ Bindings: Env; V
 });
 
 // POST /api/auth/users (Super Admin Only)
-authRoutes.post('/users', requireSuperAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.post('/users', requireSuperAdmin, requireJSON, async (c: Context<{ Bindings: Env }>) => {
   try {
     const body = await c.req.json<{
       username: string;
@@ -210,7 +207,7 @@ authRoutes.post('/users', requireSuperAdmin, requireJSON, async (c: Context<{ Bi
       // Log the creation
       const currentUser = c.get('user');
       await authManager.logActivity(
-        currentUser.id!,
+        currentUser.id,
         'CREATE_USER',
         'admin_users',
         result.data?.id?.toString(),
@@ -231,7 +228,7 @@ authRoutes.post('/users', requireSuperAdmin, requireJSON, async (c: Context<{ Bi
 });
 
 // PUT /api/auth/users/:id (Super Admin Only)
-authRoutes.put('/users/:id', requireSuperAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.put('/users/:id', requireSuperAdmin, requireJSON, async (c: Context<{ Bindings: Env }>) => {
   try {
     const userId = parseInt(c.req.param('id'));
     const updates = await c.req.json<{
@@ -260,7 +257,7 @@ authRoutes.put('/users/:id', requireSuperAdmin, requireJSON, async (c: Context<{
       // Log the update
       const currentUser = c.get('user');
       await authManager.logActivity(
-        currentUser.id!,
+        currentUser.id,
         'UPDATE_USER',
         'admin_users',
         userId.toString(),
@@ -281,7 +278,7 @@ authRoutes.put('/users/:id', requireSuperAdmin, requireJSON, async (c: Context<{
 });
 
 // DELETE /api/auth/users/:id (Super Admin Only)
-authRoutes.delete('/users/:id', requireSuperAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.delete('/users/:id', requireSuperAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const userId = parseInt(c.req.param('id'));
     
@@ -306,7 +303,7 @@ authRoutes.delete('/users/:id', requireSuperAdmin, async (c: Context<{ Bindings:
     if (result.success) {
       // Log the deletion
       await authManager.logActivity(
-        currentUser.id!,
+        currentUser.id,
         'DELETE_USER',
         'admin_users',
         userId.toString()
@@ -325,11 +322,11 @@ authRoutes.delete('/users/:id', requireSuperAdmin, async (c: Context<{ Bindings:
 });
 
 // GET /api/auth/sessions (Get current user's sessions)
-authRoutes.get('/sessions', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.get('/sessions', async (c: Context<{ Bindings: Env }>) => {
   try {
     const user = c.get('user');
     const authManager = new AuthManager(c.env.DB, c.env);
-    const result = await authManager.getUserSessions(user.id!);
+    const result = await authManager.getUserSessions(user.id);
     
     return c.json(result);
   } catch (error) {
@@ -343,13 +340,13 @@ authRoutes.get('/sessions', async (c: Context<{ Bindings: Env; Variables: AppVar
 });
 
 // DELETE /api/auth/sessions/:token (Revoke specific session)
-authRoutes.delete('/sessions/:token', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.delete('/sessions/:token', async (c: Context<{ Bindings: Env }>) => {
   try {
     const sessionToken = c.req.param('token');
     const user = c.get('user');
     
     const authManager = new AuthManager(c.env.DB, c.env);
-    const result = await authManager.revokeUserSession(user.id!, sessionToken);
+    const result = await authManager.revokeUserSession(user.id, sessionToken);
     
     return c.json(result);
   } catch (error) {
@@ -363,7 +360,7 @@ authRoutes.delete('/sessions/:token', async (c: Context<{ Bindings: Env; Variabl
 });
 
 // DELETE /api/auth/sessions (Revoke all sessions except current)
-authRoutes.delete('/sessions', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.delete('/sessions', async (c: Context<{ Bindings: Env }>) => {
   try {
     const currentSessionToken = c.get('sessionToken');
     const user = c.get('user');
@@ -371,12 +368,12 @@ authRoutes.delete('/sessions', async (c: Context<{ Bindings: Env; Variables: App
     const authManager = new AuthManager(c.env.DB, c.env);
     
     // Get all user sessions
-    const sessionsResult = await authManager.getUserSessions(user.id!);
+    const sessionsResult = await authManager.getUserSessions(user.id);
     if (sessionsResult.success && sessionsResult.data) {
       // Revoke all sessions except current
       for (const session of sessionsResult.data) {
         if (session.session_token !== currentSessionToken) {
-          await authManager.revokeUserSession(user.id!, session.session_token);
+          await authManager.revokeUserSession(user.id, session.session_token);
         }
       }
     }
@@ -396,7 +393,7 @@ authRoutes.delete('/sessions', async (c: Context<{ Bindings: Env; Variables: App
 });
 
 // GET /api/auth/activity (Get activity logs)
-authRoutes.get('/activity', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+authRoutes.get('/activity', async (c: Context<{ Bindings: Env }>) => {
   try {
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '50');
@@ -407,7 +404,7 @@ authRoutes.get('/activity', async (c: Context<{ Bindings: Env; Variables: AppVar
     // Super admins can see all activity, regular admins see only their own
     const result = user.role === 'super_admin' 
       ? await authManager.getActivityLogs(page, limit)
-      : await authManager.getUserActivityLogs(user.id!, page, limit);
+      : await authManager.getUserActivityLogs(user.id, page, limit);
     
     return c.json(result);
   } catch (error) {
