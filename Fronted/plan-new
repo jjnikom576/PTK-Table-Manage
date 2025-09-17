@@ -7,8 +7,6 @@
 CREATE TABLE IF NOT EXISTS academic_years (
   id BIGSERIAL PRIMARY KEY,
   year INT NOT NULL UNIQUE,                  -- 2567, 2568, ...
-  start_date DATE NOT NULL,
-  end_date   DATE NOT NULL,
   is_active  BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -16,10 +14,8 @@ CREATE TABLE IF NOT EXISTS academic_years (
 CREATE TABLE IF NOT EXISTS semesters (
   id BIGSERIAL PRIMARY KEY,
   academic_year_id BIGINT NOT NULL REFERENCES academic_years(id) ON DELETE CASCADE,
-  semester_number INT NOT NULL CHECK (semester_number IN (1,2,3)),
+  semester_number AI INT NOT NULL CHECK (semester_number IN (1,2,3)),
   semester_name   TEXT NOT NULL,
-  start_date DATE NOT NULL,
-  end_date   DATE NOT NULL,
   is_active  BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE (academic_year_id, semester_number)
@@ -28,15 +24,12 @@ CREATE TABLE IF NOT EXISTS semesters (
 -- (ทางเลือก) ตารางคาบเวลา ช่วยเรนเดอร์/ตรวจช่วงคาบ
 CREATE TABLE IF NOT EXISTS periods (
   period_no INT PRIMARY KEY,                 -- 1..12
+  period_name TEXT NOT NULL,  -- คาบ 1 , คาบ 2 , พักเที่ยง , เรียนพิเศษ
   start_time TIME NOT NULL,
   end_time   TIME NOT NULL
 );
 
 INSERT INTO periods(period_no, start_time, end_time) VALUES
-(1,'08:20','09:10'),(2,'09:10','10:00'),
-(3,'10:00','10:50'),(4,'10:50','11:40'),
-(5,'13:00','13:50'),(6,'13:50','14:40'),
-(7,'14:40','15:30'),(8,'15:30','16:20')
 ON CONFLICT (period_no) DO NOTHING;
 
 -- ======================================
@@ -80,9 +73,6 @@ CREATE TABLE IF NOT EXISTS classes_2567 (
   id BIGSERIAL PRIMARY KEY,
   semester_id BIGINT NOT NULL REFERENCES semesters(id) ON DELETE CASCADE,
   class_name TEXT NOT NULL,                  -- ม.1/1
-  grade_level TEXT NOT NULL,                 -- ม.1–ม.6
-  section INT,
-  student_count INT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE UNIQUE INDEX IF NOT EXISTS uq_classes_sem_name_2567
@@ -93,7 +83,6 @@ CREATE TABLE IF NOT EXISTS rooms_2567 (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,                        -- 401, เทค-1, เทค-2, แล็บฟิสิกส์ ฯลฯ
   room_type room_type_t NOT NULL,
-  capacity INT,
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -336,7 +325,8 @@ html<nav>
 ภาคเรียนที่ 1 ปีการศึกษา 2567
 
 ┌─────────┬──────────────┬──────────────┬──────────────┬────────┐
-│ วัน/เวลา│ คาบ 1        │ คาบ 2        │ คาบ 3        │ คาบ 4 │
+│ วัน/เวลา  │ คาบ 1        │ คาบ 2        │ คาบ 3        │ คาบ 4 │
+│         │   เวลา        │  เวลา         │   เวลา       │  เวลา    │
 ├─────────┼──────────────┼──────────────┼──────────────┼────────┤
 │ จันทร์  │ วิทยาศาสตร์ │ -            │ ฟิสิกส์      │ -      │
 │         │ ม.1/1        │              │ ม.4/1        │        │
@@ -408,13 +398,6 @@ Achievement Ranking กับ 📋 ตารางสอนแทน อยู�
 └─────────────────────────────┘
 
 🏫 เพิ่มห้องเรียน
-┌─────────────────────────────┐
-  │ ห้อง: [1]                  │ 
-│ [💾 บันทึก] → classes_teach_2567 │
-│         │
-└─────────────────────────────┘
-
-🏫 เพิ่มชั้นเรียน
 ┌─────────────────────────────┐
 │ ชั้น: [ม.1 ▼]              │
 │ ห้อง: [1]                  │

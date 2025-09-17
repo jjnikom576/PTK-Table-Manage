@@ -1,0 +1,98 @@
+                        <!-- Add Period Tab -->
+                        <div id="add-period" class="data-sub-page" role="tabpanel" 
+                             aria-labelledby="tab-add-period">
+                            
+                            <!-- Main Container: Form + Data Grid -->
+                            <div class="teacher-management-container">
+                                
+                                <!-- Left: Add Period Form -->
+                                <div class="admin-form-section">
+                                    <h3>📝 เพิ่มคาบเรียนใหม่</h3>
+                                    <form id="period-form" class="admin-form">
+                                        <div class="form-group">
+                                            <label for="period-no">ลำดับคาบ:</label>
+                                            <input type="number" id="period-no" name="period_no" min="1" max="15" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="period-name">ชื่อคาบ:</label>
+                                            <input type="text" id="period-name" name="period_name" placeholder="เช่น คาบที่ 1, พักเที่ยง, เรียนพิเศษ" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="period-start-time">เวลาเริ่ม:</label>
+                                            <input type="time" id="period-start-time" name="start_time" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="period-end-time">เวลาสิ้นสุด:</label>
+                                            <input type="time" id="period-end-time" name="end_time" required>
+                                        </div>
+                                        <div class="form-buttons">
+                                            <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                            <button type="button" class="btn btn--outline" id="clear-period-form">🔄 ล้างฟอร์ม</button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Right: Periods Data Grid -->
+                                <div class="teacher-data-grid">
+                                    <h3>📊 รายการคาบเรียนทั้งหมด</h3>
+                                    
+                                    <!-- Grid Controls -->
+                                    <div class="grid-controls">
+                                        <div class="search-controls">
+                                            <input type="text" id="period-search" placeholder="🔍 ค้นหา...">
+                                            <button type="button" class="btn btn--outline" id="refresh-periods">🔄 รีเฟรช</button>
+                                        </div>
+                                        <div class="grid-actions">
+                                            <select id="periods-per-page">
+                                                <option value="10">แสดง 10</option>
+                                                <option value="25">แสดง 25</option>
+                                                <option value="50">แสดง 50</option>
+                                            </select>
+                                            <button type="button" class="btn btn--outline" id="export-periods">📤 ส่งออก Excel</button>
+                                            <button type="button" class="btn btn--outline" id="show-period-shortcuts">⌨️ คีย์ลัด</button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Periods Table -->
+                                    <div class="table-container">
+                                        <table id="periods-table" class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-checkbox">✓</th>
+                                                    <th class="col-period-no" data-sortable data-column="period_no">ลำดับคาบ</th>
+                                                    <th class="col-period-name" data-sortable data-column="period_name">ชื่อคาบ</th>
+                                                    <th class="col-start-time" data-sortable data-column="start_time">เวลาเริ่ม</th>
+                                                    <th class="col-end-time" data-sortable data-column="end_time">เวลาสิ้นสุด</th>
+                                                    <th class="col-duration">ระยะเวลา</th>
+                                                    <th class="col-actions">การดำเนินการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="periods-table-body">
+                                                <!-- Dynamic content will be loaded here -->
+                                                <tr>
+                                                    <td colspan="7" class="loading-message">
+                                                        🔄 กำลังโหลดข้อมูล...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Pagination + Bulk Actions -->
+                                    <div class="grid-footer">
+                                        <div class="bulk-actions">
+                                            <label class="select-all-label">
+                                                <input type="checkbox" id="select-all-periods"> เลือกทั้งหมด
+                                            </label>
+                                            <button type="button" class="btn btn--danger" id="delete-selected-periods" disabled>🗑️ ลบที่เลือก</button>
+                                            <button type="button" class="btn btn--outline" id="copy-selected-periods" disabled>📋 คัดลอก</button>
+                                        </div>
+                                        <div class="pagination" id="periods-pagination">
+                                            <button type="button" class="btn btn--outline" id="prev-period-page">◀</button>
+                                            <span class="page-info">หน้า 1 จาก 1 (0 รายการ)</span>
+                                            <button type="button" class="btn btn--outline" id="next-period-page">▶</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>

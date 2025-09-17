@@ -82,6 +82,7 @@ async function loadAdminTemplates() {
       'forms/admin/add-class', 
       'forms/admin/add-room',
       'forms/admin/add-subject',
+      'forms/admin/add-period',
       'forms/admin/add-academic-year'
     ]);
     
@@ -96,7 +97,8 @@ async function loadAdminTemplates() {
         templates['forms/admin/add-teacher'] +
         templates['forms/admin/add-class'] +
         templates['forms/admin/add-room'] +
-        templates['forms/admin/add-subject'];
+        templates['forms/admin/add-subject'] +
+        templates['forms/admin/add-period'];
     }
     
     // แทรก academic year template ลงใน admin-year section

@@ -1,0 +1,245 @@
+Complete Database Schema with Optimized Indexes
+Admin Tables (Security Layer)
+sql-- Admin Users
+CREATE TABLE admin_users (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  username TEXT NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  email TEXT,
+  role TEXT DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
+  is_active INTEGER DEFAULT 1,
+  last_login DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for admin_users
+CREATE UNIQUE INDEX idx_admin_users_username ON admin_users(username);
+CREATE INDEX idx_admin_users_active ON admin_users(is_active) WHERE is_active = 1;
+CREATE INDEX idx_admin_users_role ON admin_users(role);
+
+-- Admin Sessions
+CREATE TABLE admin_sessions (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_user_id INTEGER NOT NULL,
+  session_token TEXT NOT NULL UNIQUE,
+  expires_at DATETIME NOT NULL,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE
+);
+
+-- Indexes for admin_sessions
+CREATE UNIQUE INDEX idx_admin_sessions_token ON admin_sessions(session_token);
+CREATE INDEX idx_admin_sessions_user ON admin_sessions(admin_user_id);
+CREATE INDEX idx_admin_sessions_expires ON admin_sessions(expires_at);
+CREATE INDEX idx_admin_sessions_cleanup ON admin_sessions(expires_at, created_at);
+
+-- Admin Activity Log
+CREATE TABLE admin_activity_log (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  admin_user_id INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  table_name TEXT,
+  record_id TEXT,
+  old_values TEXT,
+  new_values TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE
+);
+
+-- Indexes for admin_activity_log
+CREATE INDEX idx_admin_log_user ON admin_activity_log(admin_user_id);
+CREATE INDEX idx_admin_log_action ON admin_activity_log(action);
+CREATE INDEX idx_admin_log_table ON admin_activity_log(table_name);
+CREATE INDEX idx_admin_log_date ON admin_activity_log(created_at);
+CREATE INDEX idx_admin_log_search ON admin_activity_log(admin_user_id, created_at, action);
+Core Tables (Fixed - ใช้ทุกปี)
+sql-- Academic Years
+CREATE TABLE academic_years (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  year INTEGER NOT NULL UNIQUE,
+  is_active INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for academic_years
+CREATE UNIQUE INDEX idx_academic_years_year ON academic_years(year);
+CREATE UNIQUE INDEX idx_academic_years_active ON academic_years(is_active) WHERE is_active = 1;
+CREATE INDEX idx_academic_years_recent ON academic_years(year DESC);
+
+-- Semesters
+CREATE TABLE semesters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  academic_year_id INTEGER NOT NULL,
+  semester_number INTEGER NOT NULL CHECK (semester_number IN (1,2,3)),
+  semester_name TEXT NOT NULL,
+  is_active INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
+  UNIQUE (academic_year_id, semester_number)
+);
+
+-- Indexes for semesters
+CREATE INDEX idx_semesters_year ON semesters(academic_year_id);
+CREATE UNIQUE INDEX idx_semesters_active ON semesters(is_active) WHERE is_active = 1;
+CREATE UNIQUE INDEX idx_semesters_year_num ON semesters(academic_year_id, semester_number);
+CREATE INDEX idx_semesters_global_context ON semesters(academic_year_id, is_active);
+
+-- Periods (Shared across all years)
+CREATE TABLE periods (
+  period_no INTEGER PRIMARY KEY,
+  period_name TEXT NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for periods
+CREATE INDEX idx_periods_time_range ON periods(start_time, end_time);
+CREATE INDEX idx_periods_name ON periods(period_name);
+CREATE INDEX idx_periods_schedule_order ON periods(period_no, start_time);
+Dynamic Table Creation Function (SQL Template)
+sql-- Template สำหรับสร้าง dynamic tables แต่ละปี
+-- Replace {YEAR} with actual year (e.g., 2567, 2568)
+
+-- Teachers Table
+CREATE TABLE teachers_{YEAR} (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  f_name TEXT NOT NULL,
+  l_name TEXT NOT NULL,
+  full_name TEXT GENERATED ALWAYS AS (f_name || ' ' || l_name) STORED,
+  email TEXT,
+  phone TEXT,
+  subject_group TEXT NOT NULL,
+  role TEXT DEFAULT 'teacher' CHECK (role IN ('teacher', 'head_of_department', 'vice_principal', 'principal')),
+  is_active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
+);
+
+-- Indexes for teachers_{YEAR}
+CREATE INDEX idx_teachers_{YEAR}_semester ON teachers_{YEAR}(semester_id);
+CREATE INDEX idx_teachers_{YEAR}_active ON teachers_{YEAR}(semester_id, is_active);
+CREATE INDEX idx_teachers_{YEAR}_search ON teachers_{YEAR}(f_name, l_name, subject_group);
+CREATE INDEX idx_teachers_{YEAR}_name_search ON teachers_{YEAR}(full_name);
+CREATE INDEX idx_teachers_{YEAR}_subject ON teachers_{YEAR}(subject_group);
+CREATE INDEX idx_teachers_{YEAR}_role ON teachers_{YEAR}(role);
+CREATE UNIQUE INDEX idx_teachers_{YEAR}_email ON teachers_{YEAR}(email) WHERE email IS NOT NULL;
+
+-- Classes Table
+CREATE TABLE classes_{YEAR} (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  grade_level TEXT NOT NULL,
+  section INTEGER NOT NULL,
+  class_name TEXT GENERATED ALWAYS AS (grade_level || '/' || section) STORED,
+  is_active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  UNIQUE (semester_id, grade_level, section)
+);
+
+-- Indexes for classes_{YEAR}
+CREATE INDEX idx_classes_{YEAR}_semester ON classes_{YEAR}(semester_id);
+CREATE INDEX idx_classes_{YEAR}_active ON classes_{YEAR}(semester_id, is_active);
+CREATE INDEX idx_classes_{YEAR}_grade ON classes_{YEAR}(grade_level);
+CREATE INDEX idx_classes_{YEAR}_name_search ON classes_{YEAR}(class_name);
+CREATE UNIQUE INDEX idx_classes_{YEAR}_unique_class ON classes_{YEAR}(semester_id, grade_level, section);
+
+-- Rooms Table
+CREATE TABLE rooms_{YEAR} (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  room_name TEXT NOT NULL,
+  room_type TEXT NOT NULL CHECK (room_type IN ('ทั่วไป', 'ปฏิบัติการคอมพิวเตอร์')),
+  is_active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  UNIQUE (semester_id, room_name)
+);
+
+-- Indexes for rooms_{YEAR}
+CREATE INDEX idx_rooms_{YEAR}_semester ON rooms_{YEAR}(semester_id);
+CREATE INDEX idx_rooms_{YEAR}_active ON rooms_{YEAR}(semester_id, is_active);
+CREATE INDEX idx_rooms_{YEAR}_type ON rooms_{YEAR}(room_type);
+CREATE INDEX idx_rooms_{YEAR}_name_search ON rooms_{YEAR}(room_name);
+CREATE INDEX idx_rooms_{YEAR}_type_active ON rooms_{YEAR}(room_type, is_active);
+CREATE UNIQUE INDEX idx_rooms_{YEAR}_unique_name ON rooms_{YEAR}(semester_id, room_name);
+
+-- Subjects Table (Junction table for many-to-many)
+CREATE TABLE subjects_{YEAR} (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  teacher_id INTEGER NOT NULL,
+  class_id INTEGER NOT NULL,
+  subject_name TEXT NOT NULL,
+  subject_code TEXT,
+  periods_per_week INTEGER NOT NULL CHECK (periods_per_week > 0),
+  default_room_id INTEGER,
+  special_requirements TEXT,
+  is_active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  FOREIGN KEY (teacher_id) REFERENCES teachers_{YEAR}(id) ON DELETE CASCADE,
+  FOREIGN KEY (class_id) REFERENCES classes_{YEAR}(id) ON DELETE CASCADE,
+  FOREIGN KEY (default_room_id) REFERENCES rooms_{YEAR}(id) ON DELETE SET NULL,
+  UNIQUE (semester_id, teacher_id, class_id, subject_name)
+);
+
+-- Indexes for subjects_{YEAR}
+CREATE INDEX idx_subjects_{YEAR}_semester ON subjects_{YEAR}(semester_id);
+CREATE INDEX idx_subjects_{YEAR}_teacher ON subjects_{YEAR}(teacher_id);
+CREATE INDEX idx_subjects_{YEAR}_class ON subjects_{YEAR}(class_id);
+CREATE INDEX idx_subjects_{YEAR}_room ON subjects_{YEAR}(default_room_id) WHERE default_room_id IS NOT NULL;
+CREATE INDEX idx_subjects_{YEAR}_active ON subjects_{YEAR}(semester_id, is_active);
+CREATE INDEX idx_subjects_{YEAR}_search ON subjects_{YEAR}(subject_name, subject_code);
+CREATE INDEX idx_subjects_{YEAR}_teacher_load ON subjects_{YEAR}(teacher_id, periods_per_week);
+CREATE INDEX idx_subjects_{YEAR}_class_subjects ON subjects_{YEAR}(class_id, subject_name);
+CREATE UNIQUE INDEX idx_subjects_{YEAR}_unique ON subjects_{YEAR}(semester_id, teacher_id, class_id, subject_name);
+
+-- Schedules Table (ตารางจริง)
+CREATE TABLE schedules_{YEAR} (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  subject_id INTEGER NOT NULL,
+  day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
+  period_no INTEGER NOT NULL,
+  room_id INTEGER,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects_{YEAR}(id) ON DELETE CASCADE,
+  FOREIGN KEY (period_no) REFERENCES periods(period_no) ON DELETE RESTRICT,
+  FOREIGN KEY (room_id) REFERENCES rooms_{YEAR}(id) ON DELETE SET NULL,
+  UNIQUE (semester_id, day_of_week, period_no, room_id),  -- ป้องกันห้องซ้อน
+  UNIQUE (semester_id, subject_id, day_of_week, period_no)  -- ป้องกันวิชาซ้อน
+);
+
+-- Indexes for schedules_{YEAR} (สำคัญมาก - Heavy usage)
+CREATE INDEX idx_schedules_{YEAR}_semester ON schedules_{YEAR}(semester_id);
+CREATE INDEX idx_schedules_{YEAR}_subject ON schedules_{YEAR}(subject_id);
+CREATE INDEX idx_schedules_{YEAR}_time ON schedules_{YEAR}(day_of_week, period_no);
+CREATE INDEX idx_schedules_{YEAR}_room ON schedules_{YEAR}(room_id) WHERE room_id IS NOT NULL;
+CREATE INDEX idx_schedules_{YEAR}_daily ON schedules_{YEAR}(semester_id, day_of_week);
+CREATE INDEX idx_schedules_{YEAR}_room_schedule ON schedules_{YEAR}(room_id, day_of_week, period_no);
+CREATE INDEX idx_schedules_{YEAR}_conflict_check ON schedules_{YEAR}(semester_id, day_of_week, period_no);
+CREATE INDEX idx_schedules_{YEAR}_subject_schedule ON schedules_{YEAR}(subject_id, day_of_week, period_no);
+
+-- Teacher workload optimization
+CREATE INDEX idx_schedules_{YEAR}_teacher_workload ON schedules_{YEAR}(
+  semester_id,
+  (SELECT teacher_id FROM subjects_{YEAR} WHERE subjects_{YEAR}.id = schedules_{YEAR}.subject_id)
+);
