@@ -748,27 +748,27 @@ function renderTeachersTable() {
     `;
   } else {
     tableBody.innerHTML = paginatedTeachers.map(teacher => {
-      // Smart truncation - truncate only if really needed
+      // Dynamic text fitting - like Excel
       const createFullCell = (content) => {
         return {
           displayText: content || '-',
-          titleAttr: '' 
+          titleAttr: '',
+          cssClass: 'cell-full'
         };
       };
       
-      const createSmartCell = (content, estimatedColWidth) => {
+      const createDynamicCell = (content, columnClass) => {
         const text = content || '-';
-        if (!content) return { displayText: text, titleAttr: '' };
+        if (!content) return { 
+          displayText: text, 
+          titleAttr: '',
+          cssClass: `cell-dynamic ${columnClass}`
+        };
         
-        // Rough estimation: 1 character ≈ 8px, account for padding
-        const availableChars = Math.floor((estimatedColWidth - 20) / 8);
-        
-        if (text.length <= availableChars) {
-          return { displayText: text, titleAttr: '' };
-        }
         return {
-          displayText: text.substring(0, availableChars - 3) + '...',
-          titleAttr: `title="${text}"`
+          displayText: text, // แสดงข้อความเต็มก่อน
+          titleAttr: `title="${text}"`, // เอา tooltip ไว้เสมอ
+          cssClass: `cell-dynamic ${columnClass}`
         };
       };
       
@@ -777,11 +777,11 @@ function renderTeachersTable() {
       const lastName = teacher.l_name || 'ไม่ระบุ';
       const fullName = `${firstName} ${lastName}`;
       
-      // Smart truncation based on actual column widths
+      // Apply different strategies
       const fname = createFullCell(firstName);
       const lname = createFullCell(lastName);
-      const email = createSmartCell(teacher.email, 120); // ขนาดคอลัมน์ 120px
-      const phone = createSmartCell(teacher.phone, 90);   // ขนาดคอลัมน์ 90px
+      const email = createDynamicCell(teacher.email, 'col-email'); // ใช้ dynamic 
+      const phone = createDynamicCell(teacher.phone, 'col-phone'); // ใช้ dynamic
       const subject = createFullCell(teacher.subject_group);
       
       return `
@@ -790,11 +790,11 @@ function renderTeachersTable() {
             <input type="checkbox" class="teacher-row-checkbox" data-teacher-id="${teacher.id}">
           </td>
           <td style="padding: 0.75rem; text-align: center;">${teacher.id}</td>
-          <td style="padding: 0.75rem;">${fname.displayText}</td>
-          <td style="padding: 0.75rem;">${lname.displayText}</td>
-          <td style="padding: 0.75rem;" ${email.titleAttr}>${email.displayText}</td>
-          <td style="padding: 0.75rem;" ${phone.titleAttr}>${phone.displayText}</td>
-          <td style="padding: 0.75rem;">${subject.displayText}</td>
+          <td style="padding: 0.75rem;" class="${fname.cssClass}">${fname.displayText}</td>
+          <td style="padding: 0.75rem;" class="${lname.cssClass}">${lname.displayText}</td>
+          <td style="padding: 0.75rem;" class="${email.cssClass}" ${email.titleAttr}>${email.displayText}</td>
+          <td style="padding: 0.75rem;" class="${phone.cssClass}" ${phone.titleAttr}>${phone.displayText}</td>
+          <td style="padding: 0.75rem;" class="${subject.cssClass}">${subject.displayText}</td>
           <td style="padding: 0.75rem; text-align: center; white-space: nowrap; vertical-align: middle;">
             <div class="actions-container">
               <button type="button" class="btn btn--sm btn--outline" data-action="edit" data-teacher-id="${teacher.id}" title="แก้ไขข้อมูลครู ${fullName}">✏️</button>
