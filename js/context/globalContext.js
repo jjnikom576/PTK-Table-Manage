@@ -495,12 +495,10 @@ export function updateContextUI() {
     // Update year selector
     const yearSelector = document.getElementById('year-selector');
     if (yearSelector) {
-      // ⭐ FIX: เช็คว่า user กำลังเลือกอยู่ไหม
       const userIsSelecting = document.activeElement === yearSelector;
       
       updateYearSelector(globalContext.availableYears);
       
-      // ⭐ FIX: อัปเดต value เฉพาะตอนที่ user ไม่ได้เลือก
       if (!userIsSelecting && yearSelector.value !== String(globalContext.currentYear || '')) {
         yearSelector.value = globalContext.currentYear || '';
         console.log('[GlobalContext] Set year selector to:', globalContext.currentYear);
@@ -510,24 +508,22 @@ export function updateContextUI() {
     // Update semester selector
     const semesterSelector = document.getElementById('semester-selector');
     if (semesterSelector) {
-      // ⭐ FIX: เช็คว่า user กำลังเลือกอยู่ไหม
       const userIsSelecting = document.activeElement === semesterSelector;
       
       updateSemesterSelector(globalContext.availableSemesters);
       
-      // ⭐ FIX: อัปเดต value เฉพาะตอนที่ user ไม่ได้เลือก
       if (!userIsSelecting && semesterSelector.value !== String(globalContext.currentSemester?.id || '')) {
         semesterSelector.value = globalContext.currentSemester?.id || '';
         console.log('[GlobalContext] Set semester selector to:', globalContext.currentSemester?.id);
       }
     }
     
-    // Update context display
+    // Update context display - FIX: ใช้ textContent แทน innerHTML
     const contextDisplay = document.getElementById('context-display');
     if (contextDisplay) {
       const yearText = globalContext.currentYear ? `ปีการศึกษา ${globalContext.currentYear}` : 'ไม่ได้เลือกปี';
       const semesterText = globalContext.currentSemester ? globalContext.currentSemester.semester_name : 'ไม่ได้เลือกภาคเรียน';
-      contextDisplay.textContent = `${yearText} | ${semesterText}`;
+      contextDisplay.textContent = `${yearText} | ${semesterText}`; // FIX: ใช้ textContent
     }
     
     // Update loading states
@@ -550,31 +546,38 @@ export function updateContextUI() {
 }
 
 /**
- * Update Year Selector
+ * Update Year Selector - FIX: ป้องกัน newline characters
  */
 export function updateYearSelector(availableYears) {
   const yearSelector = document.getElementById('year-selector');
   if (!yearSelector) return;
   
-  yearSelector.innerHTML = '<option value="">เลือกปีการศึกษา</option>';
+  // FIX: ล้าง innerHTML อย่างปลอดภัย
+  yearSelector.innerHTML = '';
   
+  // เพิ่ม default option
+  const defaultOption = document.createElement('option');
+  defaultOption.value = '';
+  defaultOption.textContent = 'เลือกปีการศึกษา'; // FIX: ใช้ textContent
+  yearSelector.appendChild(defaultOption);
+  
+  // เพิ่ม year options
   availableYears.forEach(year => {
     const option = document.createElement('option');
     option.value = year.year;
-    option.textContent = `ปีการศึกษา ${year.year}`;
+    option.textContent = `ปีการศึกษา ${year.year}`; // FIX: ใช้ textContent
     option.selected = year.year === globalContext.currentYear;
     yearSelector.appendChild(option);
   });
 }
 
 /**
- * Update Semester Selector (FIXED - ไม่ rebuild ใหม่ถ้าไม่จำเป็น)
+ * Update Semester Selector - FIX: ป้องกัน newline และ rebuild ที่ไม่จำเป็น
  */
 export function updateSemesterSelector(availableSemesters) {
   const semesterSelector = document.getElementById('semester-selector');
   if (!semesterSelector) return;
   
-  // ⭐ FIX: เก็บ current value ไว้
   const currentValue = semesterSelector.value;
   const userIsSelecting = document.activeElement === semesterSelector;
   
@@ -586,8 +589,8 @@ export function updateSemesterSelector(availableSemesters) {
   
   console.log('[GlobalContext] Filtering semesters for year:', globalContext.currentYear, 'Found:', filteredSemesters);
   
-  // ⭐ FIX: เช็คว่าตัวเลือกเปลี่ยนแปลงไหม ก่อนจะ rebuild
-  const currentOptions = Array.from(semesterSelector.options).slice(1); // Skip first option
+  // เช็คว่าตัวเลือกเปลี่ยนแปลงไหม ก่อนจะ rebuild
+  const currentOptions = Array.from(semesterSelector.options).slice(1);
   const needsRebuild = currentOptions.length !== filteredSemesters.length ||
     !filteredSemesters.every((sem, idx) => 
       currentOptions[idx] && 
@@ -595,18 +598,26 @@ export function updateSemesterSelector(availableSemesters) {
       currentOptions[idx].textContent === sem.semester_name
     );
   
-  // ⭐ FIX: Rebuild เฉพาะตอนที่จำเป็น และ user ไม่ได้เลือก
+  // Rebuild เฉพาะตอนที่จำเป็น และ user ไม่ได้เลือก
   if (needsRebuild && !userIsSelecting) {
-    semesterSelector.innerHTML = '<option value="">เลือกภาคเรียน</option>';
+    // FIX: ล้าง innerHTML อย่างปลอดภัย
+    semesterSelector.innerHTML = '';
     
+    // เพิ่ม default option
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'เลือกภาคเรียน'; // FIX: ใช้ textContent
+    semesterSelector.appendChild(defaultOption);
+    
+    // เพิ่ม semester options
     filteredSemesters.forEach(semester => {
       const option = document.createElement('option');
       option.value = semester.id;
-      option.textContent = semester.semester_name;
+      option.textContent = semester.semester_name.trim(); // FIX: trim whitespace
       semesterSelector.appendChild(option);
     });
     
-    // ⭐ FIX: กู้คืน value เดิม หรือใช้ context value
+    // กู้คืน value เดิม หรือใช้ context value
     const valueToSet = currentValue || (globalContext.currentSemester?.id ? String(globalContext.currentSemester.id) : '');
     if (valueToSet && semesterSelector.querySelector(`option[value="${valueToSet}"]`)) {
       semesterSelector.value = valueToSet;

@@ -39,6 +39,7 @@ export async function initAdminPage(context = null) {
 
   bindLogout();
   bindDataSubNavigation();
+  bindMainAdminNavigation(); // เพิ่มบรรทัดนี้
   
   // โหลด admin templates
   await loadAdminTemplates();
@@ -80,7 +81,8 @@ async function loadAdminTemplates() {
       'forms/admin/add-teacher',
       'forms/admin/add-class', 
       'forms/admin/add-room',
-      'forms/admin/add-subject'
+      'forms/admin/add-subject',
+      'forms/admin/add-academic-year'
     ]);
     
     // แทรก templates เข้าใน admin forms grid
@@ -95,11 +97,34 @@ async function loadAdminTemplates() {
         templates['forms/admin/add-class'] +
         templates['forms/admin/add-room'] +
         templates['forms/admin/add-subject'];
-      
-      console.log('✅ Admin templates loaded successfully');
     }
     
+    // แทรก academic year template ลงใน admin-year section
+    const academicManagementContent = document.querySelector('#academic-management-content');
+    if (academicManagementContent) {
+      // วิธี brute force - ใช้ DOMParser
+      const parser = new DOMParser();
+      const templateHtml = templates['forms/admin/add-academic-year'];
+      const doc = parser.parseFromString(templateHtml, 'text/html');
+      const templateElement = doc.body.firstElementChild;
+      
+      academicManagementContent.innerHTML = '';
+      if (templateElement) {
+        academicManagementContent.appendChild(templateElement);
+      } else {
+        // fallback
+        academicManagementContent.innerHTML = templateHtml;
+      }
+      
+      console.log('📅 Academic year template loaded into #academic-management-content');
+      console.log('📝 Template content length:', templates['forms/admin/add-academic-year']?.length || 0, 'characters');
+    } else {
+      console.error('❌ #academic-management-content not found!');
+    }
+      
+    console.log('✅ Admin templates loaded successfully');
     adminState.templatesLoaded = true;
+    
   } catch (error) {
     console.error('❌ Error loading admin templates:', error);
   }
@@ -1070,6 +1095,165 @@ function updateUsernameHeader() {
 
 
 
+
+function bindMainAdminNavigation() {
+  // ป้องกัน duplicate binding
+  const mainNavTabs = document.querySelectorAll('#page-admin .sub-nav-tabs .sub-nav-tab:not([data-bound])');
+  
+  if (mainNavTabs.length === 0) {
+    console.log('ℹ️ Main admin navigation already bound or no tabs found');
+    return;
+  }
+  
+  mainNavTabs.forEach(tab => {
+    tab.setAttribute('data-bound', 'true'); // มาร์คว่า bound แล้ว
+    
+    tab.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      const targetId = tab.getAttribute('data-target');
+      console.log('🎯 Admin tab clicked:', targetId);
+      
+      // Remove active class from all main tabs
+      const allMainTabs = document.querySelectorAll('#page-admin .sub-nav-tabs .sub-nav-tab');
+      allMainTabs.forEach(t => {
+        t.classList.remove('active');
+        t.setAttribute('aria-selected', 'false');
+      });
+      
+      // Add active class to clicked tab
+      tab.classList.add('active');
+      tab.setAttribute('aria-selected', 'true');
+      
+      // Hide all admin sub-pages
+      const adminSubPages = document.querySelectorAll('#page-admin .sub-page');
+      adminSubPages.forEach(page => {
+        page.classList.add('hidden');
+        page.style.display = 'none'; // บังคับซ่อน
+      });
+      
+      // Show target page
+      const targetPage = document.getElementById(targetId);
+      if (targetPage) {
+        targetPage.classList.remove('hidden');
+        targetPage.style.display = 'block'; // บังคับแสดง
+        console.log('✅ Showing admin section:', targetId);
+        
+        // Debug CSS
+        console.log('🎨 CSS classes:', targetPage.className);
+        console.log('🎨 Display style:', window.getComputedStyle(targetPage).display);
+        console.log('🎨 Visibility:', window.getComputedStyle(targetPage).visibility);
+        
+        // ตรวจสอบเนื้อหา
+        const content = targetPage.innerHTML.trim();
+        if (content.length === 0 || content === '<!-- Content will be loaded here -->') {
+          console.warn('⚠️ Target page is empty:', targetId);
+          targetPage.innerHTML = '<div style="padding: 2rem; text-align: center; color: #666;">Loading content...</div>';
+        } else {
+          console.log('📝 Content found in', targetId, ':', content.length, 'characters');
+          
+          // ถ้าเป็น academic year section ให้เพิ่ม sub-nav events
+          if (targetId === 'admin-year') {
+            initAcademicYearNavigation();
+          }
+        }
+      } else {
+        console.error('❌ Target admin section not found:', targetId);
+      }
+    });
+  });
+  
+  console.log('✅ Main admin navigation bound to', mainNavTabs.length, 'tabs');
+}
+
+function initAcademicYearNavigation() {
+  console.log('📅 Initializing academic year navigation...');
+  
+  // แก้ไข selector ให้ถูกต้อง - ใช้ #admin-year แทน #academic-management-content
+  const subNavItems = document.querySelectorAll('#admin-year .sub-nav-item:not([data-bound])');
+  
+  if (subNavItems.length === 0) {
+    console.log('ℹ️ Academic year sub-navigation already bound or no items found');
+    
+    // Debug: ดูว่ามี elements อะไรอยู่
+    const container = document.querySelector('#admin-year');
+    const academicMgmtDiv = document.querySelector('#admin-year #academic-management');
+    const subNav = document.querySelector('#admin-year .sub-nav');
+    const allSubNavItems = document.querySelectorAll('#admin-year .sub-nav-item');
+    
+    console.log('🔍 Container found:', !!container);
+    console.log('🔍 Academic management div found:', !!academicMgmtDiv);
+    console.log('🔍 Sub-nav found:', !!subNav);
+    console.log('🔍 All sub-nav items found:', allSubNavItems.length);
+    
+    if (container && academicMgmtDiv) {
+      // แก้ไข: ลบ class hidden จาก academic-management div
+      if (academicMgmtDiv.classList.contains('hidden')) {
+        academicMgmtDiv.classList.remove('hidden');
+        academicMgmtDiv.style.display = 'block';
+        console.log('✅ Removed hidden class from academic-management div');
+      }
+      console.log('📝 Container HTML preview:', container.innerHTML.substring(0, 200) + '...');
+    }
+    
+    // ลองอีกครั้งหลังจากแก้ไข hidden
+    const retrySubNavItems = document.querySelectorAll('#admin-year .sub-nav-item:not([data-bound])');
+    if (retrySubNavItems.length > 0) {
+      console.log('🔄 Found sub-nav items after removing hidden class:', retrySubNavItems.length);
+      // Recursively call with fixed elements
+      bindAcademicSubNavItems(retrySubNavItems);
+      return;
+    }
+    
+    return;
+  }
+  
+  bindAcademicSubNavItems(subNavItems);
+  console.log('✅ Academic year navigation initialized with', subNavItems.length, 'sub-tabs');
+}
+
+// แยกฟังก์ชัน binding ออกมา
+function bindAcademicSubNavItems(subNavItems) {
+  subNavItems.forEach(item => {
+    item.setAttribute('data-bound', 'true');
+    
+    item.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      const targetSubTab = item.getAttribute('data-sub-tab');
+      console.log('📅 Academic sub-tab clicked:', targetSubTab);
+      
+      // Remove active from all sub-nav items
+      const allSubNavItems = document.querySelectorAll('#admin-year .sub-nav-item');
+      allSubNavItems.forEach(i => i.classList.remove('active'));
+      
+      // Add active to clicked item
+      item.classList.add('active');
+      
+      // Hide all sub-tab-content
+      const allSubTabContent = document.querySelectorAll('#admin-year .sub-tab-content');
+      allSubTabContent.forEach(content => {
+        content.classList.add('hidden');
+        content.classList.remove('active');
+      });
+      
+      // Show target sub-tab-content
+      const targetContent = document.getElementById(targetSubTab);
+      if (targetContent) {
+        targetContent.classList.remove('hidden');
+        targetContent.classList.add('active');
+        console.log('✅ Showing academic sub-tab:', targetSubTab);
+      } else {
+        console.error('❌ Academic sub-tab content not found:', targetSubTab);
+      }
+    });
+  });
+  
+  // Initialize first sub-tab as active
+  if (subNavItems.length > 0) {
+    subNavItems[0].click();
+  }
+}
 
 function bindDataSubNavigation() {
   // Bind data sub-navigation tabs
