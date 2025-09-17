@@ -782,7 +782,7 @@ function renderTeachersTable() {
       const lname = createFullCell(lastName);
       const email = createDynamicCell(teacher.email, 'col-email'); // ใช้ dynamic 
       const phone = createDynamicCell(teacher.phone, 'col-phone'); // ใช้ dynamic
-      const subject = createFullCell(teacher.subject_group);
+      const subject = createDynamicCell(teacher.subject_group, 'col-subject'); // เปลี่ยนเป็น dynamic
       
       return `
         <tr class="teacher-row" data-teacher-id="${teacher.id}">

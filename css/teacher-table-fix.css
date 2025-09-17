@@ -99,8 +99,8 @@
   margin: 0;
   table-layout: fixed;
   position: relative;
-  /* Reduced minimum width due to smaller email/phone columns */
-  min-width: 750px;
+  /* Further reduced due to smaller subject column */
+  min-width: 720px;
   max-width: none;
   box-sizing: border-box;
 }
@@ -446,6 +446,11 @@ kbd {
 
 /* Specific phone column behavior */
 .cell-dynamic.col-phone {
+  max-width: 100%; /* ใช้พื้นที่ทั้งหมดที่มี */
+}
+
+/* Specific subject column behavior */
+.cell-dynamic.col-subject {
   max-width: 100%; /* ใช้พื้นที่ทั้งหมดที่มี */
 }
 
@@ -917,8 +922,8 @@ select:focus {
 }
 
 .col-subject { 
-  width: 130px;
-  min-width: 130px; 
+  width: 110px;  /* เริ่มต้นเล็กลง */
+  min-width: 90px; 
 }
 
 /* Enhanced Actions Column - Fixed alignment */
