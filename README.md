@@ -88,6 +88,18 @@ python -m http.server 8000
 # เปิด http://localhost:8000
 ```
 
+### Windows One-Click Dev (frontend + API)
+- รันทั้งเว็บและ Admin API พร้อมกันบน Windows PowerShell:
+```
+powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
+```
+- เปิดหน้าเว็บ: `http://localhost:8000`
+- ตรวจสอบ API: `http://localhost:8080/api/health`
+
+Environment variables (optional):
+- `ADMIN_API_HOST` ค่าเริ่มต้น `127.0.0.1`
+- `ADMIN_API_PORT` ค่าเริ่มต้น `8080`
+
 ### Production (Supabase):
 ```javascript
 // js/api/config.js

@@ -1,35 +1,123 @@
                         <!-- Add Teacher Tab -->
                         <div id="add-teacher" class="data-sub-page active" role="tabpanel" 
                              aria-labelledby="tab-add-teacher">
-                            <div class="admin-form-section">
-                                <h3>👨‍🏫 เพิ่มครู</h3>
-                                <form id="teacher-form" class="admin-form">
-                                    <div class="form-group">
-                                        <label for="teacher-name">ชื่อ:</label>
-                                        <input type="text" id="teacher-name" name="name" required>
+                            
+                            <!-- Main Container: Form + Data Grid -->
+                            <div class="teacher-management-container">
+                                
+                                <!-- Left: Add Teacher Form -->
+                                <div class="admin-form-section">
+                                    <h3>📝 เพิ่มครูใหม่</h3>
+                                    <form id="teacher-form" class="admin-form">
+                                        <div class="form-group">
+                                            <label for="teacher-f-name">ชื่อ:</label>
+                                            <input type="text" id="teacher-f-name" name="f_name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teacher-l-name">นามสกุล:</label>
+                                            <input type="text" id="teacher-l-name" name="l_name" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teacher-email">อีเมล:</label>
+                                            <input type="email" id="teacher-email" name="email">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teacher-phone">เบอร์โทร:</label>
+                                            <input type="tel" id="teacher-phone" name="phone">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teacher-subject-group">สาขาวิชา:</label>
+                                            <select id="teacher-subject-group" name="subject_group" required>
+                                                <option value="">-- เลือกสาขาวิชา --</option>
+                                                <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                                                <option value="คณิตศาสตร์">คณิตศาสตร์</option>
+                                                <option value="ภาษาไทย">ภาษาไทย</option>
+                                                <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
+                                                <option value="สังคมศึกษา">สังคมศึกษา</option>
+                                                <option value="ศิลปะ">ศิลปะ</option>
+                                                <option value="พลศึกษา">พลศึกษา</option>
+                                                <option value="เทคโนโลยี">เทคโนโลยี</option>
+                                                <option value="การงานอาชีพ">การงานอาชีพ</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="teacher-role">บทบาท:</label>
+                                            <div class="radio-group">
+                                                <label><input type="radio" name="role" value="teacher" checked> ครู</label>
+                                                <label><input type="radio" name="role" value="head_of_department"> หัวหน้าแผนก</label>
+                                                <label><input type="radio" name="role" value="vice_principal"> รองครูใหญ่</label>
+                                                <label><input type="radio" name="role" value="principal"> ครูใหญ่</label>
+                                            </div>
+                                        </div>
+                                        <div class="form-buttons">
+                                            <button type="submit" class="btn btn--primary">💾 บันทึก</button>
+                                            <button type="button" class="btn btn--outline" id="clear-teacher-form">🔄 ล้างฟอร์ม</button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Right: Teachers Data Grid -->
+                                <div class="teacher-data-grid">
+                                    <h3>📊 รายการครูทั้งหมด</h3>
+                                    
+                                    <!-- Grid Controls -->
+                                    <div class="grid-controls">
+                                        <div class="search-controls">
+                                            <input type="text" id="teacher-search" placeholder="🔍 ค้นหา...">
+                                            <button type="button" class="btn btn--outline" id="refresh-teachers">🔄 รีเฟรช</button>
+                                        </div>
+                                        <div class="grid-actions">
+                                            <select id="teachers-per-page">
+                                                <option value="10">แสดง 10</option>
+                                                <option value="25">แสดง 25</option>
+                                                <option value="50">แสดง 50</option>
+                                            </select>
+                                            <button type="button" class="btn btn--outline" id="export-teachers">📤 ส่งออก Excel</button>
+                                            <button type="button" class="btn btn--outline" id="show-shortcuts">⌨️ คีย์ลัด</button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="teacher-subject-group">กลุ่มสาระ:</label>
-                                        <select id="teacher-subject-group" name="subject_group" required>
-                                            <option value="">-- เลือกกลุ่มสาระ --</option>
-                                            <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
-                                            <option value="คณิตศาสตร์">คณิตศาสตร์</option>
-                                            <option value="ภาษาไทย">ภาษาไทย</option>
-                                            <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
-                                            <option value="สังคมศึกษา">สังคมศึกษา</option>
-                                            <option value="ศิลปะ">ศิลปะ</option>
-                                            <option value="พลศึกษา">พลศึกษา</option>
-                                        </select>
+
+                                    <!-- Teachers Table -->
+                                    <div class="table-container">
+                                        <table id="teachers-table" class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-checkbox">✓</th>
+                                                    <th class="col-id" data-sortable data-column="id">ID</th>
+                                                    <th class="col-fname" data-sortable data-column="f_name">ชื่อ</th>
+                                                    <th class="col-lname" data-sortable data-column="l_name">นามสกุล</th>
+                                                    <th class="col-email" data-sortable data-column="email">อีเมล</th>
+                                                    <th class="col-phone" data-sortable data-column="phone">เบอร์โทร</th>
+                                                    <th class="col-subject" data-sortable data-column="subject_group">สาขาวิชา</th>
+                                                    <th class="col-actions">การดำเนินการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="teachers-table-body">
+                                                <!-- Dynamic content will be loaded here -->
+                                                <tr>
+                                                    <td colspan="8" class="loading-message">
+                                                        🔄 กำลังโหลดข้อมูล...
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="teacher-phone">เบอร์โทร:</label>
-                                        <input type="tel" id="teacher-phone" name="phone">
+
+                                    <!-- Pagination + Bulk Actions -->
+                                    <div class="grid-footer">
+                                        <div class="bulk-actions">
+                                            <label class="select-all-label">
+                                                <input type="checkbox" id="select-all-teachers"> เลือกทั้งหมด
+                                            </label>
+                                            <button type="button" class="btn btn--danger" id="delete-selected-teachers" disabled>🗑️ ลบที่เลือก</button>
+                                            <button type="button" class="btn btn--outline" id="copy-selected-teachers" disabled>📋 คัดลอก</button>
+                                        </div>
+                                        <div class="pagination" id="teachers-pagination">
+                                            <button type="button" class="btn btn--outline" id="prev-page">◀</button>
+                                            <span class="page-info">หน้า 1 จาก 1 (0 รายการ)</span>
+                                            <button type="button" class="btn btn--outline" id="next-page">▶</button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="teacher-email">อีเมล:</label>
-                                        <input type="email" id="teacher-email" name="email">
-                                    </div>
-                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                                </form>
+                                </div>
                             </div>
                         </div>

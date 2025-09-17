@@ -26,6 +26,44 @@
 .chip--warning { border-color: var(--color-warning); color: var(--color-warning-dark); background: var(--color-warning-light); }
 
 /* =========================================
+   ADMIN LAYOUT OVERRIDES
+   ========================================= */
+
+/* Ensure admin page uses full width */
+#page-admin .container {
+  max-width: none !important;
+  width: 100% !important;
+  padding: 0 1rem !important;
+}
+
+/* Admin forms grid - remove grid layout for teacher management */
+#page-admin .admin-forms-grid {
+  display: block !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  max-width: none !important;
+  gap: 0 !important;
+}
+
+/* Admin data section full width */
+#admin-data {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Make admin sections use full available space */
+.admin-section {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Override any container constraints in admin */
+.page-content {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* =========================================
    DATA SUB-NAVIGATION (Admin - เพิ่มข้อมูล)
    ========================================= */
 .data-sub-navigation {

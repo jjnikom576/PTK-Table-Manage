@@ -91,7 +91,8 @@ export const teachersData = {
   teachers_2567: [
     {
       id: 1,
-      name: "นายสมชาย วิทยาการ",
+      f_name: "สมชาย",
+      l_name: "วิทยาการ",
       email: "somchai.science@school.ac.th",
       phone: "081-234-5678",
       subject_group: "วิทยาศาสตร์",
@@ -101,7 +102,8 @@ export const teachersData = {
     },
     {
       id: 2,
-      name: "นางสาววิภา คณิตกุล",
+      f_name: "วิภา",
+      l_name: "คณิตกุล",
       email: "wipa.math@school.ac.th",
       phone: "081-345-6789", 
       subject_group: "คณิตศาสตร์",
@@ -111,7 +113,8 @@ export const teachersData = {
     },
     {
       id: 3,
-      name: "นางสุดา ภาษาดี",
+      f_name: "สุดา",
+      l_name: "ภาษาดี",
       email: "suda.thai@school.ac.th",
       phone: "081-456-7890",
       subject_group: "ภาษาไทย", 
@@ -121,7 +124,8 @@ export const teachersData = {
     },
     {
       id: 4,
-      name: "Ms. Emily Wilson",
+      f_name: "Emily",
+      l_name: "Wilson",
       email: "emily.english@school.ac.th",
       phone: "081-567-8901",
       subject_group: "ภาษาอังกฤษ",
@@ -131,7 +135,8 @@ export const teachersData = {
     },
     {
       id: 5,
-      name: "นายประยุทธ์ สังคมศาสตร์",
+      f_name: "ประยุทธ์",
+      l_name: "สังคมศาสตร์",
       email: "prayut.social@school.ac.th", 
       phone: "081-678-9012",
       subject_group: "สังคมศึกษา",
@@ -141,7 +146,8 @@ export const teachersData = {
     },
     {
       id: 6,
-      name: "นางสาวศิลปิน ครีเอทีฟ",
+      f_name: "ศิลปิน",
+      l_name: "ครีเอทีฟ",
       email: "silpin.art@school.ac.th",
       phone: "081-789-0123",
       subject_group: "ศิลปะ",
@@ -152,7 +158,8 @@ export const teachersData = {
     // ครูใหม่ในปี 2567
     {
       id: 7,
-      name: "นายเทคโน โลยี",
+      f_name: "เทคโน",
+      l_name: "โลยี",
       email: "techno.computer@school.ac.th",
       phone: "081-890-1234",
       subject_group: "เทคโนโลยี",
@@ -162,7 +169,8 @@ export const teachersData = {
     },
     {
       id: 8,
-      name: "นางการงาน ฝีมือ",
+      f_name: "การงาน",
+      l_name: "ฝีมือ",
       email: "karngaan.skill@school.ac.th",
       phone: "081-901-2345",
       subject_group: "การงานอาชีพ",
@@ -172,7 +180,8 @@ export const teachersData = {
     },
     {
       id: 9,
-      name: "นายลูกเสือ กิจกรรม",
+      f_name: "ลูกเสือ",
+      l_name: "กิจกรรม",
       email: "lookseua.activity@school.ac.th",
       phone: "081-012-3456",
       subject_group: "กิจกรรมพัฒนาผู้เรียน",
@@ -182,7 +191,8 @@ export const teachersData = {
     },
     {
       id: 10,
-      name: "นางสาวชีววิทยา เซลล์",
+      f_name: "ชีววิทยา",
+      l_name: "เซลล์",
       email: "cheewa.bio@school.ac.th",
       phone: "081-123-4567",
       subject_group: "วิทยาศาสตร์",
@@ -407,15 +417,33 @@ export function getAvailableSubjectGroups(year) {
   return [...new Set(teachers.map(t => t.subject_group))];
 }
 
+// Helper function to get full name
+export function getFullName(teacher) {
+  return `${teacher.f_name} ${teacher.l_name}`;
+}
+
+// Helper function to get role display name
+export function getRoleDisplayName(role) {
+  const roleNames = {
+    'teacher': 'ครู',
+    'head_of_department': 'หัวหน้าแผนก',
+    'vice_principal': 'รองครูใหญ่',
+    'principal': 'ครูใหญ่'
+  };
+  return roleNames[role] || 'ครู';
+}
+
 // Export normalization for teacher schedule
 export function normalizeTeacherRowForExport(teacher, context) {
   return {
-    'ชื่อครู': teacher.name,
+    'ชื่อครู': getFullName(teacher),
+    'ชื่อ': teacher.f_name,
+    'นามสกุล': teacher.l_name,
     'กลุ่มสาระ': teacher.subject_group,
     'เบอร์โทร': teacher.phone,
     'อีเมล': teacher.email,
     'ปีการศึกษา': context.year,
-    'สถานะ': teacher.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ครู'
+    'สถานะ': getRoleDisplayName(teacher.role)
   };
 }
 

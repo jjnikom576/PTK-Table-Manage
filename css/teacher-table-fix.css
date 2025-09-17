@@ -1,97 +1,985 @@
-/* =========================================
-   FIX: หน้า Teacher Schedule - จัดกึ่งกลาง
-   ========================================= */
-
-/* ========== 1. หัวตาราง จัดกึ่งกลาง ========== */
-.schedule-table thead th {
-  text-align: center !important;
-  vertical-align: middle !important;
+/* Admin Layout Override for Teacher Management */
+.admin-forms-grid {
+  display: block !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  max-width: none !important;
 }
 
-.schedule-table thead th:first-child {
-  text-align: center !important; /* แม้แต่คอลัมน์แรก */
+/* Ensure admin section takes full width */
+#admin-data.admin-section {
+  width: 100% !important;
+  max-width: none !important;
 }
 
-/* ========== 2. ตาราง จัดกึ่งกลาง ทั้ง 8 คาบ ========== */
-.schedule-table td {
-  text-align: center !important;
-  vertical-align: middle !important;
+/* Override any grid constraints */
+.page-content .container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 1rem !important;
+  box-sizing: border-box !important;
 }
 
-.schedule-table td:first-child {
-  text-align: center !important; /* คอลัมน์วัน */
-  font-weight: var(--font-weight-semibold);
+/* Admin Teacher Management Styles */
+.teacher-management-container {
+  display: flex !important;
+  gap: 1.5rem;
+  height: auto;
+  min-height: 500px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100% !important;
+  /* Strict overflow control */
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: layout style;
 }
 
-/* เซลล์เนื้อหาวิชา */
-.subject-cell {
+.teacher-data-grid {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 350px); /* Reserve more space for form */
   display: flex;
   flex-direction: column;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  min-height: 60px;
-  gap: .15rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  /* Essential: Ensure strict containment */
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
-.subject-name,
-.teacher-name,
-.class-name,
-.room-name {
-  text-align: center !important;
+.teacher-data-grid h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
 }
 
-/* ========== 3. สรุปภาระงาน จัดกึ่งกลาง ========== */
-.workload-container {
-  text-align: center;
+.grid-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
-.summary-section h3 {
-  text-align: center !important;
-}
-
-.stats-grid {
-  justify-items: center;
-}
-
-.stat-card {
-  text-align: center !important;
-}
-
-.ranking-list {
+.search-controls, .grid-actions {
+  display: flex;
+  gap: 0.5rem;
   align-items: center;
 }
 
-.ranking-item {
+.table-container {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: auto;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  max-height: 500px;
+  min-height: 300px;
+  /* Strict width control */
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  box-sizing: border-box;
+  /* Ensure content stays within bounds */
+  contain: layout style;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 0;
+  table-layout: fixed;
+  position: relative;
+  /* Essential: Set min-width to ensure horizontal scroll */
+  min-width: 800px;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.data-table thead {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table th {
+  padding: 0.75rem 0.5rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  background-color: #f8f9fa;
+  position: relative;
+  border-right: 1px solid #dee2e6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sortable column styling */
+.data-table th[data-sortable] {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.data-table th[data-sortable]:hover {
+  background-color: #e9ecef;
+}
+
+/* Sort indicators - using pseudo-before to avoid conflict with resize handle */
+.data-table th[data-sortable]::before {
+  content: '⇅';
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-right: 0.5rem;
+  opacity: 0.5;
+}
+
+.data-table th.sort-asc::before {
+  content: '↑';
+  color: #007bff;
+  opacity: 1;
+}
+
+.data-table th.sort-desc::before {
+  content: '↓';
+  color: #007bff;
+  opacity: 1;
+}
+
+/* Resizable column handle - only for non-sortable columns or use different approach */
+.data-table th:not(:last-child):not([data-sortable])::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  background: transparent;
+  border-right: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.data-table th:not(:last-child):not([data-sortable]):hover::after {
+  border-right-color: #007bff;
+}
+
+.data-table th.resizing::after {
+  border-right-color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+}
+
+/* Sort feedback styling */
+.sort-feedback {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #1565c0;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #90caf9;
+  display: none;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced column hover effects */
+.data-table th[data-sortable]:hover {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Enhanced table row effects */
+.data-table tbody tr:hover {
+  background-color: #f8f9fa !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+/* Enhanced tooltip for mobile devices */
+@media (max-width: 768px) {
+  .data-table td[title]:hover::after {
+    max-width: 250px;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+/* Loading state improvements */
+.loading-message {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  background: linear-gradient(90deg, #f8f9fa, #e9ecef, #f8f9fa);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Shortcuts Modal Styling */
+.shortcuts-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
   justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shortcuts-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+  border: 1px solid #e0e0e0;
+}
+
+.shortcuts-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px 12px 0 0;
+}
+
+.shortcuts-modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.shortcuts-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.shortcuts-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.shortcuts-modal-body {
+  padding: 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.shortcuts-section {
+  margin-bottom: 1.5rem;
+}
+
+.shortcuts-section:last-child {
+  margin-bottom: 0;
+}
+
+.shortcuts-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e3f2fd;
+  padding-bottom: 0.25rem;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+kbd {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: #495057;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  margin: 0 0.25rem;
+  min-width: 1.5rem;
   text-align: center;
+  display: inline-block;
 }
 
-/* ========== 4. Teacher Info Card จัดกึ่งกลาง ========== */
-.teacher-info {
-  text-align: center;
+.shortcuts-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  text-align: right;
 }
 
-.teacher-info .info-card {
-  text-align: center !important;
-}
-
-.teacher-info .info-title,
-.teacher-info .info-value {
-  text-align: center !important;
-}
-
-/* ========== 5. Responsive เพิ่มเติม ========== */
-@media (max-width: 767px) {
-  .schedule-container {
-    text-align: center;
+/* Responsive design for modal */
+@media (max-width: 768px) {
+  .shortcuts-modal-content {
+    max-width: 95vw;
+    margin: 1rem;
   }
   
-  .schedule-table {
-    margin: 0 auto;
+  .shortcuts-modal-header,
+  .shortcuts-modal-body,
+  .shortcuts-modal-footer {
+    padding: 1rem;
   }
   
-  .workload-container {
-    text-align: center;
+  .shortcut-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
+}
+
+.data-table td {
+  padding: 0.5rem 0.3rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+  font-size: 0.8rem;
+  box-sizing: border-box;
+  position: relative;
+  /* Ensure consistent height for all cells */
+  height: auto;
+  min-height: 2.5rem;
+  /* Allow text wrapping only where appropriate */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Specific cells that should truncate */
+.data-table td.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Full display cells */
+.data-table td.full-display {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  min-height: 2.5rem;
+  line-height: 1.3;
+}
+
+/* Enhanced Tooltip for truncated text */
+.data-table td[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1000;
+  max-width: 320px;
+  word-wrap: break-word;
+  white-space: normal;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  /* Animation */
+  opacity: 0;
+  animation: tooltipFadeIn 0.2s ease-out forwards;
+}
+
+/* Tooltip fade-in animation */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(5px);
+  }
+}
+
+/* Tooltip arrow */
+.data-table td[title]:hover::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: rgba(0, 0, 0, 0.9);
+  z-index: 1001;
+  pointer-events: none;
+  opacity: 0;
+  animation: tooltipFadeIn 0.2s ease-out forwards;
+}
+
+/* Make sure tooltip doesn't overflow table container - REMOVED conflicting overflow rule */
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.teacher-row {
+  transition: background-color 0.2s ease;
+}
+
+.teacher-row:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.teacher-row:hover {
+  background-color: #e3f2fd !important;
+}
+
+.loading-message {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.btn--sm {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
+  margin: 0 0.1rem;
+  min-width: auto;
+  border-radius: 3px;
+}
+
+.grid-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.pagination {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.page-info {
+  margin: 0 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Form styling improvements */
+.admin-form-section {
+  flex: 0 0 300px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+  min-height: fit-content;
+}
+
+.admin-form-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.radio-group input[type="radio"] {
+  margin: 0;
+  width: auto;
+}
+
+/* Button improvements */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn--primary {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+.btn--outline {
+  background-color: transparent;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn--danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+/* Teacher management container adjustments */
+.teacher-management-container {
+  align-items: stretch;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .teacher-management-container {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .admin-form-section {
+    flex: none;
+    max-width: 100%;
+    order: 1;
+  }
+  
+  .teacher-data-grid {
+    order: 2;
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .teacher-management-container {
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+  
+  .admin-form-section {
+    padding: 1rem;
+  }
+  
+  .teacher-data-grid {
+    padding: 1rem;
+  }
+  
+  .data-table {
+    font-size: 0.8rem;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.4rem 0.3rem;
+  }
+  
+  .grid-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-controls, .grid-actions {
+    justify-content: center;
+  }
+  
+  .grid-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .bulk-actions, .pagination {
+    justify-content: center;
+  }
+}
+
+/* Loading state */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Success/Error states */
+.alert {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid;
+  border-radius: 4px;
+}
+
+.alert--success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.alert--error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.alert--info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+}
+
+/* Button states for actions */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #0056b3;
+  border-color: #004085;
+}
+
+.btn--outline:hover:not(:disabled) {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  margin: 0;
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+  accent-color: #007bff;
+}
+
+/* Search input styling */
+#teacher-search {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  width: 200px;
+}
+
+#teacher-search:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Select styling */
+select {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Empty state styling */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+}
+
+/* Force visibility for table elements */
+#teachers-table {
+  display: table !important;
+  visibility: visible !important;
+}
+
+#teachers-table thead {
+  display: table-header-group !important;
+}
+
+#teachers-table tbody {
+  display: table-row-group !important;
+}
+
+#teachers-table tbody tr {
+  display: table-row !important;
+}
+
+#teachers-table tbody td {
+  display: table-cell !important;
+}
+
+#teachers-table thead tr {
+  display: table-row !important;
+}
+
+#teachers-table thead th {
+  display: table-cell !important;
+}
+
+/* Ensure table visibility */
+#teachers-table-body {
+  display: table-row-group !important;
+}
+
+#teachers-table-body tr {
+  display: table-row !important;
+}
+
+#teachers-table-body td {
+  display: table-cell !important;
+}
+
+/* Column specific widths - Fixed pixel widths for consistency */
+.col-checkbox { 
+  width: 50px;
+  text-align: center; 
+  min-width: 50px; 
+}
+
+.col-id { 
+  width: 60px;
+  text-align: center; 
+  min-width: 60px; 
+}
+
+.col-fname { 
+  width: 120px;
+  min-width: 120px; 
+}
+
+.col-lname { 
+  width: 120px;
+  min-width: 120px; 
+}
+
+.col-email { 
+  width: 120px;
+  min-width: 120px; 
+}
+
+.col-phone { 
+  width: 90px;
+  min-width: 90px; 
+}
+
+.col-subject { 
+  width: 130px;
+  min-width: 130px; 
+}
+
+/* Enhanced Actions Column - Fixed alignment */
+.col-actions { 
+  width: 180px;
+  text-align: center; 
+  min-width: 180px;
+  white-space: nowrap;
+  padding: 0.4rem !important;
+  vertical-align: middle;
+}
+
+/* Action buttons - ensure single line */
+.col-actions .btn {
+  margin: 0 0.05rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: auto;
+  border-radius: 3px;
+  display: inline-block; /* Changed from inline-flex */
+  vertical-align: middle;
+  transition: all 0.2s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Specific styling for actions cell content */
+.col-actions td {
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  line-height: 1.2 !important;
+}
+
+/* Ensure buttons stay in one line */
+.actions-container {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.col-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Ensure action buttons don't wrap */
+.col-actions {
+  overflow: visible;
+}
+
+/* Enhanced Scrollbar Styling */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #007bff;
+}
+
+.table-container::-webkit-scrollbar-corner {
+  background: #f1f1f1;
 }

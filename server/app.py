@@ -41,6 +41,14 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        # Health check endpoint
+        if parsed.path == '/api/health':
+            return json_response(self, 200, {
+                'ok': True,
+                'service': 'admin-api',
+                'db_path': os.path.basename(DB_PATH),
+                'timestamp': datetime.utcnow().isoformat() + 'Z'
+            })
         if parsed.path.startswith('/api/admin/users/') and parsed.path.endswith('/hash'):
             # GET /api/admin/users/:username/hash
             parts = parsed.path.split('/')
@@ -124,5 +132,9 @@ def run(host='127.0.0.1', port=8080):
     httpd.serve_forever()
 
 if __name__ == '__main__':
-    run()
-
+    host = os.environ.get('ADMIN_API_HOST', '127.0.0.1')
+    try:
+        port = int(os.environ.get('ADMIN_API_PORT', '8080'))
+    except ValueError:
+        port = 8080
+    run(host=host, port=port)

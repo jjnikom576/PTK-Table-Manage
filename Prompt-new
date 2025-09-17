@@ -1,3 +1,14 @@
+วิธีใช้รอบถัดไป                                                                                                                                                                                                 
+                                                                                                                                                                                                              
+  - แค่บอก “ดู AGENTS.md เป็นฐาน” แล้วสั่งสิ่งที่อยากทำ เช่น:                                                                                                                                                            
+      - “ตาม AGENTS.md ให้เชื่อม read-only endpoint academic years และสลับ client จาก mock เฉพาะจุดนั้น พร้อม fallback”                                                                                               
+      - “ปรับปรุง UX error/loading ให้ตรงมาตรฐานใน AGENTS.md บนหน้า teacher/student”                                                                                                                              
+                                                                                                                                                                                                              
+  อยากให้ผมเริ่มภารกิจไหนจากลิสต์ข้อเสนอที่ให้ไว้ไหม? เช่น เชื่อม API (academic years) แบบ read-only ก่อน พร้อมสลับ client เฉพาะเส้นทางนั้น?   
+
+  
+
+
 Prompt 1: Enhanced Project Structure (Multi-Year + Rooms + Export)
 สร้าง project structure สำหรับระบบจัดตารางสอนโรงเรียน แบบ Multi-Year พร้อม Rooms Management และ Export System:
 school-schedule/
