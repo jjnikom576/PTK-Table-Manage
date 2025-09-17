@@ -1,0 +1,22 @@
+
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"compatibility_date": "2025-04-01",
+	"main": "src/index.ts",
+	"name": "school-scheduler-backend",
+	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_id": "ac2699a8-76a6-4379-a83b-fe7912ced972",
+			"database_name": "scheduler-db"
+		}
+	],
+	"vars": {
+		"ADMIN_DEFAULT_PASSWORD": "admin123",
+		"NODE_ENV": "development"
+	},
+	"observability": {
+		"enabled": true
+	}
+}
