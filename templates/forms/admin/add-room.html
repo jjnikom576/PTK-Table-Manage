@@ -1,28 +1,219 @@
                         <!-- Add Room Tab -->
                         <div id="add-room" class="data-sub-page hidden" role="tabpanel" 
                              aria-labelledby="tab-add-room">
-                            <div class="admin-form-section">
-                                <h3>🏠 เพิ่มห้องเรียน</h3>
-                                <form id="room-form" class="admin-form">
-                                    <div class="form-group">
-                                        <label for="room-name">ชื่อห้อง:</label>
-                                        <input type="text" id="room-name" name="name" required placeholder="เช่น 401, เทค-1, แล็บฟิสิกส์">
+                            
+                            <!-- Room Management Container -->
+                            <div class="room-management-container">
+                                
+                                <!-- Add Room Form -->
+                                <div class="admin-form-section">
+                                    <h3>🏠 เพิ่มห้องเรียน</h3>
+                                    <form id="room-form" class="admin-form">
+                                        <div class="form-group">
+                                            <label for="room-name">ชื่อห้อง:</label>
+                                            <input type="text" id="room-name" name="room_name" required 
+                                                   placeholder="เช่น ห้อง 401, ห้องปฏิบัติการฟิสิกส์, แล็บคอมพิวเตอร์">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="room-type">ประเภทห้อง:</label>
+                                            <select id="room-type" name="room_type" required>
+                                                <option value="">-- เลือกประเภท --</option>
+                                                <option value="ทั่วไป">ทั่วไป</option>
+                                                <option value="ปฏิบัติการคอมพิวเตอร์">ปฏิบัติการคอมพิวเตอร์</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <button type="submit" class="btn btn--primary">
+                                            💾 บันทึก
+                                        </button>
+                                    </form>
+                                </div>
+
+                                <!-- Rooms Data Grid -->
+                                <div class="room-data-grid">
+                                    <h3>📋 รายการห้องเรียน</h3>
+                                    
+                                    <!-- Grid Controls -->
+                                    <div class="grid-controls">
+                                        <div class="search-controls">
+                                            <label for="room-search" class="sr-only">ค้นหาห้องเรียน</label>
+                                            <input type="text" id="room-search" 
+                                                   placeholder="🔍 ค้นหาห้องเรียน..." 
+                                                   aria-label="ค้นหาห้องเรียน">
+                                            <button type="button" class="btn btn--outline btn--sm" id="search-rooms">
+                                                🔍 ค้นหา
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="grid-actions">
+                                            <select id="entries-per-page-rooms" aria-label="จำนวนแถวต่อหน้า">
+                                                <option value="10">10</option>
+                                                <option value="25">25</option>
+                                                <option value="50">50</option>
+                                                <option value="100">100</option>
+                                            </select>
+                                            <label for="entries-per-page-rooms">แถว/หน้า</label>
+                                            
+                                            <button type="button" class="btn btn--outline btn--sm" id="export-excel-rooms">
+                                                📊 ส่งออก Excel
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="room-type">ประเภทห้อง:</label>
-                                        <select id="room-type" name="room_type" required>
-                                            <option value="">-- เลือกประเภท --</option>
-                                            <option value="CLASS">ห้องเรียนทั่วไป</option>
-                                            <option value="TECH">ห้องเทคโนโลยี</option>
-                                            <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
-                                            <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
-                                        </select>
+
+                                    <!-- Table Container -->
+                                    <div class="table-container">
+                                        <table id="rooms-table" class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-checkbox">
+                                                        <input type="checkbox" id="select-all-rooms" aria-label="เลือกทั้งหมด">
+                                                    </th>
+                                                    <th class="col-id" data-sortable data-sort-key="id">ID</th>
+                                                    <th class="col-room-name" data-sortable data-sort-key="room_name">ชื่อห้อง</th>
+                                                    <th class="col-room-type" data-sortable data-sort-key="room_type">ประเภท</th>
+                                                    <th class="col-created" data-sortable data-sort-key="created_at">วันที่เพิ่ม</th>
+                                                    <th class="col-actions">การดำเนินการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="rooms-table-body">
+                                                <!-- Room data will be rendered here -->
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="room-capacity">ความจุ:</label>
-                                        <input type="number" id="room-capacity" name="capacity" min="1" max="100">
+
+                                    <!-- Grid Footer -->
+                                    <div class="grid-footer">
+                                        <div class="bulk-actions">
+                                            <label class="select-all-label">
+                                                <input type="checkbox" id="bulk-select-all-rooms">
+                                                <span>เลือกทั้งหมด</span>
+                                            </label>
+                                            <button type="button" class="btn btn--danger btn--sm" id="bulk-delete-rooms" disabled>
+                                                🗑️ ลบที่เลือก
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="pagination">
+                                            <button type="button" class="btn btn--outline btn--sm" id="prev-page-rooms" disabled>
+                                                ‹ ก่อนหน้า
+                                            </button>
+                                            
+                                            <span class="page-info" id="page-info-rooms">
+                                                หน้า 1 จาก 1 (0 รายการ)
+                                            </span>
+                                            
+                                            <button type="button" class="btn btn--outline btn--sm" id="next-page-rooms" disabled>
+                                                ถัดไป ›
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                                </form>
+                                </div>
+                            </div>
+
+                            <!-- Edit Room Modal -->
+                            <div id="edit-room-modal" class="modal hidden">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>✏️ แก้ไขห้องเรียน</h3>
+                                        <button type="button" class="modal-close" aria-label="ปิด">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <form id="edit-room-form" class="admin-form">
+                                            <input type="hidden" id="edit-room-id" name="id">
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-room-name">ชื่อห้อง:</label>
+                                                <input type="text" id="edit-room-name" name="room_name" required 
+                                                       placeholder="เช่น ห้อง 401, ห้องปฏิบัติการฟิสิกส์, แล็บคอมพิวเตอร์">
+                                            </div>
+                                            <div class="form-group">
+                                                <label for="edit-room-type">ประเภทห้อง:</label>
+                                                <select id="edit-room-type" name="room_type" required>
+                                                    <option value="">-- เลือกประเภท --</option>
+                                                    <option value="ทั่วไป">ทั่วไป</option>
+                                                    <option value="ปฏิบัติการคอมพิวเตอร์">ปฏิบัติการคอมพิวเตอร์</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="modal-actions">
+                                                <button type="button" class="btn btn--secondary" data-modal-close>
+                                                    ❌ ยกเลิก
+                                                </button>
+                                                <button type="submit" class="btn btn--primary">
+                                                    💾 บันทึกการแก้ไข
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Delete Room Modal -->
+                            <div id="delete-room-modal" class="modal hidden">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>🗑️ ลบห้องเรียน</h3>
+                                        <button type="button" class="modal-close" aria-label="ปิด">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="delete-confirmation">
+                                            <div class="warning-icon">⚠️</div>
+                                            <p>คุณแน่ใจหรือไม่ที่จะลบห้องเรียน</p>
+                                            <div class="delete-item-info">
+                                                <strong id="delete-room-name"></strong>
+                                                <span class="delete-item-type" id="delete-room-type"></span>
+                                            </div>
+                                            <p class="warning-text">การดำเนินการนี้ไม่สามารถยกเลิกได้!</p>
+                                        </div>
+                                        
+                                        <div class="modal-actions">
+                                            <button type="button" class="btn btn--secondary" data-modal-close>
+                                                ❌ ยกเลิก
+                                            </button>
+                                            <button type="button" class="btn btn--danger" id="confirm-delete-room">
+                                                🗑️ ยืนยันลบ
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- View Room Modal -->
+                            <div id="view-room-modal" class="modal hidden">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>👁️ ดูข้อมูลห้องเรียน</h3>
+                                        <button type="button" class="modal-close" aria-label="ปิด">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="view-room-details">
+                                            <div class="detail-group">
+                                                <label>ID:</label>
+                                                <span id="view-room-id">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>ชื่อห้อง:</label>
+                                                <span id="view-room-name">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>ประเภท:</label>
+                                                <span id="view-room-type">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>วันที่เพิ่ม:</label>
+                                                <span id="view-room-created">-</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="modal-actions">
+                                            <button type="button" class="btn btn--secondary" data-modal-close>
+                                                ❌ ปิด
+                                            </button>
+                                            <button type="button" class="btn btn--primary" id="edit-from-view-room">
+                                                ✏️ แก้ไข
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>

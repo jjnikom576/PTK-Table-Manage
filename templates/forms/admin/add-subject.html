@@ -1,48 +1,346 @@
                         <!-- Add Subject Tab -->
                         <div id="add-subject" class="data-sub-page hidden" role="tabpanel" 
                              aria-labelledby="tab-add-subject">
-                            <div class="admin-form-section">
-                                <h3>📚 เพิ่มวิชาเรียน</h3>
-                                <form id="subject-form" class="admin-form">
-                                    <div class="form-group">
-                                        <label for="subject-teacher">ครู:</label>
-                                        <select id="subject-teacher" name="teacher_id" required>
-                                            <option value="">-- เลือกครู --</option>
-                                        </select>
+                            
+                            <!-- Subject Management Container -->
+                            <div class="subject-management-container">
+                                
+                                <!-- Add Subject Form - Full Width -->
+                                <div class="admin-form-section-fullwidth">
+                                    <h3>📚 เพิ่มวิชาเรียน</h3>
+                                    <form id="subject-form" class="admin-form-horizontal">
+                                        
+                                        <!-- Form Row 1: Teacher Only -->
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="subject-teacher">ครู:</label>
+                                                <select id="subject-teacher" name="teacher_id" required>
+                                                    <option value="">-- เลือกครู --</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Form Row 2: Class Selection Grid Transfer Only -->
+                                        <div class="form-row">
+                                            <div class="form-group-fullwidth">
+                                                <div class="class-transfer-section">
+                                                    <h4 class="transfer-header">ชั้นเรียน</h4>
+                                                    <div class="class-selection-grid">
+                                                        <div class="available-classes">
+                                                            <h5>ห้องเรียนที่มี (ยังไม่ได้เลือก)</h5>
+                                                            <div class="classes-list" id="available-classes">
+                                                                <!-- Available classes will be populated here -->
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="class-controls">
+                                                            <button type="button" id="add-class" class="btn btn--sm btn--primary" disabled>
+                                                                ➡️
+                                                            </button>
+                                                            <button type="button" id="remove-class" class="btn btn--sm btn--danger" disabled>
+                                                                ⬅️
+                                                            </button>
+                                                        </div>
+                                                        
+                                                        <div class="selected-classes">
+                                                            <h5>ห้องเรียนที่เลือก</h5>
+                                                            <div class="classes-list" id="selected-classes">
+                                                                <!-- Selected classes will be populated here -->
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <input type="hidden" id="selected-class-ids" name="class_ids" required>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Form Row 2: Subject Details -->
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="subject-name">วิชา:</label>
+                                                <input type="text" id="subject-name" name="subject_name" required 
+                                                       placeholder="เช่น วิทยาศาสตร์">
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="subject-code">รหัสวิชา:</label>
+                                                <input type="text" id="subject-code" name="subject_code" 
+                                                       placeholder="เช่น ว23103">
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="subject-periods">คาบ/สัปดาห์:</label>
+                                                <input type="number" id="subject-periods" name="periods_per_week" 
+                                                       min="1" max="10" required value="3">
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Form Row 3: Room and Requirements -->
+                                        <div class="form-row">
+                                            <div class="form-group">
+                                                <label for="subject-room">ห้องเรียน:</label>
+                                                <select id="subject-room" name="default_room_id">
+                                                    <option value="">-- เลือกห้อง (ไม่บังคับ) --</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="form-group form-group-wide">
+                                                <label for="subject-requirements">ความต้องการพิเศษ:</label>
+                                                <textarea id="subject-requirements" name="special_requirements" 
+                                                          rows="2" placeholder="เช่น ต้องเป็นคาบคู่ ติดกันเท่านั้น (1,2 หรือ 3,4 หรือ 5,6 หรือ 6,7 ไม่เอา 4,5 เพราะเป็นพักกลางวัน)"></textarea>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Submit Button -->
+                                        <div class="form-actions">
+                                            <button type="submit" class="btn btn--primary">
+                                                💾 บันทึก
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+
+                                <!-- Subjects Data Grid -->
+                                <div class="subject-data-grid-fullwidth">
+                                    <h3>📋 รายการวิชาเรียน</h3>
+                                    
+                                    <!-- Grid Controls -->
+                                    <div class="grid-controls">
+                                        <div class="search-controls">
+                                            <label for="subject-search" class="sr-only">ค้นหาวิชา</label>
+                                            <input type="text" id="subject-search" 
+                                                   placeholder="🔍 ค้นหาวิชา..." 
+                                                   aria-label="ค้นหาวิชา">
+                                            <button type="button" class="btn btn--outline btn--sm" id="search-subjects">
+                                                🔍 ค้นหา
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="grid-actions">
+                                            <select id="entries-per-page-subjects" aria-label="จำนวนแถวต่อหน้า">
+                                                <option value="10">10</option>
+                                                <option value="25">25</option>
+                                                <option value="50">50</option>
+                                                <option value="100">100</option>
+                                            </select>
+                                            <label for="entries-per-page-subjects">แถว/หน้า</label>
+                                            
+                                            <button type="button" class="btn btn--outline btn--sm" id="export-excel-subjects">
+                                                📊 ส่งออก Excel
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="subject-class">ห้องเรียน:</label>
-                                        <select id="subject-class" name="class_id" required>
-                                            <option value="">-- เลือกห้องเรียน --</option>
-                                        </select>
+
+                                    <!-- Table Container -->
+                                    <div class="table-container">
+                                        <table id="subjects-table" class="data-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="col-checkbox">
+                                                        <input type="checkbox" id="select-all-subjects" aria-label="เลือกทั้งหมด">
+                                                    </th>
+                                                    <th class="col-id" data-sortable data-sort-key="id">ID</th>
+                                                    <th class="col-subject-name" data-sortable data-sort-key="subject_name">วิชา</th>
+                                                    <th class="col-subject-code" data-sortable data-sort-key="subject_code">รหัส</th>
+                                                    <th class="col-teacher" data-sortable data-sort-key="teacher_name">ครู</th>
+                                                    <th class="col-classes" data-sortable data-sort-key="class_count">ห้องเรียน</th>
+                                                    <th class="col-periods" data-sortable data-sort-key="periods_per_week">คาบ/สัปดาห์</th>
+                                                    <th class="col-room" data-sortable data-sort-key="default_room_name">ห้อง</th>
+                                                    <th class="col-created" data-sortable data-sort-key="created_at">วันที่เพิ่ม</th>
+                                                    <th class="col-actions">การดำเนินการ</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="subjects-table-body">
+                                                <!-- Subject data will be rendered here -->
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="subject-name">วิชา:</label>
-                                        <input type="text" id="subject-name" name="subject_name" required>
+
+                                    <!-- Grid Footer -->
+                                    <div class="grid-footer">
+                                        <div class="bulk-actions">
+                                            <label class="select-all-label">
+                                                <input type="checkbox" id="bulk-select-all-subjects">
+                                                <span>เลือกทั้งหมด</span>
+                                            </label>
+                                            <button type="button" class="btn btn--danger btn--sm" id="bulk-delete-subjects" disabled>
+                                                🗑️ ลบที่เลือก
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="pagination">
+                                            <button type="button" class="btn btn--outline btn--sm" id="prev-page-subjects" disabled>
+                                                ‹ ก่อนหน้า
+                                            </button>
+                                            
+                                            <span class="page-info" id="page-info-subjects">
+                                                หน้า 1 จาก 1 (0 รายการ)
+                                            </span>
+                                            
+                                            <button type="button" class="btn btn--outline btn--sm" id="next-page-subjects" disabled>
+                                                ถัดไป ›
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="subject-code">รหัสวิชา:</label>
-                                        <input type="text" id="subject-code" name="subject_code">
+                                </div>
+                            </div>
+
+                            <!-- Edit Subject Modal -->
+                            <div id="edit-subject-modal" class="modal hidden">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>✏️ แก้ไขวิชาเรียน</h3>
+                                        <button type="button" class="modal-close" aria-label="ปิด">&times;</button>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="subject-periods">คาบ/สัปดาห์:</label>
-                                        <input type="number" id="subject-periods" name="periods_per_week" min="1" max="10" required>
+                                    <div class="modal-body">
+                                        <form id="edit-subject-form" class="admin-form">
+                                            <input type="hidden" id="edit-subject-id" name="id">
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-teacher">ครู:</label>
+                                                <select id="edit-subject-teacher" name="teacher_id" required>
+                                                    <option value="">-- เลือกครู --</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-classes">ห้องเรียน:</label>
+                                                <select id="edit-subject-classes" name="class_ids" multiple required>
+                                                    <!-- Classes will be populated here -->
+                                                </select>
+                                                <small class="form-hint">กด Ctrl หรือ Cmd เพื่อเลือกหลายห้อง</small>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-name">วิชา:</label>
+                                                <input type="text" id="edit-subject-name" name="subject_name" required>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-code">รหัสวิชา:</label>
+                                                <input type="text" id="edit-subject-code" name="subject_code">
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-periods">คาบ/สัปดาห์:</label>
+                                                <input type="number" id="edit-subject-periods" name="periods_per_week" min="1" max="10" required>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-room">ห้องเรียน:</label>
+                                                <select id="edit-subject-room" name="default_room_id">
+                                                    <option value="">-- เลือกห้อง --</option>
+                                                </select>
+                                            </div>
+                                            
+                                            <div class="form-group">
+                                                <label for="edit-subject-requirements">ความต้องการพิเศษ:</label>
+                                                <textarea id="edit-subject-requirements" name="special_requirements" rows="3"></textarea>
+                                            </div>
+                                            
+                                            <div class="modal-actions">
+                                                <button type="button" class="btn btn--secondary" data-modal-close>
+                                                    ❌ ยกเลิก
+                                                </button>
+                                                <button type="submit" class="btn btn--primary">
+                                                    💾 บันทึกการแก้ไข
+                                                </button>
+                                            </div>
+                                        </form>
                                     </div>
-                                    <div class="form-group">
-                                        <label>
-                                            <input type="checkbox" id="subject-requires-room" name="requires_room">
-                                            ต้องใช้ห้องพิเศษ
-                                        </label>
+                                </div>
+                            </div>
+
+                            <!-- Delete Subject Modal -->
+                            <div id="delete-subject-modal" class="modal hidden">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>🗑️ ลบวิชาเรียน</h3>
+                                        <button type="button" class="modal-close" aria-label="ปิด">&times;</button>
                                     </div>
-                                    <div class="form-group hidden" id="subject-room-type-group">
-                                        <label for="subject-room-type">ประเภทห้องที่ต้องการ:</label>
-                                        <select id="subject-room-type" name="required_room_type">
-                                            <option value="TECH">ห้องเทคโนโลยี</option>
-                                            <option value="LAB_SCI">ห้องปฏิบัติการวิทยาศาสตร์</option>
-                                            <option value="LAB_COMP">ห้องคอมพิวเตอร์</option>
-                                        </select>
+                                    <div class="modal-body">
+                                        <div class="delete-confirmation">
+                                            <div class="warning-icon">⚠️</div>
+                                            <p>คุณแน่ใจหรือไม่ที่จะลบวิชาเรียน</p>
+                                            <div class="delete-item-info">
+                                                <strong id="delete-subject-name"></strong>
+                                                <span class="delete-item-code" id="delete-subject-code"></span>
+                                                <div class="delete-item-details">
+                                                    <span id="delete-subject-teacher"></span> • 
+                                                    <span id="delete-subject-classes"></span>
+                                                </div>
+                                            </div>
+                                            <p class="warning-text">การดำเนินการนี้ไม่สามารถยกเลิกได้!</p>
+                                        </div>
+                                        
+                                        <div class="modal-actions">
+                                            <button type="button" class="btn btn--secondary" data-modal-close>
+                                                ❌ ยกเลิก
+                                            </button>
+                                            <button type="button" class="btn btn--danger" id="confirm-delete-subject">
+                                                🗑️ ยืนยันลบ
+                                            </button>
+                                        </div>
                                     </div>
-                                    <button type="submit" class="btn btn--primary">💾 บันทึก</button>
-                                </form>
+                                </div>
+                            </div>
+
+                            <!-- View Subject Modal -->
+                            <div id="view-subject-modal" class="modal hidden">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3>👁️ ดูข้อมูลวิชาเรียน</h3>
+                                        <button type="button" class="modal-close" aria-label="ปิด">&times;</button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="view-subject-details">
+                                            <div class="detail-group">
+                                                <label>ID:</label>
+                                                <span id="view-subject-id">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>วิชา:</label>
+                                                <span id="view-subject-name">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>รหัสวิชา:</label>
+                                                <span id="view-subject-code">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>ครู:</label>
+                                                <span id="view-subject-teacher">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>ห้องเรียน:</label>
+                                                <span id="view-subject-classes">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>คาบ/สัปดาห์:</label>
+                                                <span id="view-subject-periods">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>ห้องเรียน:</label>
+                                                <span id="view-subject-room">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>ความต้องการพิเศษ:</label>
+                                                <span id="view-subject-requirements">-</span>
+                                            </div>
+                                            <div class="detail-group">
+                                                <label>วันที่เพิ่ม:</label>
+                                                <span id="view-subject-created">-</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="modal-actions">
+                                            <button type="button" class="btn btn--secondary" data-modal-close>
+                                                ❌ ปิด
+                                            </button>
+                                            <button type="button" class="btn btn--primary" id="edit-from-view-subject">
+                                                ✏️ แก้ไข
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
