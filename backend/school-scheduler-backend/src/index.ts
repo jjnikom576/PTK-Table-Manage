@@ -23,13 +23,15 @@ import scheduleRoutes from './routes/schedule-routes';
 
 // Import database manager for initialization
 import { DatabaseManager } from './database/database-manager';
-import { Env } from './interfaces';
+import { Env, AdminUser } from './interfaces';
+
+type AppVariables = { user: AdminUser; sessionToken: string; requestId: string };
 
 // ===========================================
 // Initialize Hono App
 // ===========================================
 
-const app = new Hono<{ Bindings: Env }>();
+const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 // ===========================================
 // Global Middleware (Applied to all routes)
@@ -86,7 +88,7 @@ app.get('/api/health', async (c) => {
       status: 'online',
       database: result ? 'connected' : 'disconnected',
       timestamp: new Date().toISOString(),
-      uptime: process.uptime ? process.uptime() : 'N/A'
+      uptime: (globalThis as any).process?.uptime?.() ?? 'N/A'
     });
   } catch (error) {
     return c.json({

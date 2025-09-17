@@ -1,13 +1,23 @@
 // src/middleware/auth-middleware.ts
 import { Context, Next } from 'hono';
+import { getCookie } from 'hono/cookie';
 import { AuthManager } from '../auth/auth-manager';
-import { Env } from '../interfaces';
+import { Env, AdminUser } from '../interfaces';
+
+type AppVariables = {
+  user: AdminUser;
+  sessionToken: string;
+  requestId: string;
+};
 
 // ===========================================
 // Authentication Middleware
 // ===========================================
 
-export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function authMiddleware(
+  c: Context<{ Bindings: Env; Variables: AppVariables }>,
+  next: Next
+) {
   try {
     // Skip authentication for public routes
     const path = new URL(c.req.url).pathname;
@@ -23,9 +33,9 @@ export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
 
     // Get session token from header or cookie
     const authHeader = c.req.header('Authorization');
-    const sessionToken = authHeader?.startsWith('Bearer ') 
+    const sessionToken = authHeader?.startsWith('Bearer ')
       ? authHeader.substring(7)
-      : c.req.header('X-Session-Token') || c.req.cookie('session_token');
+      : c.req.header('X-Session-Token') || getCookie(c, 'session_token');
 
     if (!sessionToken) {
       return c.json({
@@ -70,7 +80,10 @@ export async function authMiddleware(c: Context<{ Bindings: Env }>, next: Next) 
 // ===========================================
 
 export function requireRole(roles: ('admin' | 'super_admin')[]) {
-  return async (c: Context<{ Bindings: Env }>, next: Next) => {
+  return async (
+    c: Context<{ Bindings: Env; Variables: AppVariables }>,
+    next: Next
+  ) => {
     const user = c.get('user');
     
     if (!user) {
@@ -112,7 +125,7 @@ export async function corsMiddleware(c: Context, next: Next) {
 
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
-    return c.text('', 204);
+    return new Response(null, { status: 204 });
   }
 
   return await next();
@@ -122,7 +135,10 @@ export async function corsMiddleware(c: Context, next: Next) {
 // Request Logging Middleware
 // ===========================================
 
-export async function requestLoggingMiddleware(c: Context<{ Bindings: Env }>, next: Next) {
+export async function requestLoggingMiddleware(
+  c: Context<{ Bindings: Env; Variables: AppVariables }>,
+  next: Next
+) {
   const start = Date.now();
   const method = c.req.method;
   const url = c.req.url;
@@ -245,7 +261,10 @@ export function bodySizeLimitMiddleware(maxSizeBytes = 1024 * 1024) { // 1MB def
 // Request ID Middleware
 // ===========================================
 
-export async function requestIdMiddleware(c: Context, next: Next) {
+export async function requestIdMiddleware(
+  c: Context<{ Variables: AppVariables }>,
+  next: Next
+) {
   const requestId = crypto.randomUUID();
   c.set('requestId', requestId);
   c.header('X-Request-ID', requestId);

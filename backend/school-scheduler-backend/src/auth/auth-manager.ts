@@ -143,7 +143,7 @@ export class AuthManager {
 
       // Log logout activity
       if (session) {
-        await this.logActivity(session.admin_user_id, 'LOGOUT', null, null, null, null, ipAddress, userAgent);
+        await this.logActivity(session.admin_user_id, 'LOGOUT', undefined, undefined, undefined, undefined, ipAddress, userAgent);
       }
 
       return { success: true, data: { message: 'Logout successful' } };
@@ -509,7 +509,7 @@ export class AuthManager {
       const logs = await this.db
         .prepare(`
           SELECT 
-            al.*,
+            al.*, 
             au.username,
             au.full_name
           FROM admin_activity_log al
@@ -518,9 +518,9 @@ export class AuthManager {
           LIMIT ? OFFSET ?
         `)
         .bind(limit, offset)
-        .all();
+        .all<AdminActivityLog & { username: string; full_name: string }>();
 
-      return { success: true, data: logs.results as AdminActivityLog[] };
+      return { success: true, data: logs.results };
     } catch (error) {
       return { success: false, error: String(error) };
     }

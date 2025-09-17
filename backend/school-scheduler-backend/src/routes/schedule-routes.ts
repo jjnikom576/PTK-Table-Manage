@@ -11,8 +11,11 @@ import {
   CreateSubjectRequest,
   CreateScheduleRequest 
 } from '../interfaces';
+import type { AdminUser } from '../interfaces';
 
-const scheduleRoutes = new Hono<{ Bindings: Env }>();
+type AppVariables = { user: AdminUser; sessionToken: string; requestId: string };
+
+const scheduleRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 // Apply authentication to all schedule routes
 scheduleRoutes.use('*', requireAdmin);
@@ -22,7 +25,7 @@ scheduleRoutes.use('*', requireAdmin);
 // ===========================================
 
 // GET /api/schedule/teachers (Get teachers for current active semester)
-scheduleRoutes.get('/teachers', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/teachers', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const page = parseInt(c.req.query('page') || '1');
     const limit = parseInt(c.req.query('limit') || '50');
@@ -52,7 +55,7 @@ scheduleRoutes.get('/teachers', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/schedule/teachers
-scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateTeacherRequest>();
     
@@ -85,7 +88,7 @@ scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env 
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'CREATE_TEACHER',
         `teachers_${contextResult.data.academic_year?.year}`,
         result.data?.id?.toString(),
@@ -106,7 +109,7 @@ scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env 
 });
 
 // PUT /api/schedule/teachers/:id
-scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const teacherId = parseInt(c.req.param('id'));
     const body = await c.req.json<Partial<CreateTeacherRequest>>();
@@ -136,7 +139,7 @@ scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: E
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'UPDATE_TEACHER',
         `teachers_${contextResult.data.academic_year?.year}`,
         teacherId.toString(),
@@ -157,7 +160,7 @@ scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: E
 });
 
 // DELETE /api/schedule/teachers/:id
-scheduleRoutes.delete('/teachers/:id', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.delete('/teachers/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const teacherId = parseInt(c.req.param('id'));
     
@@ -186,7 +189,7 @@ scheduleRoutes.delete('/teachers/:id', async (c: Context<{ Bindings: Env }>) => 
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'DELETE_TEACHER',
         `teachers_${contextResult.data.academic_year?.year}`,
         teacherId.toString()
@@ -209,7 +212,7 @@ scheduleRoutes.delete('/teachers/:id', async (c: Context<{ Bindings: Env }>) => 
 // ===========================================
 
 // GET /api/schedule/classes
-scheduleRoutes.get('/classes', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/classes', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
@@ -236,7 +239,7 @@ scheduleRoutes.get('/classes', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/schedule/classes
-scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateClassRequest>();
     
@@ -277,7 +280,7 @@ scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env }
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'CREATE_CLASS',
         `classes_${contextResult.data.academic_year?.year}`,
         result.data?.id?.toString(),
@@ -302,7 +305,7 @@ scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env }
 // ===========================================
 
 // GET /api/schedule/rooms
-scheduleRoutes.get('/rooms', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/rooms', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
@@ -329,7 +332,7 @@ scheduleRoutes.get('/rooms', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/schedule/rooms
-scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateRoomRequest>();
     
@@ -370,7 +373,7 @@ scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env }>)
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'CREATE_ROOM',
         `rooms_${contextResult.data.academic_year?.year}`,
         result.data?.id?.toString(),
@@ -395,7 +398,7 @@ scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env }>)
 // ===========================================
 
 // GET /api/schedule/subjects
-scheduleRoutes.get('/subjects', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/subjects', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
@@ -422,7 +425,7 @@ scheduleRoutes.get('/subjects', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/schedule/subjects
-scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateSubjectRequest>();
     
@@ -463,7 +466,7 @@ scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env 
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'CREATE_SUBJECT',
         `subjects_${contextResult.data.academic_year?.year}`,
         result.data?.id?.toString(),
@@ -488,7 +491,7 @@ scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env 
 // ===========================================
 
 // GET /api/schedule/schedules
-scheduleRoutes.get('/schedules', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/schedules', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
@@ -515,7 +518,7 @@ scheduleRoutes.get('/schedules', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/schedule/schedules
-scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateScheduleRequest>();
     
@@ -564,7 +567,7 @@ scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'CREATE_SCHEDULE',
         `schedules_${contextResult.data.academic_year?.year}`,
         result.data?.id?.toString(),
@@ -585,7 +588,7 @@ scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env
 });
 
 // DELETE /api/schedule/schedules/:id
-scheduleRoutes.delete('/schedules/:id', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.delete('/schedules/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const scheduleId = parseInt(c.req.param('id'));
     
@@ -614,7 +617,7 @@ scheduleRoutes.delete('/schedules/:id', async (c: Context<{ Bindings: Env }>) =>
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       await authManager.logActivity(
-        user.id,
+        user.id!,
         'DELETE_SCHEDULE',
         `schedules_${contextResult.data.academic_year?.year}`,
         scheduleId.toString()
@@ -637,7 +640,7 @@ scheduleRoutes.delete('/schedules/:id', async (c: Context<{ Bindings: Env }>) =>
 // ===========================================
 
 // GET /api/schedule/timetable (Get formatted timetable view)
-scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const view = c.req.query('view') || 'grid'; // grid, teacher, class, room
     const filterBy = c.req.query('filter'); // teacher_id, class_id, room_id
@@ -718,7 +721,7 @@ scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // GET /api/schedule/conflicts (Check for scheduling conflicts)
-scheduleRoutes.get('/conflicts', async (c: Context<{ Bindings: Env }>) => {
+scheduleRoutes.get('/conflicts', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
