@@ -110,6 +110,11 @@ Dynamic Table Creation Function (SQL Template)
 sql-- Template สำหรับสร้าง dynamic tables แต่ละปี
 -- Replace {YEAR} with actual year (e.g., 2567, 2568)
 
+
+
+----- dynamic_case_{YEAR}
+
+
 -- Teachers Table
 CREATE TABLE teachers_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

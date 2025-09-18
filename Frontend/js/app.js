@@ -896,7 +896,18 @@ class SchoolScheduleApp {
       // Refresh current page with new context
       if (this.currentPage && this.modules[this.currentPage]) {
         console.log(`🔄 Refreshing page "${this.currentPage}" with new context`);
-        await this.refreshCurrentPage(newContext);
+      // Prefetch timetable by selected context (public endpoint) with single-entry cache
+      try {
+        coreAPI.clearTimetableCache();
+        const tableRes = await coreAPI.getTimetableBy(newYear, newSemesterId, true);
+        if (!tableRes || !tableRes.success) {
+          console.warn('Timetable by selection not available:', tableRes?.error || 'unknown');
+        }
+      } catch (e) {
+        console.warn('Failed to load timetable by selection:', e);
+      }
+
+      await this.refreshCurrentPage(newContext);
       }
       
       // ⭐ FIX: Better notification with actual semester number

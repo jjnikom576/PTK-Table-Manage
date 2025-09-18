@@ -13,6 +13,9 @@ class CoreAPI {
       lastFetch: new Map()
     };
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+
+    // Single-timetable cache (only keep latest selection)
+    this.timetableCache = { key: null, data: null, ts: 0 };
   }
 
   /**
@@ -212,17 +215,33 @@ class CoreAPI {
     }
   }
 
-  async getTimetableBy(year, semesterId) {
+  async getTimetableBy(year, semesterId, useCache = true) {
     try {
+      const key = `${year}:${semesterId}`;
+      if (useCache && this.timetableCache.key === key && this.timetableCache.data) {
+        return { success: true, data: this.timetableCache.data, cached: true };
+      }
       const params = new URLSearchParams();
-      if (year) params.set('year', String(year));
-      if (semesterId) params.set('semesterId', String(semesterId));
+      params.set('year', String(year));
+      params.set('semesterId', String(semesterId));
       const url = `schedule/timetable?${params.toString()}`;
       const result = await apiManager.get(url);
+      if (result.success) {
+        // overwrite single cache
+        this.timetableCache = { key, data: result.data, ts: Date.now() };
+      }
       return result;
     } catch (error) {
       return { success: false, error: 'ไม่สามารถโหลดตารางสอนตามปี/ภาคเรียนได้' };
     }
+  }
+
+  clearTimetableCache() {
+    this.timetableCache = { key: null, data: null, ts: 0 };
+  }
+
+  getCachedTimetable() {
+    return this.timetableCache.data || null;
   }
 
   /**

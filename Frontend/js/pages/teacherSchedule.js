@@ -106,6 +106,8 @@ export async function updatePageForContext(newContext) {
 /**
  * Refresh Page (NEW - สำหรับ app.js)
  */
+import coreAPI from '../api/core-api.js';
+
 export async function refreshPage(newContext = null) {
   console.log('[TeacherSchedule] Refreshing page with context:', newContext);
   
@@ -740,7 +742,30 @@ async function getTeacherScheduleData(teacherId, context) {
     console.log(`[TeacherSchedule] Found ${teacherSchedules.length} schedule entries for teacher ${teacherId}`);
 
     // Build schedule matrix
-    const matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
+  // Prefer API timetable from coreAPI cache (public). Build matrix from list when available.
+  const cached = coreAPI.getCachedTimetable && coreAPI.getCachedTimetable();
+  let matrix = null;
+  if (cached && cached.list && Array.isArray(cached.list)) {
+    matrix = {};
+    for (let d = 1; d <= 7; d++) { matrix[d] = {}; for (let p = 1; p <= 12; p++) { matrix[d][p] = null; } }
+    cached.list.forEach(item => {
+      const day = item.day_of_week;
+      const period = item.period || item.period_no;
+      if (!day || !period) return;
+      matrix[day] = matrix[day] || {};
+      matrix[day][period] = {
+        subject: { subject_name: item.subject_name || '' },
+        teacher: { name: item.teacher_name || '' },
+        class: { name: item.class_name || '' },
+        room: { name: item.room_name || '' },
+        raw: item
+      };
+    });
+  } else if (cached && cached.grid) {
+    matrix = cached.grid;
+  } else {
+    matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
+  }
 
     const result = {
       subjects: teacherSubjects,

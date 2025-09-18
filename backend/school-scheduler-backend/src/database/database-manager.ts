@@ -752,9 +752,18 @@ export class DatabaseManager {
       const schedules = await this.db
         .prepare(`
           SELECT 
-            sch.*,
+            sch.id,
+            sch.semester_id,
+            sch.subject_id,
+            sch.day_of_week,
+            sch.period_no AS period,
+            sch.room_id,
+            sch.created_at,
+            sch.updated_at,
             sub.subject_name,
             sub.subject_code,
+            sub.teacher_id,
+            sub.class_id,
             t.full_name as teacher_name,
             c.class_name,
             r.room_name,
@@ -786,9 +795,18 @@ export class DatabaseManager {
       const schedules = await this.db
         .prepare(`
           SELECT 
-            sch.*,
+            sch.id,
+            sch.semester_id,
+            sch.subject_id,
+            sch.day_of_week,
+            sch.period_no AS period,
+            sch.room_id,
+            sch.created_at,
+            sch.updated_at,
             sub.subject_name,
             sub.subject_code,
+            sub.teacher_id,
+            sub.class_id,
             t.full_name as teacher_name,
             c.class_name,
             r.room_name,

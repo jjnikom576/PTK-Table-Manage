@@ -71,7 +71,8 @@ scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env; Variables: A
       }
     }
 
-    return c.json({ success: true, data: timetableData });
+    // Return in mock-aligned shape: list + grid
+    return c.json({ success: true, data: { list: schedules, grid: timetableData.grid } });
   } catch (error) {
     console.error('Public timetable error:', error);
     return c.json({ success: false, message: 'Failed to get timetable', error: String(error) }, 500);

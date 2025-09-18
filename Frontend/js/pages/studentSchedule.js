@@ -5,6 +5,7 @@
 
 import * as dataService from '../services/dataService.js';
 import * as globalContext from '../context/globalContext.js';
+import coreAPI from '../api/core-api.js';
 import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '../utils/export.js';
 import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, generateTimeSlots, isActiveSemester } from '../utils.js';
 
@@ -321,6 +322,43 @@ export async function updatePageForContext(newContext) {
  * Load Schedule For Context
  */
 export async function loadScheduleForContext(classRef, context) {
+  // Prefer API timetable by selected context (public, no login required)
+  try {
+    const year = context?.currentYear;
+    const semesterId = context?.currentSemester?.id;
+    if (year && semesterId) {
+      const apiRes = await coreAPI.getTimetableBy(year, semesterId, true);
+      if (apiRes && apiRes.success) {
+        const cached = coreAPI.getCachedTimetable && coreAPI.getCachedTimetable();
+        if (cached) {
+          if (cached.list && Array.isArray(cached.list)) {
+            // Build matrix from list (mock-compatible)
+            const matrix = {};
+            for (let d = 1; d <= 7; d++) { matrix[d] = {}; for (let p = 1; p <= 12; p++) { matrix[d][p] = null; } }
+            cached.list.forEach(item => {
+              const day = item.day_of_week;
+              const period = item.period || item.period_no;
+              if (!day || !period) return;
+              matrix[day] = matrix[day] || {};
+              const cell = {
+                subject: { subject_name: item.subject_name || '' },
+                teacher: { name: item.teacher_name || '' },
+                room: { name: item.room_name || '' },
+                class: { name: item.class_name || '' },
+                raw: item
+              };
+              matrix[day][period] = cell;
+            });
+            pageState.currentSchedule = { matrix };
+          } else if (cached.grid) {
+            pageState.currentSchedule = { matrix: cached.grid };
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[StudentSchedule] Timetable API not available, fallback to existing data flow');
+  }
   if (!classRef) return;
 
   try {
@@ -380,7 +418,9 @@ export async function loadScheduleForContext(classRef, context) {
     const result = await dataService.getStudentSchedule(classId);
     console.log('[StudentSchedule] Schedule load result:', result?.ok ? '✅ Success' : '❌ Failed', result);
     if (result && result.ok && result.data?.matrix) {
-      pageState.currentSchedule = result.data;
+      if (!pageState.currentSchedule) {
+        pageState.currentSchedule = result.data;
+      }
       pageState.selectedClass = classId;
 
       // Render schedule
@@ -782,7 +822,9 @@ async function robustLoadSchedule(classRef, context) {
 
     const result = await dataService.getStudentSchedule(classId);
     if (result?.ok && result.data?.matrix) {
-      pageState.currentSchedule = result.data;
+      if (!pageState.currentSchedule) {
+        pageState.currentSchedule = result.data;
+      }
       pageState.selectedClass = classId;
       renderScheduleHeader(result.data.classInfo?.class_name || String(classId), ctx);
       renderScheduleTable(result.data, ctx);
@@ -1451,4 +1493,3 @@ if (typeof window !== 'undefined') {
     getPageState
   };
 }
-

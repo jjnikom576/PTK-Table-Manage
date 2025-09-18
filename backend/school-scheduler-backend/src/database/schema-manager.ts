@@ -340,7 +340,7 @@ export class SchemaManager {
         FOREIGN KEY (period_no) REFERENCES periods(period_no) ON DELETE RESTRICT,
         FOREIGN KEY (room_id) REFERENCES rooms_${year}(id) ON DELETE SET NULL,
         UNIQUE (semester_id, day_of_week, period_no, room_id),
-        UNIQUE (semester_id, subject_id, day_of_week, period_no)
+        /* Removed subject-level uniqueness to allow parallel sections */
       )
     `);
 
@@ -348,6 +348,9 @@ export class SchemaManager {
     const indexes = [
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_semester ON ${tableName}(semester_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_subject ON ${tableName}(subject_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_time ON ${tableName}(day_of_week, period_no)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_daily ON ${tableName}(semester_id, day_of_week)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_room ON ${tableName}(room_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_time ON ${tableName}(day_of_week, period_no)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_room ON ${tableName}(room_id) WHERE room_id IS NOT NULL`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_daily ON ${tableName}(semester_id, day_of_week)`,
