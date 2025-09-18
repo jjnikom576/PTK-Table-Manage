@@ -25,6 +25,26 @@ let serviceConfig = {
   maxCacheSize: 50
 };
 
+/**
+ * Initialize data service with configuration
+ */
+export function initDataService(config = {}) {
+  // Update service configuration
+  serviceConfig = {
+    ...serviceConfig,
+    ...config
+  };
+  
+  console.log('[DataService] Initialized with config:', serviceConfig);
+  
+  // Clear cache when switching modes
+  if (config.mode) {
+    cache.clear();
+  }
+  
+  return Promise.resolve(serviceConfig);
+}
+
 let currentContext = {
   year: null,
   semesterId: null,
@@ -136,17 +156,6 @@ export function getCacheStatus() {
 // CORE FUNCTIONS
 // =============================================================================
 
-/**
- * Initialize Data Service
- */
-export function initDataService(config = {}) {
-  serviceConfig = { ...serviceConfig, ...config };
-  console.log('[DataService] Initialized with config:', serviceConfig);
-  if (config.mode) {
-    cache.clear();
-  }
-  return { ok: true };
-}
 
 /**
  * Set Global Context

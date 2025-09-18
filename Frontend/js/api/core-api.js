@@ -261,12 +261,50 @@ class CoreAPI {
    */
   async getGlobalContext() {
     try {
-      const result = await apiManager.get('context');
+      const result = await apiManager.get('core/context');
       return result;
     } catch (error) {
       return {
         success: false,
         error: 'ไม่สามารถโหลดข้อมูล Context ได้'
+      };
+    }
+  }
+
+  /**
+   * Get current schedule/timetable for active context
+   */
+  async getCurrentSchedule() {
+    try {
+      const result = await apiManager.get('schedule/timetable');
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถโหลดตารางสอนได้',
+        data: null
+      };
+    }
+  }
+
+  /**
+   * Check if year tables exist
+   */
+  async checkYearTables(year) {
+    try {
+      const result = await apiManager.get(`core/tables-status/${year}`);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถตรวจสอบสถานะปีการศึกษาได้',
+        data: {
+          teachers: false,
+          classes: false,
+          rooms: false,
+          subjects: false,
+          schedules: false
+        }
       };
     }
   }

@@ -10,6 +10,8 @@ import { initYearService } from './services/yearService.js';
 import { initNavigation, navigateToPage, getCurrentPage, setupMobileMenu } from './navigation.js';
 import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets, generateExportFilename } from './utils/export.js';
 import templateLoader from './templateLoader.js';
+import coreAPI from './api/core-api.js';
+import authAPI from './api/auth-api.js';
 
 // Import page modules
 import { initStudentSchedulePage } from './pages/studentSchedule.js';
@@ -89,33 +91,99 @@ class SchoolScheduleApp {
     try {
       console.log('🚀 Starting School Schedule App...');
       
-      // โหลด core templates ก่อน
+      // Phase 1: Load core templates
       await this.loadCoreTemplates();
       
-      // โหลด page templates (ปิดไว้ก่อน ใช้ hardcode)
-      // await this.loadStudentSchedulePage();
-      
-      // Initialize core services
+      // Phase 2: Initialize basic services
       await this.initCoreServices();
       
-      // Initialize modules
+      // Phase 3: Load initial context from backend
+      await this.loadInitialContext();
+      
+      // Phase 4: Initialize modules
       await this.initModules();
       
-      // Initialize student schedule page if needed
+      // Phase 5: Initialize student schedule page if needed
       await this.initializeStudentPage();
       
-      // Setup UI bindings
+      // Phase 6: Setup UI bindings
       this.setupEventListeners();
       this.bindExportHandlers();
       
       this.initialized = true;
       console.log('✅ App initialized successfully');
       
-      // โหลดหน้าแรกเป็น default
+      // Phase 7: Load default page
       await this.loadDefaultPage();
       
     } catch (error) {
       await this.handleInitializationError(error);
+    }
+  }
+
+  /**
+   * Load initial context from backend (NEW)
+   */
+  async loadInitialContext() {
+    try {
+      console.log('🌍 Loading initial context from backend...');
+      
+      // 1. Get global context (active year + semester)
+      console.log('🔍 Calling coreAPI.getGlobalContext()...');
+      const contextResult = await coreAPI.getGlobalContext();
+      console.log('📊 Context result:', contextResult);
+      
+      if (contextResult.success && contextResult.data) {
+        const { year, semester } = contextResult.data;
+        console.log(`✅ Active context: Year ${year}, Semester ${semester?.semester_number || 'N/A'}`);
+        
+        // Update global context with backend data
+        window.globalSchoolContext = {
+          currentYear: year,
+          currentSemester: semester,
+          dataLoaded: true
+        };
+      } else {
+        console.warn('⚠️ No active context found, using default');
+        console.warn('Context error:', contextResult.error);
+        // Use fallback context
+        window.globalSchoolContext = {
+          currentYear: 2567,
+          currentSemester: { id: 1, semester_number: 1 },
+          dataLoaded: false
+        };
+      }
+      
+      // 2. Try to load current schedule/timetable
+      console.log('🔍 Calling coreAPI.getCurrentSchedule()...');
+      const scheduleResult = await coreAPI.getCurrentSchedule();
+      console.log('📋 Schedule result:', scheduleResult);
+      
+      if (scheduleResult.success && scheduleResult.data) {
+        console.log('✅ Current schedule loaded');
+        window.globalSchoolContext.hasSchedule = true;
+        window.globalSchoolContext.scheduleData = scheduleResult.data;
+      } else {
+        console.log('📅 No schedule data found for current context');
+        console.log('Schedule error:', scheduleResult.error);
+        window.globalSchoolContext.hasSchedule = false;
+        window.globalSchoolContext.scheduleData = null;
+      }
+      
+      console.log('✅ Initial context loaded');
+      console.log('Final globalSchoolContext:', window.globalSchoolContext);
+      
+    } catch (error) {
+      console.error('❌ Error loading initial context:', error);
+      // Set fallback context on error
+      window.globalSchoolContext = {
+        currentYear: 2567,
+        currentSemester: { id: 1, semester_number: 1 },
+        dataLoaded: false,
+        hasSchedule: false,
+        scheduleData: null,
+        error: error.message
+      };
     }
   }
   
@@ -148,14 +216,11 @@ class SchoolScheduleApp {
   async initCoreServices() {
     console.log('🔧 Initializing core services...');
     
+    // Initialize data service but keep it in mock mode for now
+    // The loadInitialContext() will handle real API calls
     await initDataService({ mode: 'mock' });
     await initYearService();
     await initGlobalContext();
-    
-    // ตั้ง context เป็น default ที่มีข้อมูล
-    // ใช้ context ที่มีอยู่แล้ว (2567/10)
-    // const defaultContext = { year: 2567, semesterId: 1 };
-    // await this.setDefaultContext(defaultContext);
     
     console.log('✅ Core services initialized');
   }
@@ -329,28 +394,9 @@ class SchoolScheduleApp {
   }
 
   /**
-   * Load initial context
+   * Load initial context (DEPRECATED - Moved to top)
    */
-  async loadInitialContext() {
-    console.log('📅 Loading initial context...');
-    
-    try {
-      const storedContext = this.loadContextFromStorage();
-      
-      if (storedContext && this.isContextValid(storedContext)) {
-        await this.setContext(storedContext.year, storedContext.semesterId);
-      } else {
-        // Use default context
-        await this.setContext(2567, 1);
-      }
-      
-      console.log('✅ Initial context loaded:', this.context);
-      
-    } catch (error) {
-      console.warn('⚠️ Error loading initial context:', error);
-      this.context = { year: 2567, semesterId: 1 };
-    }
-  }
+  // loadInitialContext() function moved above
 
   /**
    * Initialize page modules
