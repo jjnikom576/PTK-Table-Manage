@@ -11,6 +11,7 @@ let adminState = {
   context: null,
   initialized: false,
   templatesLoaded: false,
+  templates: null,
   teachers: [],
   currentPage: 1,
   itemsPerPage: 10,
@@ -47,15 +48,29 @@ export async function initAdminPage(context = null) {
   try { ensureUserActionsInSubnav(); } catch (e) {}
 
   adminState.context = normalizeContext(context) || getContext();
-  showAuthOnly();
+  
+  // Check authentication first
+  if (authAPI.isAuthenticated()) {
+    // User is logged in - show admin sections and load data
+    showAdminSections();
+    updateUsernameHeader();
+    
+    // Load templates and initialize management
+    await loadAdminTemplates();
+    await initTeacherManagement();
+  } else {
+    // User not logged in - show login form only
+    showAuthOnly();
+    // Load templates for when they log in later
+    await loadAdminTemplates();
+  }
+  
+  // Bind navigation and auth events
   bindAuthForm();
   adjustAuthInputWidth();
   bindLogout();
   bindDataSubNavigation();
   bindMainAdminNavigation();
-  
-  await loadAdminTemplates();
-  await initTeacherManagement();
   
   adminState.initialized = true;
 }
@@ -96,6 +111,9 @@ function bindAuthForm() {
         showAdminSections(); 
         updateUsernameHeader();
         
+        // Initialize teacher management after successful login
+        await initTeacherManagement();
+        
         if (result.isDemoMode || result.isOfflineMode) {
           console.log('✅', result.message);
         }
@@ -129,15 +147,16 @@ function bindLogout() {
 }
 
 function showAuthOnly() {
-  const auth = document.getElementById('admin-auth-check');
-  const sections = document.querySelectorAll('#page-admin .admin-section');
-  const page = document.getElementById('page-admin');
-  
+  // If already authenticated, don't show auth form
   if (authAPI.isAuthenticated()) {
     showAdminSections();
     updateUsernameHeader();
     return;
   }
+  
+  const auth = document.getElementById('admin-auth-check');
+  const sections = document.querySelectorAll('#page-admin .admin-section');
+  const page = document.getElementById('page-admin');
   
   if (auth) auth.classList.remove('hidden');
   sections.forEach(s => s.classList.add('hidden'));
@@ -185,14 +204,29 @@ async function loadAdminTemplates() {
       'forms/admin/add-academic-year'
     ]);
     
+    // Store templates for later use instead of inserting all at once
+    adminState.templates = templates;
+    
     const adminFormsGrid = document.querySelector('#admin-data .admin-forms-grid');
     if (adminFormsGrid) {
-      adminFormsGrid.innerHTML = 
-        templates['forms/admin/add-teacher'] +
-        templates['forms/admin/add-class'] +
-        templates['forms/admin/add-room'] +
-        templates['forms/admin/add-subject'] +
-        templates['forms/admin/add-period'];
+      // Only show teacher template by default (first tab)
+      adminFormsGrid.innerHTML = `
+        <div id="add-teacher" class="data-sub-page active">
+          ${templates['forms/admin/add-teacher']}
+        </div>
+        <div id="add-class" class="data-sub-page hidden">
+          ${templates['forms/admin/add-class']}
+        </div>
+        <div id="add-room" class="data-sub-page hidden">
+          ${templates['forms/admin/add-room']}
+        </div>
+        <div id="add-subject" class="data-sub-page hidden">
+          ${templates['forms/admin/add-subject']}
+        </div>
+        <div id="add-period" class="data-sub-page hidden">
+          ${templates['forms/admin/add-period']}
+        </div>
+      `;
     }
     
     const academicManagementContent = document.querySelector('#academic-management-content');
@@ -927,33 +961,49 @@ function bindMainAdminNavigation() {
 function bindDataSubNavigation() {
   const dataSubNavTabs = document.querySelectorAll('.data-sub-nav-tab');
   
+  console.log('🔧 Binding data sub navigation, found', dataSubNavTabs.length, 'tabs');
+  
   dataSubNavTabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
       e.preventDefault();
       
+      const targetId = tab.getAttribute('data-target');
+      console.log('📋 Data sub-tab clicked:', targetId);
+      
+      // Remove active from all tabs
       dataSubNavTabs.forEach(t => {
         t.classList.remove('active');
         t.setAttribute('aria-selected', 'false');
       });
       
+      // Add active to clicked tab
       tab.classList.add('active');
       tab.setAttribute('aria-selected', 'true');
       
-      const dataSubPages = document.querySelectorAll('.data-sub-page');
+      // Hide all data sub-pages
+      const dataSubPages = document.querySelectorAll('#admin-data .data-sub-page');
+      console.log('📋 Found', dataSubPages.length, 'data sub-pages');
       dataSubPages.forEach(page => {
         page.classList.add('hidden');
+        page.classList.remove('active');
       });
       
-      const targetId = tab.getAttribute('data-target');
+      // Show target page
       const targetPage = document.getElementById(targetId);
       if (targetPage) {
         targetPage.classList.remove('hidden');
+        targetPage.classList.add('active');
+        console.log('✅ Showing data sub-page:', targetId);
+      } else {
+        console.error('❌ Target data sub-page not found:', targetId);
       }
     });
   });
   
+  // Initialize first tab as active
   const activeTab = document.querySelector('.data-sub-nav-tab.active');
   if (!activeTab && dataSubNavTabs.length > 0) {
+    console.log('📋 Initializing first data sub-tab as active');
     dataSubNavTabs[0].click();
   }
 }

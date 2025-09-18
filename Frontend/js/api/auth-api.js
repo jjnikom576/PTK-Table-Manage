@@ -15,19 +15,27 @@ class AuthAPI {
    */
   async login(username, password) {
     try {
-      const result = await apiManager.post('admin/login', {
+      const result = await apiManager.post('auth/login', {
         username: username.trim(),
         password: password
       });
 
       if (result.success && result.data) {
+        console.log('Auth API: Login response data:', result.data);
+        
         // Save session data
         const sessionData = {
-          token: result.data.token,
+          token: result.data.token || result.data.session_token,
           user: result.data.user,
-          expiresAt: result.data.expires_at,
+          expiresAt: result.data.expires_at || result.data.expiresAt,
           loginTime: new Date().toISOString()
         };
+        
+        console.log('Auth API: Saving session:', {
+          hasToken: !!sessionData.token,
+          tokenStart: sessionData.token ? sessionData.token.substring(0, 10) + '...' : 'null',
+          user: sessionData.user?.username
+        });
 
         this.saveSession(sessionData);
 

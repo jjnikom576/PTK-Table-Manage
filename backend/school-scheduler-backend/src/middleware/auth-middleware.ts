@@ -136,15 +136,54 @@ export const requireAdmin = requireRole(['admin', 'super_admin']);
 // ===========================================
 
 export async function corsMiddleware(c: Context, next: Next) {
-  // Set CORS headers
-  c.header('Access-Control-Allow-Origin', '*');
+  // Get the origin from the request
+  const origin = c.req.header('Origin');
+  
+  // Log CORS request for debugging
+  console.log('CORS Middleware:', {
+    method: c.req.method,
+    origin: origin,
+    path: new URL(c.req.url).pathname
+  });
+  
+  // Allowed origins for development
+  const allowedOrigins = [
+    'http://localhost:5500',
+    'http://127.0.0.1:5500',
+    'http://localhost:8000', 
+    'http://127.0.0.1:8000',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000'
+  ];
+  
+  // Always set CORS headers
+  if (origin && allowedOrigins.includes(origin)) {
+    c.header('Access-Control-Allow-Origin', origin);
+    console.log('CORS: Allowed origin:', origin);
+  } else {
+    // Fallback for development - allow all origins
+    c.header('Access-Control-Allow-Origin', '*');
+    console.log('CORS: Using wildcard for origin:', origin);
+  }
+  
   c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Token');
+  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Session-Token, X-Requested-With');
+  c.header('Access-Control-Allow-Credentials', 'true');
   c.header('Access-Control-Max-Age', '86400');
 
   // Handle preflight requests
   if (c.req.method === 'OPTIONS') {
-    return new Response(null, { status: 204 });
+    console.log('CORS: Handling OPTIONS preflight request');
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': origin && allowedOrigins.includes(origin) ? origin : '*',
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Session-Token, X-Requested-With',
+        'Access-Control-Allow-Credentials': 'true',
+        'Access-Control-Max-Age': '86400'
+      }
+    });
   }
 
   return await next();

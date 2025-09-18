@@ -63,9 +63,19 @@ class APIManager {
   getSession() {
     try {
       const raw = localStorage.getItem('admin_session');
-      return raw ? JSON.parse(raw) : null;
+      if (!raw) {
+        console.log('APIManager: No session found in localStorage');
+        return null;
+      }
+      const session = JSON.parse(raw);
+      console.log('APIManager: Session found:', {
+        hasToken: !!session.token,
+        tokenStart: session.token ? session.token.substring(0, 10) + '...' : 'null',
+        user: session.user?.username || 'unknown'
+      });
+      return session;
     } catch (error) {
-      if (this.debug) console.warn('Failed to parse session:', error);
+      console.warn('APIManager: Failed to parse session:', error);
       return null;
     }
   }
