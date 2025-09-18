@@ -59,6 +59,8 @@ CREATE INDEX idx_admin_log_table ON admin_activity_log(table_name);
 CREATE INDEX idx_admin_log_date ON admin_activity_log(created_at);
 CREATE INDEX idx_admin_log_search ON admin_activity_log(admin_user_id, created_at, action);
 Core Tables (Fixed - ใช้ทุกปี)
+
+
 sql-- Academic Years
 CREATE TABLE academic_years (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,14 +78,12 @@ CREATE INDEX idx_academic_years_recent ON academic_years(year DESC);
 -- Semesters
 CREATE TABLE semesters (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  academic_year_id INTEGER NOT NULL,
-  semester_number INTEGER NOT NULL CHECK (semester_number IN (1,2,3)),
   semester_name TEXT NOT NULL,
   is_active INTEGER DEFAULT 0,
   created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
-  UNIQUE (academic_year_id, semester_number)
+  UNIQUE (academic_year_id, semester_name)
 );
 
 -- Indexes for semesters

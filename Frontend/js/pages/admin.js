@@ -15,10 +15,8 @@ async function initAcademicManagement() {
     // 2. Load academic years
     await loadAcademicYears();
     
-    // 3. Load semesters for active year (if exists)
-    if (adminState.activeYear) {
-      await loadSemesters(adminState.activeYear);
-    }
+    // 3. Load semesters (global)
+    await loadSemesters();
     
     // 4. Populate UI
     populateCurrentSemesterTab();
@@ -82,19 +80,19 @@ async function loadAcademicYears() {
 /**
  * Load semesters for a specific year
  */
-async function loadSemesters(year) {
+async function loadSemesters() {
   try {
-    const result = await coreAPI.getSemesters(year);
+    const result = await coreAPI.getSemesters();
     
     if (result.success && result.data) {
       adminState.semesters = result.data;
-      console.log('[Admin] Loaded semesters for year', year, ':', result.data.length, 'semesters');
+      console.log('[Admin] Loaded semesters:', result.data.length, 'semesters');
     } else {
       adminState.semesters = [];
-      console.warn('[Admin] No semesters found for year', year);
+      console.warn('[Admin] No semesters found');
     }
   } catch (error) {
-    console.error('[Admin] Error loading semesters for year', year, ':', error);
+    console.error('[Admin] Error loading semesters:', error);
     adminState.semesters = [];
   }
 }
@@ -156,11 +154,7 @@ function populateSemestersList() {
   if (!container) return;
   
   if (adminState.semesters.length === 0) {
-    const message = adminState.activeYear ? 
-      `ยังไม่มีภาคเรียนสำหรับปี ${adminState.activeYear} - กรุณาเพิ่มในแท็บ "เพิ่มภาคเรียน"` :
-      'กรุณาเลือกปีการศึกษาก่อน';
-    
-    container.innerHTML = `<p class="no-data">${message}</p>`;
+    container.innerHTML = `<p class="no-data">ยังไม่มีภาคเรียน - กรุณาเพิ่มในแท็บ "เพิ่มภาคเรียน"</p>`;
     return;
   }
   
@@ -224,8 +218,8 @@ async function handleYearSelectionChange(event) {
     if (selectedYear) {
       console.log('[Admin] Year selection changed to:', selectedYear.year);
       
-      // Load semesters for selected year
-      await loadSemesters(selectedYear.year);
+      // Load semesters (global)
+      await loadSemesters();
       populateSemestersList();
       
       // Update hidden field
@@ -247,11 +241,10 @@ async function handleCurrentSemesterFormSubmit(event) {
   const academicYearId = formData.get('academic_year_id');
   const semesterId = formData.get('semester_id');
   
-  // Get actual year value
-  const selectedYear = adminState.academicYears.find(y => y.id === parseInt(academicYearId));
-  
-  if (!selectedYear || !semesterId) {
-    alert('กรุณาเลือกปีการศึกษาและภาคเรียน');
+  // Resolve selected year if provided; otherwise fall back to current active year
+  const selectedYear = academicYearId ? adminState.academicYears.find(y => y.id === parseInt(academicYearId)) : null;
+  if (!semesterId) {
+    alert('กรุณาเลือกภาคเรียน');
     return;
   }
   
@@ -263,12 +256,17 @@ async function handleCurrentSemesterFormSubmit(event) {
     submitBtn.disabled = true;
     
     // Call APIs to set active context
-    const yearResult = await coreAPI.setActiveAcademicYear(selectedYear.year);
-    const semesterResult = await coreAPI.setActiveSemester(selectedYear.year, parseInt(semesterId));
+    let yearResult = { success: true };
+    if (selectedYear) {
+      yearResult = await coreAPI.setActiveAcademicYear(selectedYear.year);
+    }
+    const semesterResult = await coreAPI.setActiveSemester(parseInt(semesterId));
     
     if (yearResult.success && semesterResult.success) {
       // Update admin state
-      adminState.activeYear = selectedYear.year;
+      if (selectedYear) {
+        adminState.activeYear = selectedYear.year;
+      }
       adminState.activeSemester = adminState.semesters.find(s => s.id === parseInt(semesterId));
       
       // Refresh global context
@@ -382,28 +380,23 @@ async function handleSemesterFormSubmit(event) {
     alert('กรุณาระบุชื่อภาคเรียน');
     return;
   }
-  
-  if (!adminState.activeYear) {
-    alert('กรุณากำหนดปีการศึกษาปัจจุบันก่อน');
-    return;
-  }
+  // ไม่ต้องเลือกหมายเลขภาคเรียนแล้ว ใช้ชื่อ + id เท่านั้น
   
   try {
     // Set loading state
     const submitBtn = event.target.querySelector('[type="submit"]');
-    const originalText = submitBtn.textContent;
+    var originalText = submitBtn ? submitBtn.textContent : '';
     submitBtn.textContent = 'กำลังบันทึก...';
     submitBtn.disabled = true;
     
-    // Call API to create semester
+    // Call API to create semester (global)
     const result = await coreAPI.createSemester({
-      name: semesterName,
-      year: adminState.activeYear
+      semester_name: semesterName
     });
     
     if (result.success) {
-      // Refresh semesters data for current year
-      await loadSemesters(adminState.activeYear);
+      // Refresh semesters (global)
+      await loadSemesters();
       
       // Update UI
       populateSemestersList();
@@ -412,7 +405,7 @@ async function handleSemesterFormSubmit(event) {
       // Clear form
       event.target.reset();
       
-      alert(`เพิ่มภาคเรียน "${semesterName}" สำหรับปี ${adminState.activeYear} เรียบร้อย!`);
+      alert(`เพิ่มภาคเรียน "${semesterName}" เรียบร้อย!`);
       
       console.log('[Admin] Semester created:', result.data);
       
@@ -427,8 +420,10 @@ async function handleSemesterFormSubmit(event) {
   } finally {
     // Reset button
     const submitBtn = event.target.querySelector('[type="submit"]');
-    submitBtn.textContent = originalText;
-    submitBtn.disabled = false;
+    if (submitBtn) {
+      submitBtn.textContent = typeof originalText !== 'undefined' ? originalText : 'บันทึก';
+      submitBtn.disabled = false;
+    }
   }
 }
 
@@ -475,11 +470,7 @@ function populateSemestersTable() {
   if (!tableBody) return;
   
   if (adminState.semesters.length === 0) {
-    const message = adminState.activeYear ? 
-      `ยังไม่มีภาคเรียนสำหรับปี ${adminState.activeYear}` :
-      'กรุณากำหนดปีการศึกษาปัจจุบันก่อน';
-    
-    tableBody.innerHTML = `<tr><td colspan="5" class="no-data">${message}</td></tr>`;
+    tableBody.innerHTML = `<tr><td colspan="5" class="no-data">ยังไม่มีภาคเรียน</td></tr>`;
     return;
   }
   
@@ -506,6 +497,35 @@ function populateSemestersTable() {
   tableBody.innerHTML = rowsHTML;
   
   console.log('[Admin] Populated semesters table');
+}
+
+// Expose deleteSemester handler for inline onclick
+window.deleteSemester = async function(semesterId, semesterName) {
+  try {
+    if (!semesterId) return;
+    const confirmed = confirm(`ยืนยันการลบภาคเรียน \"${semesterName}\" ?`);
+    if (!confirmed) return;
+
+    const result = await coreAPI.deleteSemester(parseInt(semesterId));
+    if (!result.success) {
+      alert(result.error || 'ลบภาคเรียนไม่สำเร็จ');
+      return;
+    }
+    // Clear current activeSemester if it was deleted
+    if (adminState.activeSemester && adminState.activeSemester.id === parseInt(semesterId)) {
+      adminState.activeSemester = null;
+    }
+    // Reload list
+    await loadSemesters();
+    populateSemestersList();
+    populateSemestersTable();
+    // Refresh global context from backend (to sync any changes)
+    try { await refreshContextFromBackend(); } catch (e) {}
+    alert('ลบภาคเรียนเรียบร้อย');
+  } catch (error) {
+    console.error('[Admin] Error deleting semester:', error);
+    alert('เกิดข้อผิดพลาดในการลบภาคเรียน');
+  }
 }
 
 // =============================================================================
@@ -1923,3 +1943,76 @@ if (typeof module !== 'undefined' && module.exports) {
     showShortcutsModal
   };
 }
+
+// =============================================================================
+// GLOBAL FUNCTIONS FOR INLINE ONCLICK HANDLERS
+// =============================================================================
+
+/**
+ * Delete Academic Year - Global function for onclick
+ */
+window.deleteAcademicYear = async function(yearId, year) {
+  try {
+    if (!yearId) return;
+    
+    // Import required modules dynamically
+    const { default: coreAPI } = await import('../api/core-api.js');
+    const { refreshContextFromBackend } = await import('../context/globalContext.js');
+    
+    // Check if it's the active year (rough check)
+    const confirmed = confirm(`ยืนยันการลบปีการศึกษา ${year} ?\n\nข้อมูลทั้งหมดของปีนี้ (ครู, ชั้นเรียน, ตารางสอน) จะถูกลบด้วย!`);
+    if (!confirmed) return;
+    
+    // Show loading state
+    const button = event?.target;
+    const originalText = button ? button.textContent : '';
+    if (button) {
+      button.textContent = 'กำลังลบ...';
+      button.disabled = true;
+    }
+    
+    try {
+      const result = await coreAPI.deleteAcademicYear(parseInt(yearId));
+      
+      if (!result.success) {
+        alert(result.error || 'ลบปีการศึกษาไม่สำเร็จ');
+        return;
+      }
+      
+      // Refresh global context from backend (to sync any changes)
+      try { await refreshContextFromBackend(); } catch (e) {}
+      
+      alert(`ลบปีการศึกษา ${year} เรียบร้อยแล้ว!`);
+      
+      // Reload page to refresh all data
+      window.location.reload();
+      
+    } finally {
+      // Reset button
+      if (button) {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    }
+    
+  } catch (error) {
+    console.error('[Admin] Error deleting academic year:', error);
+    alert('เกิดข้อผิดพลาดในการลบปีการศึกษา: ' + error.message);
+  }
+};
+
+/**
+ * Edit Academic Year - Global function for onclick (placeholder)
+ */
+window.editAcademicYear = async function(yearId) {
+  alert('คุณสมบัติแก้ไขยังไม่ได้ถูกพัฒนา ใช้ลบแล้วเพิ่มใหม่แทน');
+  console.log('[Admin] Edit academic year:', yearId);
+};
+
+/**
+ * Edit Semester - Global function for onclick (placeholder)
+ */
+window.editSemester = async function(semesterId) {
+  alert('คุณสมบัติแก้ไขภาคเรียนยังไม่ได้ถูกพัฒนา ใช้ลบแล้วเพิ่มใหม่แทน');
+  console.log('[Admin] Edit semester:', semesterId);
+};

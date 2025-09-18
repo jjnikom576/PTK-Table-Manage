@@ -30,6 +30,15 @@ export class DatabaseManager {
     this.schemaManager = new SchemaManager(db, env);
   }
 
+  // Resolve dynamic table suffix using the currently active academic year
+  private async getActiveYear(): Promise<number> {
+    const row = await this.db
+      .prepare('SELECT year FROM academic_years WHERE is_active = 1')
+      .first<{ year: number }>();
+    if (!row) throw new Error('No active academic year found');
+    return row.year;
+  }
+
   // ===========================================
   // Initialization
   // ===========================================
@@ -208,14 +217,14 @@ export class DatabaseManager {
   // Semester Management
   // ===========================================
 
-  async createSemester(academicYearId: number, semesterNumber: number, semesterName: string): Promise<DatabaseResult<Semester>> {
+  async createSemester(semesterName: string): Promise<DatabaseResult<Semester>> {
     try {
       const result = await this.db
         .prepare(`
-          INSERT INTO semesters (academic_year_id, semester_number, semester_name, is_active, created_at, updated_at)
-          VALUES (?, ?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          INSERT INTO semesters (semester_name, is_active, created_at, updated_at)
+          VALUES (?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `)
-        .bind(academicYearId, semesterNumber, semesterName)
+        .bind(semesterName)
         .run();
 
       const newSemester = await this.db
@@ -229,14 +238,36 @@ export class DatabaseManager {
     }
   }
 
-  async getSemestersByYear(academicYearId: number): Promise<DatabaseResult<Semester[]>> {
+  async getSemesters(): Promise<DatabaseResult<Semester[]>> {
     try {
       const semesters = await this.db
-        .prepare('SELECT * FROM semesters WHERE academic_year_id = ? ORDER BY semester_number')
-        .bind(academicYearId)
+        .prepare('SELECT * FROM semesters ORDER BY id')
         .all<Semester>();
 
       return { success: true, data: semesters.results };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async deleteSemester(semesterId: number): Promise<DatabaseResult> {
+    try {
+      // Do not allow deleting active semester
+      const active = await this.db
+        .prepare('SELECT id FROM semesters WHERE id = ? AND is_active = 1')
+        .bind(semesterId)
+        .first();
+      if (active) {
+        return { success: false, error: 'Cannot delete an active semester' };
+      }
+      const result = await this.db
+        .prepare('DELETE FROM semesters WHERE id = ?')
+        .bind(semesterId)
+        .run();
+      if (result.meta.changes === 0) {
+        return { success: false, error: 'Semester not found' };
+      }
+      return { success: true, data: { message: 'Semester deleted' }, affectedRows: result.meta.changes };
     } catch (error) {
       return { success: false, error: String(error) };
     }
@@ -300,7 +331,7 @@ export class DatabaseManager {
       .prepare(`
         SELECT ay.year 
         FROM academic_years ay
-        JOIN semesters s ON ay.id = s.academic_year_id
+        /* semesters are global; academic_year_id removed */
         WHERE s.id = ?
       `)
       .bind(semesterId)
@@ -319,7 +350,7 @@ export class DatabaseManager {
 
   async createTeacher(data: CreateTeacherRequest): Promise<DatabaseResult<Teacher>> {
     try {
-      const year = await this.getYearFromSemesterId(data.semester_id);
+      const year = await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `teachers_${year}`;
@@ -352,7 +383,7 @@ export class DatabaseManager {
 
   async getTeachersBySemester(semesterId: number, page = 1, limit = 50): Promise<PaginatedResponse<Teacher>> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `teachers_${year}`;
 
       const offset = (page - 1) * limit;
@@ -397,7 +428,7 @@ export class DatabaseManager {
 
   async updateTeacher(teacherId: number, semesterId: number, data: Partial<CreateTeacherRequest>): Promise<DatabaseResult> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `teachers_${year}`;
 
       const fields: string[] = [];
@@ -430,7 +461,7 @@ export class DatabaseManager {
 
   async deleteTeacher(teacherId: number, semesterId: number): Promise<DatabaseResult> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `teachers_${year}`;
 
       const result = await this.db
@@ -454,7 +485,7 @@ export class DatabaseManager {
 
   async createClass(data: CreateClassRequest): Promise<DatabaseResult<Class>> {
     try {
-      const year = await this.getYearFromSemesterId(data.semester_id);
+      const year = await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `classes_${year}`;
@@ -479,7 +510,7 @@ export class DatabaseManager {
 
   async getClassesBySemester(semesterId: number): Promise<DatabaseResult<Class[]>> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `classes_${year}`;
 
       const classes = await this.db
@@ -503,7 +534,7 @@ export class DatabaseManager {
 
   async createRoom(data: CreateRoomRequest): Promise<DatabaseResult<Room>> {
     try {
-      const year = await this.getYearFromSemesterId(data.semester_id);
+      const year = await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `rooms_${year}`;
@@ -528,7 +559,7 @@ export class DatabaseManager {
 
   async getRoomsBySemester(semesterId: number): Promise<DatabaseResult<Room[]>> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `rooms_${year}`;
 
       const rooms = await this.db
@@ -552,7 +583,7 @@ export class DatabaseManager {
 
   async createSubject(data: CreateSubjectRequest): Promise<DatabaseResult<Subject>> {
     try {
-      const year = await this.getYearFromSemesterId(data.semester_id);
+      const year = await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `subjects_${year}`;
@@ -586,7 +617,7 @@ export class DatabaseManager {
 
   async getSubjectsBySemester(semesterId: number): Promise<DatabaseResult<any[]>> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `subjects_${year}`;
 
       const subjects = await this.db
@@ -614,7 +645,7 @@ export class DatabaseManager {
 
   async createSchedule(data: CreateScheduleRequest): Promise<DatabaseResult<Schedule>> {
     try {
-      const year = await this.getYearFromSemesterId(data.semester_id);
+      const year = await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `schedules_${year}`;
@@ -715,7 +746,7 @@ export class DatabaseManager {
 
   async getSchedulesBySemester(semesterId: number): Promise<DatabaseResult<any[]>> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `schedules_${year}`;
 
       const schedules = await this.db
@@ -748,9 +779,37 @@ export class DatabaseManager {
     }
   }
 
+  async deleteAcademicYear(yearId: number): Promise<DatabaseResult> {
+    try {
+      const row = await this.db
+        .prepare('SELECT id, year, is_active FROM academic_years WHERE id = ?')
+        .bind(yearId)
+        .first<{ id: number; year: number; is_active: number }>();
+      if (!row) return { success: false, error: 'Academic year not found' };
+      if (row.is_active === 1) return { success: false, error: 'Cannot delete an active academic year' };
+
+      const year = row.year;
+      const tables = [`teachers_${year}`, `classes_${year}`, `rooms_${year}`, `subjects_${year}`, `schedules_${year}`];
+      for (const t of tables) {
+        await this.db.exec(`DROP TABLE IF EXISTS ${t}`);
+      }
+
+      const del = await this.db
+        .prepare('DELETE FROM academic_years WHERE id = ?')
+        .bind(yearId)
+        .run();
+      if (del.meta.changes === 0) {
+        return { success: false, error: 'Delete failed' };
+      }
+      return { success: true, data: { message: 'Academic year deleted', year, droppedTables: tables }, affectedRows: del.meta.changes };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
   async deleteSchedule(scheduleId: number, semesterId: number): Promise<DatabaseResult> {
     try {
-      const year = await this.getYearFromSemesterId(semesterId);
+      const year = await this.getActiveYear();
       const tableName = `schedules_${year}`;
 
       const result = await this.db

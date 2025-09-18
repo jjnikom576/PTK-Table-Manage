@@ -17,7 +17,63 @@ type AppVariables = { user: AdminUser; sessionToken: string; requestId: string }
 
 const scheduleRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
-// Apply authentication to all schedule routes
+// Public route(s) for viewing schedules
+// Note: Allow anyone to view the timetable of the active semester
+scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+    
+    // Get active semester
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.semester) {
+      return c.json({
+        success: false,
+        message: 'No active semester found'
+      }, 400);
+    }
+
+    // Get all schedules for the active semester
+    const schedulesResult = await dbManager.getSchedulesBySemester(contextResult.data.semester.id!);
+    if (!schedulesResult.success) {
+      return c.json(schedulesResult);
+    }
+
+    const schedules = schedulesResult.data || [];
+
+    // Build timetable grid (1-7 days, 1-12 periods) similar to admin route
+    const timetableData: any = {
+      days: [1,2,3,4,5,6,7],
+      periods: Array.from({ length: 12 }, (_, i) => i + 1),
+      grid: {},
+      meta: {
+        year: contextResult.data.academic_year?.year || null,
+        semester: contextResult.data.semester || null
+      }
+    };
+
+    // Initialize grid
+    timetableData.days.forEach((d: number) => {
+      timetableData.grid[d] = {};
+      timetableData.periods.forEach((p: number) => {
+        timetableData.grid[d][p] = null;
+      });
+    });
+
+    // Fill grid
+    for (const s of schedules) {
+      if (timetableData.grid[s.day_of_week] && typeof timetableData.grid[s.day_of_week][s.period_no] !== 'undefined') {
+        timetableData.grid[s.day_of_week][s.period_no] = s;
+      }
+    }
+
+    return c.json({ success: true, data: timetableData });
+  } catch (error) {
+    console.error('Public timetable error:', error);
+    return c.json({ success: false, message: 'Failed to get timetable', error: String(error) }, 500);
+  }
+});
+
+// Apply authentication to remaining schedule routes (write/admin operations)
 scheduleRoutes.use('*', requireAdmin);
 
 // ===========================================

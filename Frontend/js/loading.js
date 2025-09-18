@@ -27,5 +27,18 @@
   // Expose globally for non-module scripts
   window.showLoading = window.showLoading || showLoading;
   window.hideLoading = window.hideLoading || hideLoading;
+  
+  // Export for ES6 modules
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { showLoading, hideLoading };
+  }
+  
+  // Export for ES6 import/export (modern way)
+  if (typeof window !== 'undefined') {
+    window.loadingHelpers = { showLoading, hideLoading };
+  }
 })();
+
+// ES6 exports
+export { showLoading, hideLoading };
 

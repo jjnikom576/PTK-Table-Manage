@@ -9,7 +9,7 @@ class CoreAPI {
   constructor() {
     this.cache = {
       academicYears: null,
-      semesters: new Map(), // Map by year
+      semesters: null, // Global semesters
       lastFetch: new Map()
     };
     this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
@@ -70,104 +70,61 @@ class CoreAPI {
   }
 
   /**
-   * Get semesters for a specific year
+   * Delete academic year (NEW)
    */
-  async getSemesters(yearOrId, useCache = true) {
-    // Convert year to yearId if needed
-    let yearId = yearOrId;
-    let year = yearOrId;
-    
-    // If input is a year (e.g., 2567), find the corresponding yearId
-    if (typeof yearOrId === 'number' && yearOrId > 2500) {
-      const yearsData = await this.getAcademicYears();
-      if (yearsData.success) {
-        const yearData = yearsData.data.find(y => y.year === yearOrId);
-        if (yearData) {
-          yearId = yearData.id;
-          year = yearData.year;
-        } else {
-          return {
-            success: false,
-            error: `ไม่พบปีการศึกษา ${yearOrId}`
-          };
-        }
-      } else {
-        return yearsData; // Return the error from getAcademicYears
-      }
-    } else {
-      // If input is yearId, find the year for caching
-      const yearsData = await this.getAcademicYears();
-      if (yearsData.success) {
-        const yearData = yearsData.data.find(y => y.id === yearOrId);
-        if (yearData) {
-          year = yearData.year;
-        }
-      }
-    }
-    
-    const cacheKey = `semesters_${year}`;
-    
-    if (useCache && this.isCacheValid(cacheKey)) {
-      return {
-        success: true,
-        data: this.cache.semesters.get(year)
-      };
-    }
-
+  async deleteAcademicYear(yearId) {
     try {
-      // Use yearId for API call
-      const result = await apiManager.get(`core/academic-years/${yearId}/semesters`);
+      const result = await apiManager.delete(`core/academic-years/${yearId}`);
       
       if (result.success) {
-        this.cache.semesters.set(year, result.data);
-        this.cache.lastFetch.set(cacheKey, Date.now());
+        // Clear cache to force refresh
+        this.cache.academicYears = null;
+        this.cache.lastFetch.delete('academicYears');
       }
       
       return result;
     } catch (error) {
       return {
         success: false,
-        error: `ไม่สามารถโหลดข้อมูลภาคเรียนปี ${year} ได้`
+        error: 'ไม่สามารถลบปีการศึกษาได้'
       };
+    }
+  }
+
+  /**
+   * Get semesters for a specific year
+   */
+  async getSemesters(useCache = true) {
+    const cacheKey = 'semesters';
+    if (useCache && this.isCacheValid(cacheKey) && Array.isArray(this.cache.semesters)) {
+      return { success: true, data: this.cache.semesters };
+    }
+    try {
+      const result = await apiManager.get('core/semesters');
+      if (result.success) {
+        this.cache.semesters = result.data;
+        this.cache.lastFetch.set(cacheKey, Date.now());
+      }
+      return result;
+    } catch (error) {
+      return { success: false, error: 'ไม่สามารถโหลดข้อมูลภาคเรียนได้' };
     }
   }
 
   /**
    * Create new semester
    */
-  async createSemester({name, year, semester_number}) {
+  async createSemester({ semester_name, name }) {
     try {
-      // Find yearId from year
-      const yearsData = await this.getAcademicYears();
-      if (!yearsData.success) {
-        return yearsData;
-      }
-      
-      const yearData = yearsData.data.find(y => y.year === year);
-      if (!yearData) {
-        return {
-          success: false,
-          error: `ไม่พบปีการศึกษา ${year}`
-        };
-      }
-      
-      const result = await apiManager.post(`core/academic-years/${yearData.id}/semesters`, {
-        semester_number: semester_number || 1,
-        semester_name: name
-      });
-      
+      const payload = { semester_name: semester_name || name };
+      const result = await apiManager.post('core/semesters', payload);
       if (result.success) {
-        // Clear semesters cache for this year
-        this.cache.semesters.delete(year);
-        this.cache.lastFetch.delete(`semesters_${year}`);
+        this.cache.semesters = null;
+        this.cache.lastFetch.delete('semesters');
       }
-      
       return result;
     } catch (error) {
-      return {
-        success: false,
-        error: 'ไม่สามารถเพิ่มภาคเรียนได้'
-      };
+      return { success: false, error: 'ไม่สามารถเพิ่มภาคเรียนได้' };
     }
   }
 
@@ -218,15 +175,25 @@ class CoreAPI {
   /**
    * Set active semester
    */
-  async setActiveSemester(year, semesterId) {
+  async setActiveSemester(semesterId) {
     try {
       const result = await apiManager.put(`core/semesters/${semesterId}/activate`);
       return result;
     } catch (error) {
-      return {
-        success: false,
-        error: 'ไม่สามารถกำหนดภาคเรียนใช้งานได้'
-      };
+      return { success: false, error: 'ไม่สามารถกำหนดภาคเรียนใช้งานได้' };
+    }
+  }
+
+  async deleteSemester(semesterId) {
+    try {
+      const result = await apiManager.delete(`core/semesters/${semesterId}`);
+      if (result.success) {
+        this.cache.semesters = null;
+        this.cache.lastFetch.delete('semesters');
+      }
+      return result;
+    } catch (error) {
+      return { success: false, error: 'ไม่สามารถลบภาคเรียนได้' };
     }
   }
 

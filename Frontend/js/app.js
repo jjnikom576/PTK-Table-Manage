@@ -135,7 +135,7 @@ class SchoolScheduleApp {
       
       if (contextResult.success && contextResult.data) {
         const { year, semester } = contextResult.data;
-        console.log(`✅ Active context: Year ${year}, Semester ${semester?.semester_number || 'N/A'}`);
+        console.log(`✅ Active context: Year ${year}, Semester ${semester?.semester_name || 'N/A'}`);
         
         // Update global context with backend data
         window.globalSchoolContext = {
@@ -149,7 +149,7 @@ class SchoolScheduleApp {
         // Use fallback context
         window.globalSchoolContext = {
           currentYear: 2567,
-          currentSemester: { id: 1, semester_number: 1 },
+          currentSemester: { id: 1, semester_name: 'ภาคเรียนที่ 1' },
           dataLoaded: false
         };
       }
@@ -178,7 +178,7 @@ class SchoolScheduleApp {
       // Set fallback context on error
       window.globalSchoolContext = {
         currentYear: 2567,
-        currentSemester: { id: 1, semester_number: 1 },
+        currentSemester: { id: 1, semester_name: 'ภาคเรียนที่ 1' },
         dataLoaded: false,
         hasSchedule: false,
         scheduleData: null,
@@ -522,7 +522,7 @@ class SchoolScheduleApp {
       }
       
       // Get semesters for this year from backend
-      const semestersResult = await coreAPI.getSemesters(selectedYear);
+      const semestersResult = await coreAPI.getSemesters();
       
       if (semestersResult.success && semestersResult.data && semestersResult.data.length > 0) {
         const filteredSemesters = semestersResult.data;
@@ -643,9 +643,7 @@ class SchoolScheduleApp {
         throw new Error(`Year ${newYear} not found`);
       }
       
-      const firstSemester = currentContext.availableSemesters.find(s => 
-        s.academic_year_id === newYearData.id && s.semester_number === 1
-      );
+      const firstSemester = currentContext.availableSemesters[0];
       
       if (!firstSemester) {
         throw new Error(`No semesters found for year ${newYear}`);
@@ -902,9 +900,9 @@ class SchoolScheduleApp {
       }
       
       // ⭐ FIX: Better notification with actual semester number
-      const semesterNumber = newContext.semester?.semester_number || 
-                           (newContext.semester?.semester_name?.includes('ที่ 1') ? 1 :
-                            newContext.semester?.semester_name?.includes('ที่ 2') ? 2 :
+      const semesterNumber = newContext.semester?.semester_name || 
+                           (newContext.semester?.semester_name?.includes('ที่ 1') ? 'ภาคเรียนที่ 1' :
+                            newContext.semester?.semester_name?.includes('ที่ 2') ? 'ภาคเรียนที่ 2' :
                             newContext.semester?.semester_name?.includes('ที่ 3') ? 3 : '?');
                             
       this.showNotification(

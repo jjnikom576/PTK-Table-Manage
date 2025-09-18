@@ -114,7 +114,7 @@ app.post('/api/setup', async (c) => {
         message: 'Database initialized successfully',
         data: result.data,
         next_steps: [
-          '1. Login with default admin credentials (username: admin, password: admin123)',
+          '1. Login with default admin credentials (username: admin, password: Aa1234)',
           '2. Change default password immediately',
           '3. Create academic year and semesters',
           '4. Start adding teachers, classes, and subjects'
@@ -138,8 +138,21 @@ app.post('/api/setup', async (c) => {
 // Authentication Middleware (Applied to protected routes)
 // ===========================================
 
-// Apply authentication to all API routes except public ones
-app.use('/api/*', authMiddleware);
+// Apply authentication to API routes, but allow specific public GET endpoints
+app.use('/api/*', async (c, next) => {
+  const path = c.req.path;
+  const method = c.req.method;
+  const publicGetPaths = new Set([
+    '/api/core/context',
+    '/api/core/academic-years',
+    '/api/core/semesters',
+    '/api/schedule/timetable'
+  ]);
+  if (method === 'GET' && publicGetPaths.has(path)) {
+    return await next();
+  }
+  return await authMiddleware(c, next);
+});
 
 // ===========================================
 // API Routes
@@ -194,9 +207,10 @@ app.get('/api/docs', (c) => {
         'GET /api/core/academic-years': 'List academic years',
         'POST /api/core/academic-years': 'Create academic year',
         'PUT /api/core/academic-years/:id/activate': 'Activate academic year',
-        'GET /api/core/academic-years/:yearId/semesters': 'Get semesters for year',
-        'POST /api/core/academic-years/:yearId/semesters': 'Create semester',
+        'GET /api/core/semesters': 'List semesters (global)',
+        'POST /api/core/semesters': 'Create semester (global)',
         'PUT /api/core/semesters/:id/activate': 'Activate semester',
+        'DELETE /api/core/semesters/:id': 'Delete semester',
         'GET /api/core/periods': 'Get time periods',
         'PUT /api/core/periods/:periodNo': 'Update time period',
         'GET /api/core/status': 'System status and table info',
@@ -223,7 +237,7 @@ app.get('/api/docs', (c) => {
       }
     },
     data_flow: {
-      setup: '1. POST /api/setup → 2. POST /api/auth/login → 3. POST /api/core/academic-years → 4. POST /api/core/academic-years/:id/semesters → 5. PUT /api/core/academic-years/:id/activate → 6. PUT /api/core/semesters/:id/activate',
+      setup: '1. POST /api/setup → 2. POST /api/auth/login → 3. POST /api/core/academic-years → 4. POST /api/core/semesters → 5. PUT /api/core/academic-years/:id/activate → 6. PUT /api/core/semesters/:id/activate',
       daily_usage: '1. GET /api/core/context → 2. Manage teachers/classes/rooms → 3. Create subjects → 4. Build schedules → 5. GET /api/schedule/timetable'
     },
     response_format: {

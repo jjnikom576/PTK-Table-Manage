@@ -128,20 +128,20 @@ export class SchemaManager {
     await this.db.exec(
       "CREATE TABLE IF NOT EXISTS semesters (" +
       "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-      "academic_year_id INTEGER NOT NULL, " +
-      "semester_number INTEGER NOT NULL CHECK (semester_number IN (1,2,3)), " +
+      /* academic_year_id removed: semesters are global */
+      
       "semester_name TEXT NOT NULL, " +
       "is_active INTEGER DEFAULT 0, " +
       "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
       "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-      "FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE, " +
-      "UNIQUE (academic_year_id, semester_number)" +
+      /* Removed FK to academic_years: semesters are not tied to year */
+      "UNIQUE (semester_name)" +
       ")"
     );
 
     console.log('Creating semesters indexes...');
     // Semesters Indexes
-    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_semesters_year ON semesters(academic_year_id)");
+    // academic_year_id was removed; keep semesters global
     await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_semesters_active ON semesters(is_active) WHERE is_active = 1");
 
     console.log('Creating periods table...');

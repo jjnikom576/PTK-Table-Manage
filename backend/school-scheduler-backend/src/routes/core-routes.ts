@@ -7,7 +7,7 @@ import { Env, CreateAcademicYearRequest, CreateSemesterRequest } from '../interf
 const coreRoutes = new Hono<{ Bindings: Env }>();
 
 // Apply authentication to all core routes
-coreRoutes.use('*', requireAdmin);
+// Removed global admin guard: apply per-route to allow public reads
 
 // ===========================================
 // Global Context Routes
@@ -52,7 +52,7 @@ coreRoutes.get('/academic-years', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/core/academic-years
-coreRoutes.post('/academic-years', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.post('/academic-years', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env }>) => {
   try {
     const body = await c.req.json<CreateAcademicYearRequest>();
     
@@ -105,7 +105,7 @@ coreRoutes.post('/academic-years', requireJSON, async (c: Context<{ Bindings: En
 });
 
 // PUT /api/core/academic-years/:id/activate
-coreRoutes.put('/academic-years/:id/activate', async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.put('/academic-years/:id/activate', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const yearId = parseInt(c.req.param('id'));
     
@@ -130,14 +130,10 @@ coreRoutes.put('/academic-years/:id/activate', async (c: Context<{ Bindings: Env
   }
 });
 
-// ===========================================
-// Semesters Routes
-// ===========================================
-
-// GET /api/core/academic-years/:yearId/semesters
-coreRoutes.get('/academic-years/:yearId/semesters', async (c: Context<{ Bindings: Env }>) => {
+// DELETE /api/core/academic-years/:id (NEW)
+coreRoutes.delete('/academic-years/:id', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
-    const yearId = parseInt(c.req.param('yearId'));
+    const yearId = parseInt(c.req.param('id'));
     
     if (isNaN(yearId)) {
       return c.json({
@@ -147,7 +143,37 @@ coreRoutes.get('/academic-years/:yearId/semesters', async (c: Context<{ Bindings
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    const result = await dbManager.getSemestersByYear(yearId);
+    const result = await dbManager.deleteAcademicYear(yearId);
+    const status = result.success ? 200 : 400;
+    return c.json(result, status);
+  } catch (error) {
+    console.error('Delete academic year error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to delete academic year',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// ===========================================
+// Semesters Routes
+// ===========================================
+
+// GET /api/core/semesters (global)
+coreRoutes.get('/semesters', async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const yearId = 0; // academic_year_id removed; semesters are global
+    
+    if (isNaN(yearId)) {
+      return c.json({
+        success: false,
+        message: 'Invalid academic year ID'
+      }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+    const result = await dbManager.getSemesters();
     
     return c.json(result);
   } catch (error) {
@@ -161,9 +187,9 @@ coreRoutes.get('/academic-years/:yearId/semesters', async (c: Context<{ Bindings
 });
 
 // POST /api/core/academic-years/:yearId/semesters
-coreRoutes.post('/academic-years/:yearId/semesters', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.post('/semesters', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env }>) => {
   try {
-    const yearId = parseInt(c.req.param('yearId'));
+    const yearId = 0; // academic_year_id removed; semesters are global
     const body = await c.req.json<CreateSemesterRequest>();
     
     if (isNaN(yearId)) {
@@ -174,23 +200,15 @@ coreRoutes.post('/academic-years/:yearId/semesters', requireJSON, async (c: Cont
     }
 
     // Validate input
-    if (!body.semester_number || !body.semester_name) {
+    if (!body.semester_name) {
       return c.json({
         success: false,
-        message: 'Semester number and name are required'
-      }, 400);
-    }
-
-    // Validate semester number (1-3)
-    if (![1, 2, 3].includes(body.semester_number)) {
-      return c.json({
-        success: false,
-        message: 'Semester number must be 1, 2, or 3'
+        message: 'Semester name is required'
       }, 400);
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    const result = await dbManager.createSemester(yearId, body.semester_number, body.semester_name);
+    const result = await dbManager.createSemester(body.semester_name);
     
     return c.json(result);
   } catch (error) {
@@ -204,7 +222,7 @@ coreRoutes.post('/academic-years/:yearId/semesters', requireJSON, async (c: Cont
 });
 
 // PUT /api/core/semesters/:id/activate
-coreRoutes.put('/semesters/:id/activate', async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.put('/semesters/:id/activate', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const semesterId = parseInt(c.req.param('id'));
     
@@ -226,6 +244,23 @@ coreRoutes.put('/semesters/:id/activate', async (c: Context<{ Bindings: Env }>) 
       message: 'Failed to activate semester',
       error: String(error)
     }, 500);
+  }
+});
+
+// DELETE /api/core/semesters/:id (delete a semester if not active)
+coreRoutes.delete('/semesters/:id', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
+  try {
+    const id = parseInt(c.req.param('id'));
+    if (isNaN(id)) {
+      return c.json({ success: false, message: 'Invalid semester ID' }, 400);
+    }
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+    const result = await dbManager.deleteSemester(id);
+    const status = result.success ? 200 : 400;
+    return c.json(result, status);
+  } catch (error) {
+    console.error('Delete semester error:', error);
+    return c.json({ success: false, message: 'Failed to delete semester', error: String(error) }, 500);
   }
 });
 
@@ -356,7 +391,7 @@ coreRoutes.get('/status', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/core/initialize (Initialize database with default data)
-coreRoutes.post('/initialize', async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.post('/initialize', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     const result = await dbManager.initialize();
@@ -373,7 +408,7 @@ coreRoutes.post('/initialize', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // POST /api/core/create-tables/:year (Create dynamic tables for specific year)
-coreRoutes.post('/create-tables/:year', async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.post('/create-tables/:year', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const year = parseInt(c.req.param('year'));
     
@@ -400,7 +435,7 @@ coreRoutes.post('/create-tables/:year', async (c: Context<{ Bindings: Env }>) =>
 });
 
 // GET /api/core/tables-status/:year (Check table existence for specific year)
-coreRoutes.get('/tables-status/:year', async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.get('/tables-status/:year', requireAdmin, async (c: Context<{ Bindings: Env }>) => {
   try {
     const year = parseInt(c.req.param('year'));
     

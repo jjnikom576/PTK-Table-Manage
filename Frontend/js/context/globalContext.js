@@ -17,6 +17,7 @@ const globalContext = {
   currentSemester: null,
   availableYears: [],
   availableSemesters: [],
+  semestersLoaded: false,
   currentRooms: [], // ใหม่ - rooms สำหรับปีปัจจุบัน
   userRole: 'teacher',
   isLoading: false,
@@ -52,21 +53,18 @@ export async function initGlobalContext() {
     globalContext.isLoading = true;
     globalContext.error = null;
     
-    // Check if user is authenticated - only load real data if logged in
+    // Always try loading from backend (public GETs) first
     const isAuthenticated = authAPI.isAuthenticated();
     console.log('[GlobalContext] Authentication status:', isAuthenticated);
+    await loadContextFromAPI();
     
-    if (isAuthenticated) {
-      // Load from backend API
-      await loadContextFromAPI();
-    } else {
-      // Load from storage or use fallback
+    // If backend returned nothing, fall back to storage
+    if (globalContext.availableYears.length === 0 && globalContext.availableSemesters.length === 0) {
       const storedContext = loadContextFromStorage();
       if (storedContext && isContextValid(storedContext)) {
         Object.assign(globalContext, storedContext);
         console.log('[GlobalContext] Loaded context from storage:', storedContext);
       } else {
-        // Set fallback context
         setFallbackContext();
       }
     }
@@ -99,6 +97,18 @@ export async function initGlobalContext() {
 async function loadContextFromAPI() {
   try {
     console.log('[GlobalContext] Loading context from backend API...');
+    // Prefer defaults from api-context (active year/semester)
+    try {
+      const ctxRes = await coreAPI.getGlobalContext();
+      if (ctxRes?.success && ctxRes.data) {
+        const activeYear = ctxRes.data.currentYear ?? ctxRes.data.academic_year?.year ?? null;
+        const activeSemester = ctxRes.data.currentSemester ?? ctxRes.data.semester ?? null;
+        if (activeYear) globalContext.currentYear = activeYear;
+        if (activeSemester) globalContext.currentSemester = activeSemester;
+      }
+    } catch (e) {
+      console.warn('[GlobalContext] Failed to fetch api-context:', e);
+    }
     
     // 1. Load academic years
     const yearsResult = await coreAPI.getAcademicYears();
@@ -114,18 +124,32 @@ async function loadContextFromAPI() {
       globalContext.availableYears = [];
     }
     
-    // 2. If we have years, load semesters for selected year
-    globalContext.availableSemesters = []; // Reset semesters
+    // 2. Load semesters (global) regardless of year availability
+    globalContext.availableSemesters = [];
+    globalContext.semestersLoaded = false;
+    try {
+      const semestersResult = await coreAPI.getSemesters();
+      if (semestersResult.success && Array.isArray(semestersResult.data)) {
+        globalContext.availableSemesters = semestersResult.data;
+        console.log('[GlobalContext] Loaded semesters from API (global):', semestersResult.data.length);
+      } else {
+        console.warn('[GlobalContext] Failed to load semesters or empty:', semestersResult);
+      }
+    } catch (e) {
+      console.warn('[GlobalContext] Error loading semesters:', e);
+    }
+    finally {
+      globalContext.semestersLoaded = true;
+    }
     
     if (globalContext.availableYears.length > 0) {
-      // Find active year or use latest
-      const activeYear = globalContext.availableYears.find(y => y.is_active) || 
-                        globalContext.availableYears.reduce((latest, y) => y.year > latest.year ? y : latest);
+      // Use only active year (no auto-latest fallback)
+      const activeYear = globalContext.availableYears.find(y => y.is_active) || null;
       
       console.log('[GlobalContext] Selected active year:', activeYear); // DEBUG
       
-      if (activeYear) {
-        const semestersResult = await coreAPI.getSemesters(activeYear.year);
+      {
+        const semestersResult = await coreAPI.getSemesters();
         console.log('[GlobalContext] Semesters API response:', semestersResult); // DEBUG
         
         if (semestersResult.success && semestersResult.data && semestersResult.data.length > 0) {
@@ -133,14 +157,16 @@ async function loadContextFromAPI() {
           console.log('[GlobalContext] Loaded semesters from API:', semestersResult.data.length, 'semesters');
           console.log('[GlobalContext] Semesters data:', semestersResult.data); // DEBUG
           
-          // Set current context
-          const activeSemester = globalContext.availableSemesters.find(s => s.is_active) ||
-                                globalContext.availableSemesters[0];
+          // Set current context from active semester only (no first-item fallback)
+          const activeSemester = globalContext.availableSemesters.find(s => s.is_active);
           
           if (activeSemester) {
-            globalContext.currentYear = activeYear.year;
+            if (activeYear) globalContext.currentYear = activeYear.year;
             globalContext.currentSemester = activeSemester;
-            console.log('[GlobalContext] Set active context:', activeYear.year, activeSemester.semester_name || activeSemester.name);
+            console.log('[GlobalContext] Set active context:', activeYear?.year ?? null, activeSemester.semester_name || activeSemester.name);
+          } else {
+            globalContext.currentSemester = null;
+            console.log('[GlobalContext] No active semester found; leaving currentSemester = null');
           }
         } else {
           console.log('[GlobalContext] No semesters found for active year:', activeYear.year);
@@ -151,12 +177,12 @@ async function loadContextFromAPI() {
       }
     }
     
-    // 3. Final state - clear context if no valid data
-    if (!globalContext.currentYear || !globalContext.currentSemester || globalContext.availableSemesters.length === 0) {
-      console.log('[GlobalContext] No valid context found - clearing state');
+    // 3. Final state - clear active context but keep available data
+    if (!globalContext.currentYear || !globalContext.currentSemester) {
+      console.log('[GlobalContext] No active context found - clearing active state only');
       globalContext.currentYear = null;
       globalContext.currentSemester = null;
-      globalContext.availableSemesters = [];
+      // Keep availableYears and availableSemesters for UI display
     }
     
   } catch (error) {
@@ -236,7 +262,7 @@ export async function setContext(year, semesterId) {
         }
         
         // Set active semester  
-        const setActiveSemesterResult = await coreAPI.setActiveSemester(year, semesterId);
+        const setActiveSemesterResult = await coreAPI.setActiveSemester(semesterId);
         if (!setActiveSemesterResult.success) {
           console.warn('[GlobalContext] Failed to set active semester on backend:', setActiveSemesterResult.error);
         }
@@ -597,6 +623,18 @@ export function updateContextUI() {
       if (!userIsSelecting && yearSelector.value !== String(globalContext.currentYear || '')) {
         yearSelector.value = globalContext.currentYear || '';
         console.log('[GlobalContext] Set year selector to:', globalContext.currentYear);
+        
+        // Update semester selector when year changes
+        updateSemesterSelector(globalContext.availableSemesters);
+      }
+      
+      // Add year change listener if not already added
+      if (!yearSelector.hasAttribute('data-listener-added')) {
+        yearSelector.addEventListener('change', () => {
+          console.log('[GlobalContext] Year changed, updating semester selector');
+          updateSemesterSelector(globalContext.availableSemesters);
+        });
+        yearSelector.setAttribute('data-listener-added', 'true');
       }
     }
     
@@ -679,8 +717,9 @@ export function updateYearSelector(availableYears) {
     yearSelector.appendChild(option);
   });
   
-  // Force update the display value
-  yearSelector.value = globalContext.currentYear || '';
+  // Force update the display value only if option exists
+  const hasOption = Array.from(yearSelector.options).some(opt => opt.value === String(globalContext.currentYear));
+  yearSelector.value = hasOption ? String(globalContext.currentYear) : '';
   
   console.log('[GlobalContext] Updated year selector. Final value:', yearSelector.value);
   console.log('[GlobalContext] Year selector options count:', yearSelector.options.length);
@@ -688,7 +727,7 @@ export function updateYearSelector(availableYears) {
 }
 
 /**
- * Update Semester Selector - FIXED: Force rebuild when empty
+ * Update Semester Selector - FIXED: Proper year-based filtering
  */
 export function updateSemesterSelector(availableSemesters) {
   const semesterSelector = document.getElementById('semester-selector');
@@ -697,29 +736,34 @@ export function updateSemesterSelector(availableSemesters) {
     return;
   }
   
-  console.log('[GlobalContext] Updating semester selector. Current year:', globalContext.currentYear);
+  const yearSelector = document.getElementById('year-selector');
+  const selectedYear = yearSelector ? parseInt(yearSelector.value) : null;
+  
+  console.log('[GlobalContext] Updating semester selector. Selected year:', selectedYear);
   
   const currentValue = semesterSelector.value;
   const userIsSelecting = document.activeElement === semesterSelector;
   
-  // Filter semesters for current year
-  const currentYearData = globalContext.availableYears.find(y => y.year === globalContext.currentYear);
-  const filteredSemesters = currentYearData ? 
-    availableSemesters.filter(semester => semester.academic_year_id === currentYearData.id) :
-    [];
+  // Filter semesters by selected year (if any)
+  let filteredSemesters = [];
   
-  console.log('[GlobalContext] Filtering semesters for year:', globalContext.currentYear, 'Found:', filteredSemesters.length);
+  if (selectedYear && globalContext.availableYears.length > 0) {
+    // Find the year data to get its ID
+    const yearData = globalContext.availableYears.find(y => y.year === selectedYear);
+    if (yearData && Array.isArray(availableSemesters)) {
+      filteredSemesters = availableSemesters.filter(s => s.academic_year_id === yearData.id);
+      console.log(`[GlobalContext] Filtered semesters for year ${selectedYear} (ID: ${yearData.id}):`, filteredSemesters.length);
+    }
+  }
   
-  // FORCE rebuild when no year selected or when semester options are wrong
+  // FORCE rebuild when conditions change
   const currentOptions = Array.from(semesterSelector.options);
   const hasWrongDefaultOption = currentOptions.some(opt => 
     opt.textContent === 'กำลังโหลด...' || 
     opt.textContent.includes('กำลังโหลด')
   );
   
-  const needsRebuild = hasWrongDefaultOption || 
-    (!globalContext.currentYear && !currentOptions.some(opt => opt.textContent.includes('เลือกปีการศึกษาก่อน'))) ||
-    currentOptions.length !== (filteredSemesters.length + 1);
+  const needsRebuild = hasWrongDefaultOption || currentOptions.length !== (filteredSemesters.length + 1);
   
   console.log('[GlobalContext] Rebuild needed:', needsRebuild, 'hasWrongDefaultOption:', hasWrongDefaultOption);
   
@@ -730,21 +774,24 @@ export function updateSemesterSelector(availableSemesters) {
     // Clear options safely
     semesterSelector.innerHTML = '';
     
-    // Add default option based on data availability
+    // Add default option based on current state
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
     
-    if (!globalContext.currentYear) {
+    if (!selectedYear) {
+      // No year selected
       defaultOption.textContent = 'เลือกปีการศึกษาก่อน';
       defaultOption.disabled = true;
-      console.log('[GlobalContext] Setting "select year first" message for semester selector');
+      console.log('[GlobalContext] Setting "select year first" message');
     } else if (filteredSemesters.length === 0) {
-      defaultOption.textContent = 'ไม่มีภาคเรียน - เพิ่มใหม่ในหน้าแอดมิน';
+      // Year selected but no semesters
+      defaultOption.textContent = 'ยังไม่มีภาคเรียน - เพิ่มใหม่ในหน้าแอดมิน';
       defaultOption.disabled = true;
-      console.log('[GlobalContext] Setting empty semester message for semester selector');
+      console.log('[GlobalContext] Setting "no semesters" message');
     } else {
+      // Year selected and has semesters
       defaultOption.textContent = 'เลือกภาคเรียน';
-      console.log('[GlobalContext] Setting normal default message for semester selector');
+      console.log('[GlobalContext] Setting normal "select semester" message');
     }
     
     semesterSelector.appendChild(defaultOption);
@@ -758,14 +805,11 @@ export function updateSemesterSelector(availableSemesters) {
       semesterSelector.appendChild(option);
     });
     
-    // Restore value
-    const valueToSet = currentValue || (globalContext.currentSemester?.id ? String(globalContext.currentSemester.id) : '');
-    if (valueToSet && semesterSelector.querySelector(`option[value="${valueToSet}"]`)) {
-      semesterSelector.value = valueToSet;
-      console.log('[GlobalContext] Restored semester selector value to:', valueToSet);
-    } else if (globalContext.currentSemester?.id) {
-      semesterSelector.value = globalContext.currentSemester.id;
-      console.log('[GlobalContext] Set semester selector value to:', globalContext.currentSemester.id);
+    // Restore value only if option exists
+    const desired = currentValue || (globalContext.currentSemester?.id ? String(globalContext.currentSemester.id) : '');
+    if (desired && semesterSelector.querySelector(`option[value="${desired}"]`)) {
+      semesterSelector.value = desired;
+      console.log('[GlobalContext] Restored semester selector value to:', desired);
     } else {
       semesterSelector.value = '';
     }

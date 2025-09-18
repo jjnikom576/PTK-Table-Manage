@@ -23,8 +23,6 @@ export interface AcademicYear {
 // Semester Entity  
 export interface Semester {
   id?: number;
-  academic_year_id: number;
-  semester_number: number; // 1, 2, 3
   semester_name: string;
   is_active: number;
   created_at?: string;
@@ -220,8 +218,6 @@ export interface CreateAcademicYearRequest {
 }
 
 export interface CreateSemesterRequest {
-  academic_year_id: number;
-  semester_number: number;
   semester_name: string;
 }
 

@@ -132,7 +132,7 @@ F:\Project\Web\Schedule_System\backend\school-scheduler-backend\.wrangler\state\
 
 ### Default Credentials
 - **Username**: admin
-- **Password**: admin123
+- **Password**: Aa1234
 - **Role**: super_admin
 
 ### Create Additional Admin (Development)
