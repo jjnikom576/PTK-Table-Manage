@@ -51,6 +51,8 @@ export class AuthManager {
 
   async login(credentials: LoginRequest, ipAddress?: string, userAgent?: string): Promise<AuthResponse> {
     try {
+      console.log('Login attempt for username:', credentials.username);
+      
       // Find admin user
       const user = await this.db
         .prepare('SELECT * FROM admin_users WHERE username = ? AND is_active = 1')
@@ -58,40 +60,67 @@ export class AuthManager {
         .first<AdminUser>();
 
       if (!user) {
+        console.log('User not found or inactive:', credentials.username);
         return {
           success: false,
           message: 'Invalid username or password'
         };
       }
 
+      console.log('User found:', {
+        id: user.id,
+        username: user.username,
+        role: user.role,
+        stored_password_hash: user.password_hash,
+        input_password: credentials.password
+      });
+
       // Verify password
       const passwordValid = await this.verifyPassword(credentials.password, user.password_hash);
+      console.log('Password verification result:', passwordValid);
+      
       if (!passwordValid) {
+        console.log('Password verification failed');
         return {
           success: false,
           message: 'Invalid username or password'
         };
       }
+
+      console.log('Password verified successfully, creating session...');
 
       // Generate session token
       const sessionToken = this.generateSessionToken();
       const expiresAt = this.getSessionExpiryTime();
 
       // Create session
+      console.log('About to create session with:', {
+        userId: user.id,
+        sessionToken: sessionToken.substring(0, 8) + '...',
+        expiresAt,
+        ipAddress: ipAddress || 'null',
+        userAgent: userAgent ? userAgent.substring(0, 50) + '...' : 'null'
+      });
+      
       const sessionResult = await this.db
-        .prepare(`
-          INSERT INTO admin_sessions (admin_user_id, session_token, expires_at, ip_address, user_agent, created_at)
-          VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `)
-        .bind(user.id, sessionToken, expiresAt, ipAddress, userAgent)
+        .prepare(
+          "INSERT INTO admin_sessions (admin_user_id, session_token, expires_at, ip_address, user_agent, created_at) " +
+          "VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
+        )
+        .bind(user.id, sessionToken, expiresAt, ipAddress || null, userAgent || null)
         .run();
 
+      console.log('Session creation result:', sessionResult);
+
       if (!sessionResult.success) {
+        console.error('Failed to create session:', sessionResult);
         return {
           success: false,
           message: 'Failed to create session'
         };
       }
+
+      console.log('Session created successfully');
 
       // Update last login
       await this.db
@@ -99,22 +128,33 @@ export class AuthManager {
         .bind(user.id!)
         .run();
 
-      // Log login activity
-      await this.logActivity(user.id!, 'LOGIN', undefined, undefined, undefined, undefined, ipAddress, userAgent);
+      // Log activity
+      await this.logActivity(
+        user.id!,
+        'LOGIN',
+        undefined,
+        undefined,
+        undefined,
+        { username: user.username },
+        ipAddress,
+        userAgent
+      );
 
+      // Return success response
       return {
         success: true,
-        message: 'Login successful',
-        session_token: sessionToken,
         user: {
           id: user.id!,
           username: user.username,
           full_name: user.full_name,
+          email: user.email,
           role: user.role
-        }
+        },
+        session_token: sessionToken,
+        message: 'Login successful'
       };
-
     } catch (error) {
+      console.error('Login error:', error);
       return {
         success: false,
         message: 'Login failed',
@@ -122,6 +162,8 @@ export class AuthManager {
       };
     }
   }
+
+
 
   async logout(sessionToken: string, ipAddress?: string, userAgent?: string): Promise<DatabaseResult> {
     try {
@@ -147,6 +189,71 @@ export class AuthManager {
       }
 
       return { success: true, data: { message: 'Logout successful' } };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  // ===========================================
+  // User Management
+  // ===========================================
+
+  async createUser(userData: {
+    username: string;
+    password: string;
+    full_name: string;
+    email?: string | null;
+    role: 'admin' | 'super_admin';
+  }): Promise<DatabaseResult> {
+    try {
+      // Check if username already exists
+      const existingUser = await this.db
+        .prepare('SELECT id FROM admin_users WHERE username = ?')
+        .bind(userData.username)
+        .first<{ id: number }>();
+
+      if (existingUser) {
+        return {
+          success: false,
+          error: 'Username already exists'
+        };
+      }
+
+      // Hash password
+      const hashedPassword = await this.hashPassword(userData.password);
+
+      // Create user
+      const result = await this.db
+        .prepare(
+          "INSERT INTO admin_users (username, password_hash, full_name, email, role, is_active) " +
+          "VALUES (?, ?, ?, ?, ?, 1)"
+        )
+        .bind(
+          userData.username,
+          hashedPassword,
+          userData.full_name,
+          userData.email || null,
+          userData.role
+        )
+        .run();
+
+      if (result.success) {
+        return {
+          success: true,
+          data: {
+            adminId: result.meta.last_row_id,
+            username: userData.username,
+            full_name: userData.full_name,
+            email: userData.email,
+            role: userData.role
+          }
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Failed to create user'
+        };
+      }
     } catch (error) {
       return { success: false, error: String(error) };
     }
@@ -478,22 +585,21 @@ export class AuthManager {
   ): Promise<void> {
     try {
       await this.db
-        .prepare(`
-          INSERT INTO admin_activity_log (
-            admin_user_id, action, table_name, record_id, old_values, new_values, 
-            ip_address, user_agent, created_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-        `)
+        .prepare(
+          "INSERT INTO admin_activity_log (" +
+          "admin_user_id, action, table_name, record_id, old_values, new_values, " +
+          "ip_address, user_agent, created_at" +
+          ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)"
+        )
         .bind(
           adminUserId,
           action,
-          tableName,
-          recordId,
+          tableName || null,
+          recordId || null,
           oldValues ? JSON.stringify(oldValues) : null,
           newValues ? JSON.stringify(newValues) : null,
-          ipAddress,
-          userAgent
+          ipAddress || null,
+          userAgent || null
         )
         .run();
     } catch (error) {

@@ -10,128 +10,158 @@ export class SchemaManager {
 
   async createCoreTablesIfNotExists(): Promise<DatabaseResult> {
     try {
+      console.log('Creating admin tables...');
+      
       // Admin Tables
       await this.createAdminTables();
+      console.log('Admin tables created successfully');
+      
+      console.log('Creating academic tables...');
       
       // Core academic structure tables
       await this.createAcademicTables();
+      console.log('Academic tables created successfully');
       
-      return { success: true };
+      return { 
+        success: true, 
+        data: { 
+          message: 'All core tables created successfully',
+          adminTables: 'created',
+          academicTables: 'created'
+        } 
+      };
     } catch (error) {
+      console.error('Core tables creation error:', error);
       return { success: false, error: String(error) };
     }
   }
 
   private async createAdminTables(): Promise<void> {
+    console.log('Creating admin_users table...');
     // Admin Users
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS admin_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
-        full_name TEXT NOT NULL,
-        email TEXT,
-        role TEXT DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')),
-        is_active INTEGER DEFAULT 1,
-        last_login DATETIME,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS admin_users (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "username TEXT NOT NULL UNIQUE, " +
+      "password_hash TEXT NOT NULL, " +
+      "full_name TEXT NOT NULL, " +
+      "email TEXT, " +
+      "role TEXT DEFAULT 'admin' CHECK (role IN ('admin', 'super_admin')), " +
+      "is_active INTEGER DEFAULT 1, " +
+      "last_login DATETIME, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
+      ")"
+    );
 
+    console.log('Creating admin_users indexes...');
     // Admin Users Indexes
-    await this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)`);
-    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active) WHERE is_active = 1`);
+    await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_users_username ON admin_users(username)");
+    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_admin_users_active ON admin_users(is_active) WHERE is_active = 1");
 
+    console.log('Creating admin_sessions table...');
     // Admin Sessions
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS admin_sessions (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        admin_user_id INTEGER NOT NULL,
-        session_token TEXT NOT NULL UNIQUE,
-        expires_at DATETIME NOT NULL,
-        ip_address TEXT,
-        user_agent TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS admin_sessions (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "admin_user_id INTEGER NOT NULL, " +
+      "session_token TEXT NOT NULL UNIQUE, " +
+      "expires_at DATETIME NOT NULL, " +
+      "ip_address TEXT, " +
+      "user_agent TEXT, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE" +
+      ")"
+    );
 
+    console.log('Creating admin_sessions indexes...');
     // Admin Sessions Indexes
-    await this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token)`);
-    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at)`);
+    await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_admin_sessions_token ON admin_sessions(session_token)");
+    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires ON admin_sessions(expires_at)");
 
+    console.log('Creating admin_activity_log table...');
     // Admin Activity Log
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS admin_activity_log (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        admin_user_id INTEGER NOT NULL,
-        action TEXT NOT NULL,
-        table_name TEXT,
-        record_id TEXT,
-        old_values TEXT,
-        new_values TEXT,
-        ip_address TEXT,
-        user_agent TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS admin_activity_log (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "admin_user_id INTEGER NOT NULL, " +
+      "action TEXT NOT NULL, " +
+      "table_name TEXT, " +
+      "record_id TEXT, " +
+      "old_values TEXT, " +
+      "new_values TEXT, " +
+      "ip_address TEXT, " +
+      "user_agent TEXT, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (admin_user_id) REFERENCES admin_users(id) ON DELETE CASCADE" +
+      ")"
+    );
 
+    console.log('Creating admin_activity_log indexes...');
     // Activity Log Indexes
-    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_admin_log_user ON admin_activity_log(admin_user_id)`);
-    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_admin_log_date ON admin_activity_log(created_at)`);
+    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_admin_log_user ON admin_activity_log(admin_user_id)");
+    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_admin_log_date ON admin_activity_log(created_at)");
+    
+    console.log('All admin tables created successfully');
   }
 
   private async createAcademicTables(): Promise<void> {
+    console.log('Creating academic_years table...');
     // Academic Years
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS academic_years (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        year INTEGER NOT NULL UNIQUE,
-        is_active INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS academic_years (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "year INTEGER NOT NULL UNIQUE, " +
+      "is_active INTEGER DEFAULT 0, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
+      ")"
+    );
 
+    console.log('Creating academic_years indexes...');
     // Academic Years Indexes
-    await this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_academic_years_year ON academic_years(year)`);
-    await this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_academic_years_active ON academic_years(is_active) WHERE is_active = 1`);
+    await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_academic_years_year ON academic_years(year)");
+    await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_academic_years_active ON academic_years(is_active) WHERE is_active = 1");
 
+    console.log('Creating semesters table...');
     // Semesters
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS semesters (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        academic_year_id INTEGER NOT NULL,
-        semester_number INTEGER NOT NULL CHECK (semester_number IN (1,2,3)),
-        semester_name TEXT NOT NULL,
-        is_active INTEGER DEFAULT 0,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE,
-        UNIQUE (academic_year_id, semester_number)
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS semesters (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "academic_year_id INTEGER NOT NULL, " +
+      "semester_number INTEGER NOT NULL CHECK (semester_number IN (1,2,3)), " +
+      "semester_name TEXT NOT NULL, " +
+      "is_active INTEGER DEFAULT 0, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (academic_year_id) REFERENCES academic_years(id) ON DELETE CASCADE, " +
+      "UNIQUE (academic_year_id, semester_number)" +
+      ")"
+    );
 
+    console.log('Creating semesters indexes...');
     // Semesters Indexes
-    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_semesters_year ON semesters(academic_year_id)`);
-    await this.db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_semesters_active ON semesters(is_active) WHERE is_active = 1`);
+    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_semesters_year ON semesters(academic_year_id)");
+    await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_semesters_active ON semesters(is_active) WHERE is_active = 1");
 
+    console.log('Creating periods table...');
     // Periods (Shared across all years)
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS periods (
-        period_no INTEGER PRIMARY KEY,
-        period_name TEXT NOT NULL,
-        start_time TIME NOT NULL,
-        end_time TIME NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS periods (" +
+      "period_no INTEGER PRIMARY KEY, " +
+      "period_name TEXT NOT NULL, " +
+      "start_time TIME NOT NULL, " +
+      "end_time TIME NOT NULL, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
+      ")"
+    );
 
+    console.log('Creating periods indexes...');
     // Periods Indexes
-    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_periods_time_range ON periods(start_time, end_time)`);
+    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_periods_time_range ON periods(start_time, end_time)");
+    
+    console.log('All academic tables created successfully');
   }
 
   // ===========================================
@@ -386,27 +416,48 @@ export class SchemaManager {
         return { success: true, data: { message: 'Admin users already exist' } };
       }
 
-      // Create default admin (password should be hashed in real implementation)
-      const defaultPassword = this.env.ADMIN_DEFAULT_PASSWORD || 'admin123';
+      // Get default password from environment
+      const defaultPassword = this.env.ADMIN_DEFAULT_PASSWORD || 'Aa1234';
+      
+      // Hash the password using the same method as AuthManager
+      const hashedPassword = await this.hashPassword(defaultPassword);
+      
+      console.log('Creating admin user with:', {
+        username: 'admin',
+        plainPassword: defaultPassword,
+        hashedPassword: hashedPassword
+      });
       
       const result = await this.db
-        .prepare(`
-          INSERT INTO admin_users (username, password_hash, full_name, role, is_active)
-          VALUES (?, ?, ?, ?, ?)
-        `)
-        .bind('admin', defaultPassword, 'System Administrator', 'super_admin', 1)
+        .prepare(
+          "INSERT INTO admin_users (username, password_hash, full_name, role, is_active) " +
+          "VALUES (?, ?, ?, ?, ?)"
+        )
+        .bind('admin', hashedPassword, 'System Administrator', 'super_admin', 1)
         .run();
 
       return { 
         success: true, 
         data: { 
           message: 'Default admin user created',
-          adminId: result.meta.last_row_id 
+          adminId: result.meta.last_row_id,
+          username: 'admin',
+          password: defaultPassword // For initial setup info only
         } 
       };
     } catch (error) {
       return { success: false, error: String(error) };
     }
+  }
+
+  // เพิ่ม helper method สำหรับ hash password
+  private async hashPassword(password: string): Promise<string> {
+    // ใช้วิธีเดียวกับ AuthManager
+    const encoder = new TextEncoder();
+    const data = encoder.encode(password);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
   async createDefaultPeriods(): Promise<DatabaseResult> {
@@ -422,11 +473,11 @@ export class SchemaManager {
 
       // Create default periods (8 periods per day)
       const periods = [
-        { period_no: 1, period_name: 'คาบ 1', start_time: '08:00', end_time: '08:50' },
-        { period_no: 2, period_name: 'คาบ 2', start_time: '08:50', end_time: '09:40' },
-        { period_no: 3, period_name: 'คาบ 3', start_time: '09:40', end_time: '10:30' },
-        { period_no: 4, period_name: 'คาบ 4', start_time: '10:40', end_time: '11:30' },
-        { period_no: 5, period_name: 'คาบ 5', start_time: '11:30', end_time: '12:20' },
+        { period_no: 1, period_name: 'คาบ 1', start_time: '08:40', end_time: '09:30' },
+        { period_no: 2, period_name: 'คาบ 2', start_time: '09:30', end_time: '10:20' },
+        { period_no: 3, period_name: 'คาบ 3', start_time: '10:20', end_time: '11:10' },
+        { period_no: 4, period_name: 'คาบ 4', start_time: '11:10', end_time: '12:00' },
+        { period_no: 5, period_name: 'พักเที่ยง', start_time: '12:00', end_time: '13:00' },
         { period_no: 6, period_name: 'คาบ 6', start_time: '13:00', end_time: '13:50' },
         { period_no: 7, period_name: 'คาบ 7', start_time: '13:50', end_time: '14:40' },
         { period_no: 8, period_name: 'คาบ 8', start_time: '14:40', end_time: '15:30' },

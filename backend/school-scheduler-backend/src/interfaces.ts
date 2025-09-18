@@ -4,6 +4,7 @@ export interface Env {
   DB: D1Database;
   SESSION_SECRET?: string;
   ADMIN_DEFAULT_PASSWORD?: string;
+  ADMIN_REGISTER_SECRET?: string;
 }
 
 // ===========================================
@@ -172,6 +173,7 @@ export interface AuthResponse {
     id: number;
     username: string;
     full_name: string;
+    email?: string;
     role: string;
   };
   error?: string;

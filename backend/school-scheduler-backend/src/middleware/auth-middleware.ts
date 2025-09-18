@@ -21,23 +21,42 @@ export async function authMiddleware(
   try {
     // Skip authentication for public routes
     const path = new URL(c.req.url).pathname;
+    console.log('AuthMiddleware: Checking path:', path);
+    
     const publicRoutes = [
       '/api/auth/login',
       '/api/health',
+      '/api/setup',
+      '/api/docs',
       '/'
     ];
 
     if (publicRoutes.includes(path)) {
+      console.log('AuthMiddleware: Path is public, skipping auth');
       return await next();
     }
 
+    console.log('AuthMiddleware: Path requires authentication');
+
     // Get session token from header or cookie
     const authHeader = c.req.header('Authorization');
+    const xSessionToken = c.req.header('X-Session-Token');
+    const cookieToken = getCookie(c, 'session_token');
+    
+    console.log('AuthMiddleware: Token sources:', {
+      authHeader: authHeader ? authHeader.substring(0, 20) + '...' : 'null',
+      xSessionToken: xSessionToken ? xSessionToken.substring(0, 20) + '...' : 'null',
+      cookieToken: cookieToken ? cookieToken.substring(0, 20) + '...' : 'null'
+    });
+    
     const sessionToken = authHeader?.startsWith('Bearer ')
       ? authHeader.substring(7)
-      : c.req.header('X-Session-Token') || getCookie(c, 'session_token');
+      : xSessionToken || cookieToken;
+
+    console.log('AuthMiddleware: Final token:', sessionToken ? sessionToken.substring(0, 20) + '...' : 'null');
 
     if (!sessionToken) {
+      console.log('AuthMiddleware: No token found, returning 401');
       return c.json({
         success: false,
         error: 'Authentication required',

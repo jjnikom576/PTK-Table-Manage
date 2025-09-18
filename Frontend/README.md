@@ -1,254 +1,221 @@
-# ระบบจัดตารางสอนแบบ Multi-Year (Enhanced School Schedule Management System)
+# School Schedule Management System - Frontend
 
-## 📋 Project Overview
-ระบบจัดการตารางสอนสำหรับโรงเรียนมัธยมศึกษา รองรับการจัดการข้อมูลหลายปีการศึกษา พร้อมระบบ Export ครบครัน และการจัดการห้องเรียน
+## 🎯 **Current Project Status: Ready for Backend Integration**
 
-## ✨ Enhanced Features
+### **What We Have ✅**
+- **Backend**: Cloudflare Workers + Hono + D1 SQLite database (Complete ✅)
+- **Frontend**: JavaScript SPA with full UI components (Complete ✅)
+- **Admin Panel**: Comprehensive admin interface (Ready ✅)
 
-### 🗓️ Multi-Year Support
-- จัดการปีการศึกษา 2566-2568+
-- ภาคเรียน 2-3 ภาคต่อปี พร้อมภาคฤดูร้อน
-- Context Switching แบบ Real-time
-- Historical Data Analysis และ Cross-year Comparison
-
-### 🏫 Rooms Management System
-- **Room Types**: ห้องเรียนทั่วไป (CLASS) และห้องเทคโนโลยี (TECH)
-- **Subject Constraints**: วิชาสามารถกำหนดประเภทห้องที่ต้องการ
-- **Conflict Detection**: ตรวจสอบการชนกันของ ครู/ชั้นเรียน/ห้อง
-- **Room Analytics**: วิเคราะห์การใช้ห้องและประสิทธิภาพ
-
-### 📤 Advanced Export System
-- **3 Formats**: CSV (UTF-8+BOM), XLSX, Google Sheets Integration
-- **Student Export**: ตารางเรียนรายห้อง พร้อมครู/วิชา/ห้อง
-- **Teacher Export**: ตารางสอนรายครู พร้อมภาระงานสรุป
-- **Substitution Export**: รายงานการสอนแทน รายวัน/รายเดือน
-- **Admin Export**: รายงานระบบครบครัน
-
-### 👨‍🏫 Enhanced Teacher Management
-- ตารางสอนรายครู พร้อม Room Information
-- วิเคราะห์ภาระงานข้ามปี/ข้ามภาคเรียน
-- Hall of Fame ครูสอนแทน (แยกตามภาคเรียน)
-- Teacher Evolution Tracking
-
-### ⚙️ Advanced Admin Panel
-- **Multi-Year CRUD**: ครู/ห้องเรียน/ห้อง/วิชา/ตาราง
-- **Data Migration Tools**: ย้าย/โคลนข้อมูลระหว่างปี
-- **AI Schedule Generation**: สร้างตารางอัตโนมัติ (กันชนครบ 3 มิติ)
-- **Substitute Algorithm**: แนะนำครูสอนแทนอัตโนมัติ
-- **Bulk Operations**: Import/Export จำนวนมาก
-
-## 🏗️ Enhanced Architecture
-
-### Database Schema
-**Fixed Tables:**
-- `academic_years`: ปีการศึกษา
-- `semesters`: ภาคเรียน
-
-**Dynamic Tables (per year):**
-- `teachers_{year}`: ครูประจำปี
-- `classes_{year}`: ห้องเรียน (กลุ่มนักเรียน)
-- `rooms_{year}`: ห้อง (กายภาพ) ⭐️
-- `subjects_{year}`: วิชาที่สอน + subject_constraints ⭐️
-- `schedules_{year}`: ตารางสอน (เชื่อม class_id + room_id)
-- `substitutions_{year}`: การลา
-- `substitution_schedules_{year}`: การสอนแทน
-
-### Frontend Structure
-```
-school-schedule/
-├── index.html                     # Multi-year + Export UI
-├── css/                          # Enhanced styling
-├── js/
-│   ├── app.js                   # Main app + Export handlers ⭐️
-│   ├── utils/
-│   │   └── export.js            # Export utilities ⭐️
-│   ├── context/
-│   │   └── globalContext.js     # Context + Rooms integration
-│   ├── api/
-│   │   ├── rooms.js             # Rooms API ⭐️
-│   │   └── ...                  # Other APIs
-│   ├── data/
-│   │   ├── rooms.mock.js        # Rooms mock data ⭐️
-│   │   └── ...                  # Other mock data
-│   ├── pages/                   # Export-enabled pages ⭐️
-│   │   ├── studentSchedule.js   # Student schedules + Export
-│   │   ├── teacherSchedule.js   # Teacher schedules + Export
-│   │   ├── substitution.js      # Substitution + Hall of Fame
-│   │   └── admin.js             # Admin panel + Room management
-│   └── services/                # Enhanced services
-└── README.md
-```
-
-## 🔧 Setup & Usage
-
-### Development:
-```bash
-# ใช้ Live Server (VS Code) หรือ
-python -m http.server 8000
-# เปิด http://localhost:8000
-```
-
-### Windows One-Click Dev (frontend + API)
-- รันทั้งเว็บและ Admin API พร้อมกันบน Windows PowerShell:
-```
-powershell -ExecutionPolicy Bypass -File scripts/dev.ps1
-```
-- เปิดหน้าเว็บ: `http://localhost:8000`
-- ตรวจสอบ API: `http://localhost:8080/api/health`
-
-Environment variables (optional):
-- `ADMIN_API_HOST` ค่าเริ่มต้น `127.0.0.1`
-- `ADMIN_API_PORT` ค่าเริ่มต้น `8080`
-
-### Production (Supabase):
-```javascript
-// js/api/config.js
-const API_CONFIG = {
-  baseURL: 'https://your-project.supabase.co/rest/v1',
-  // ... other config
-};
-```
-
-## 📊 Export Specifications
-
-### Student Schedule Export
-**Columns:** วัน, เวลา, คาบ, วิชา, รหัสวิชา, ครู, ห้องเรียน, ห้อง (ประเภท)
-
-### Teacher Schedule Export
-**Columns:** วัน, เวลา, คาบ, วิชา, ห้องเรียน, ห้อง, ภาระงานรวม
-
-### Substitution Export
-**Columns:** วันที่, ครูที่ขาด, เหตุผล, คาบ, วิชา, ห้อง, ครูสอนแทน
-
-## 🧪 Testing Checklist
-
-- ✅ Context switching → Load data ตรงปี/ภาคเรียน
-- ✅ Rooms → แสดงประเภทและตรวจ conflict
-- ✅ Export → ทุกรูปแบบ ภาษาไทยถูกต้อง
-- ✅ Subject constraints → ห้องตรงตามที่กำหนด
-- ✅ Multi-year comparison → ข้อมูลสอดคล้อง
-- ✅ Admin operations → CRUD ครบทุก entity
-- ✅ Migration tools → โคลนข้อมูลสำเร็จ
-- ✅ Mobile responsive → Export UI ใช้งานได้
-
-## 🚀 Technology Stack
-
-- **Frontend**: HTML5, CSS3, JavaScript ES6+
-- **Architecture**: Multi-year context-aware design
-- **Export**: CSV/XLSX/Google Sheets integration
-- **Database**: Supabase PostgreSQL (production)
-- **Development**: Pure frontend, no build process required
-
-## 🔒 Security & Performance
-
-- Year-based data isolation
-- Context-aware access control
-- Intelligent caching per year/semester
-- Lazy loading for historical data
-- Memory management for large datasets
-
-## 📈 Future Enhancements
-
-- PDF Export รายงานสวยงาม
-- Room Booking System แยกต่างหาก
-- Dashboard: Workload heatmaps
-- Advanced Analytics: Trend analysis
-- Mobile App version
-
-## 🎯 Key Components
-
-### 1. Multi-Year Context System
-```javascript
-// Global context switching
-await globalContext.setContext(2567, 1);
-const context = getContext();
-```
-
-### 2. Export System
-```javascript
-// Export any schedule data
-await exportTableToCSV(data, filename);
-await exportTableToXLSX(data, filename);
-await exportTableToGoogleSheets(data, filename);
-```
-
-### 3. Room Management
-```javascript
-// Room with constraints
-const subject = {
-  subject_constraints: { requires_room_type: 'TECH' }
-};
-```
-
-### 4. Conflict Detection
-```javascript
-// 3-dimensional conflict check
-const conflict = validateScheduleConflict(newSchedule, existing, {
-  subjects, rooms, teachers
-});
-```
-
-## 📱 Pages Overview
-
-### 🎓 Student Schedule (`/student-schedule`)
-- Class-based schedule views
-- Room information display
-- Export functionality
-- Multi-year comparison
-
-### 👨‍🏫 Teacher Schedule (`/teacher-schedule`)
-- Workload summary dashboard
-- Individual teacher schedules
-- Room usage analytics
-- Hall of Fame system
-
-### 🔄 Substitution (`/substitution`)
-- Hall of Fame rankings
-- Daily substitution management
-- Export capabilities
-- Historical analysis
-
-### ⚙️ Admin Panel (`/admin`)
-- Multi-year data management
-- Room management system
-- AI schedule generation
-- Comprehensive exports
-
-## 🏆 Achievement System
-
-### Hall of Fame Features
-- Semester-specific rankings
-- Teacher substitution tracking
-- Achievement badges
-- Performance analytics
-
-## 📄 File Structure Details
-
-```
-js/
-├── app.js                    # Main application controller
-├── navigation.js             # URL routing & navigation
-├── utils.js                  # Utility functions
-├── utils/
-│   └── export.js            # Export functionality
-├── context/
-│   └── globalContext.js     # Global state management
-├── services/
-│   ├── dataService.js       # Data operations
-│   └── yearService.js       # Year management
-├── api/                     # API layer
-├── data/                    # Mock data
-└── pages/                   # Page controllers
-    ├── studentSchedule.js   # Student schedule management
-    ├── teacherSchedule.js   # Teacher schedule management  
-    ├── substitution.js      # Substitution management
-    └── admin.js             # Admin panel
-```
+### **What We're Doing Now 🎯**
+**Connecting Frontend ↔ Backend** by building API integration layer to replace mock data with real backend calls.
 
 ---
 
-**พัฒนาโดย:** Multi-Year School Schedule System  
-**เวอร์ชัน:** 2.0 Enhanced (พร้อม Rooms + Export)  
-**อัปเดต:** มกราคม 2025
+## 📋 Project Overview
 
-**🎉 ระบบพร้อมใช้งาน! ครบ 26 Prompts Enhanced**
+A comprehensive school schedule management system for secondary schools supporting:
+- **Multi-year data management** (dynamic table creation per academic year)
+- **Complete admin panel** for managing teachers, classes, rooms, subjects, and schedules
+- **Schedule builder** with conflict detection
+- **Export system** (CSV, Excel, Google Sheets)
+- **Teacher workload analysis** and substitution management
+
+## 🏗️ Technical Architecture
+
+### **Backend (Complete)**
+- **Platform**: Cloudflare Workers + Hono framework
+- **Database**: D1 SQLite with dynamic table creation
+- **API**: RESTful endpoints with authentication
+- **Location**: `F:\Project\Web\Schedule_System\backend\school-scheduler-backend\`
+- **Status**: ✅ Production-ready with full CRUD operations
+
+### **Frontend (Ready for Integration)**
+- **Framework**: Vanilla JavaScript SPA
+- **UI**: Complete admin interface with Excel-like data tables
+- **Architecture**: Modular API classes ready for backend connection
+- **Location**: `F:\Project\Web\Schedule_System\frontend\`
+- **Status**: ✅ All UI components ready, using mock data
+
+## 🗄️ Database Architecture
+
+### **Fixed Tables (Core System)**
+```sql
+admin_users          -- Admin authentication
+academic_years       -- Academic year management  
+semesters           -- Semester management
+periods             -- Class periods (optional)
+```
+
+### **Dynamic Tables (Per Academic Year)**
+```sql
+teachers_2567       -- Teachers for year 2567
+classes_2567        -- Student classes
+rooms_2567          -- Physical classrooms
+subjects_2567       -- Subjects and curriculum
+schedules_2567      -- Teaching schedules
+```
+
+**Key Features:**
+- Auto table creation on first data entry per year
+- Global context management (one active year + semester)
+- Complete indexing for performance
+
+## 🎛️ Admin Panel Features
+
+The admin panel (`#page-admin`) is the heart of the system with these sections:
+
+### **📋 Data Management**
+- **Teachers**: Add/edit teacher information, subject groups, roles
+- **Classes**: Manage student class groups (ม.1/1, ม.2/3, etc.)
+- **Rooms**: Physical classroom management with types
+- **Subjects**: Curriculum subjects with constraints
+- **Periods**: Class time periods configuration
+
+### **🤖 Schedule Builder**
+- AI-powered schedule generation
+- Conflict detection (teacher, class, room conflicts)
+- Manual schedule editing interface
+- Batch operations and validations
+
+### **🔄 Substitution Management**
+- Track teacher absences
+- Automatic substitute teacher recommendations
+- Hall of Fame ranking system
+- Historical substitution reports
+
+### **📅 Academic Year Management**
+- Create and manage academic years
+- Semester configuration
+- Data migration between years
+- Context switching interface
+
+## 🔧 Current Integration Plan
+
+### **Phase 1: API Foundation ← WE ARE HERE**
+```javascript
+// Central API management
+frontend/js/api/
+├── core/api-manager.js     // Base APIManager class
+├── auth-api.js            // Authentication module  
+├── core-api.js           // Academic years/semesters
+└── schedule-api.js       // Teachers/classes/schedules
+```
+
+### **Phase 2: Authentication Integration**
+- Replace mock login with real backend auth
+- Session management with JWT tokens
+- Admin role verification
+
+### **Phase 3: CRUD Operations**
+- Connect all admin forms to backend APIs
+- Replace mock data with real database calls
+- Error handling and validation
+
+### **Phase 4: Schedule Builder**
+- Integrate schedule creation with backend
+- Real-time conflict detection
+- Save/load schedule states
+
+## 🔐 Authentication System
+
+### **Current Credentials**
+- **Username**: `admin`
+- **Password**: `admin123`
+- **Registration Secret**: `DEV_SCHOOL_2024_REGISTER`
+
+### **Backend Endpoints**
+- `POST /admin/login` - Admin authentication
+- `POST /admin/register` - Admin registration (dev only)
+- Session management with 8-hour expiry
+
+## 📁 Project Structure
+
+```
+F:\Project\Web\Schedule_System\
+├── backend/school-scheduler-backend/     (✅ Complete)
+│   ├── src/                             (TypeScript source)
+│   ├── wrangler.json                    (CF Workers config)
+│   └── package.json
+└── frontend/                            (✅ Ready for integration)
+    ├── index.html                       (Main SPA)
+    ├── js/
+    │   ├── api/                        (📍 Integration target)
+    │   ├── pages/admin.js              (📍 Main admin interface)
+    │   ├── context/globalContext.js    (📍 State management)
+    │   └── data/                       (📍 Mock data to replace)
+    ├── css/                            (Complete styling)
+    └── templates/                      (HTML components)
+```
+
+## 🚀 Development Environment
+
+### **Backend Development**
+```bash
+cd F:\Project\Web\Schedule_System\backend\school-scheduler-backend
+npm run dev  # Runs on localhost:8787
+```
+
+### **Frontend Development**
+```bash
+cd F:\Project\Web\Schedule_System\frontend
+# Use Live Server (VS Code) or:
+python -m http.server 8000  # Runs on localhost:8000
+```
+
+### **Database Location**
+- **Development**: `.wrangler/state/v3/d1/`
+- **Production**: Cloudflare D1 (ID: ac2699a8-76a6-4379-a83b-fe7912ced972)
+
+## 🎯 Integration Strategy
+
+### **No Caching Philosophy**
+- Always fetch fresh data from backend
+- Manual refresh (F5 key, refresh buttons)
+- Simple error handling with user education
+- No offline support - standard network error handling
+
+### **Environment Switching**
+```javascript
+// APIManager will switch between:
+const API_BASE = {
+  development: 'http://localhost:8787/api',
+  production: 'https://your-domain.workers.dev/api'
+}
+```
+
+### **Error Handling Pattern**
+```javascript
+// Consistent API response format:
+{
+  success: boolean,
+  data?: any,
+  error?: string,
+  message?: string
+}
+```
+
+## 👨‍💻 For AI Assistants
+
+If you're helping with this project:
+
+1. **We have**: Complete backend + complete frontend UI
+2. **We need**: API integration layer to connect them
+3. **Focus area**: Admin panel functionality and data management
+4. **Architecture**: Replace mock data calls with real API calls
+5. **Priority**: Authentication first, then CRUD operations
+
+### **Key Files to Understand**
+- `js/pages/admin.js` - Main admin interface
+- `js/api/config.js` - API configuration
+- `js/api/auth.js` - Authentication module
+- `js/context/globalContext.js` - Global state management
+
+### **Backend API Documentation**
+The backend provides standard REST endpoints for all entities with proper authentication and year-based routing.
+
+---
+
+**Status**: Frontend ✅ + Backend ✅ → Integration in Progress 🔄  
+**Next**: Build APIManager and connect admin panel to live data  
+**Goal**: Fully functional school schedule management system

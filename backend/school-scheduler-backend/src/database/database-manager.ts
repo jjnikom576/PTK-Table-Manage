@@ -36,17 +36,48 @@ export class DatabaseManager {
 
   async initialize(): Promise<DatabaseResult> {
     try {
+      console.log('Starting database initialization...');
+      
       // Create core tables if they don't exist
-      await this.schemaManager.createCoreTablesIfNotExists();
+      console.log('Creating core tables...');
+      const coreTablesResult = await this.schemaManager.createCoreTablesIfNotExists();
+      if (!coreTablesResult.success) {
+        console.error('Failed to create core tables:', coreTablesResult.error);
+        return { success: false, error: `Core tables creation failed: ${coreTablesResult.error}` };
+      }
+      console.log('Core tables created successfully');
       
       // Create default admin user if none exist
-      await this.schemaManager.createDefaultAdminUser();
+      console.log('Creating default admin user...');
+      const adminResult = await this.schemaManager.createDefaultAdminUser();
+      if (!adminResult.success) {
+        console.error('Failed to create admin user:', adminResult.error);
+        return { success: false, error: `Admin user creation failed: ${adminResult.error}` };
+      }
+      console.log('Default admin user created successfully');
       
       // Create default periods if none exist
-      await this.schemaManager.createDefaultPeriods();
+      console.log('Creating default periods...');
+      const periodsResult = await this.schemaManager.createDefaultPeriods();
+      if (!periodsResult.success) {
+        console.error('Failed to create periods:', periodsResult.error);
+        return { success: false, error: `Periods creation failed: ${periodsResult.error}` };
+      }
+      console.log('Default periods created successfully');
 
-      return { success: true, data: { message: 'Database initialized successfully' } };
+      return { 
+        success: true, 
+        data: { 
+          message: 'Database initialized successfully',
+          details: {
+            coreTables: coreTablesResult.data || 'created',
+            adminUser: adminResult.data || 'created',
+            periods: periodsResult.data || 'created'
+          }
+        } 
+      };
     } catch (error) {
+      console.error('Database initialization error:', error);
       return { success: false, error: String(error) };
     }
   }

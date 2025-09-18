@@ -48,6 +48,115 @@ authRoutes.post('/login', requireJSON, async (c: Context<{ Bindings: Env; Variab
         sameSite: 'Strict',
         maxAge: 8 * 60 * 60 // 8 hours
       });
+
+// ===========================================
+// Dev Only - Register Admin Endpoint
+// ===========================================
+
+// POST /api/auth/register-admin (Dev only - requires session + secret)
+authRoutes.post('/register-admin', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const { username, password, full_name, email, secret } = await c.req.json();
+    
+    // Validate required fields
+    if (!username || !password || !full_name || !secret) {
+      return c.json({
+        success: false,
+        message: 'Username, password, full_name, and secret are required'
+      }, 400);
+    }
+
+    // Check secret key (Dev protection)
+    const expectedSecret = c.env.ADMIN_REGISTER_SECRET;
+    if (!expectedSecret) {
+      return c.json({
+        success: false,
+        message: 'Admin registration not available (no secret configured)'
+      }, 503);
+    }
+
+    if (secret !== expectedSecret) {
+      console.log('Invalid secret attempt:', {
+        provided: secret.substring(0, 5) + '...',
+        expected: expectedSecret.substring(0, 5) + '...'
+      });
+      return c.json({
+        success: false,
+        message: 'Invalid secret key'
+      }, 403);
+    }
+
+    console.log('Admin registration attempt by:', c.get('user')?.username);
+
+    // Get client info
+    const ip = c.req.header('CF-Connecting-IP') || 
+               c.req.header('X-Forwarded-For') || 
+               c.req.header('X-Real-IP');
+    const userAgent = c.req.header('User-Agent');
+
+    // Create new admin user
+    const authManager = new AuthManager(c.env.DB, c.env);
+    const result = await authManager.createUser({
+      username,
+      password,
+      full_name,
+      email: email || null,
+      role: 'admin' // Default role for new admins
+    });
+
+    if (result.success) {
+      // Log the registration activity
+      await authManager.logActivity(
+        c.get('user').id!,
+        'ADMIN_REGISTRATION',
+        'admin_users',
+        result.data?.adminId?.toString(),
+        undefined,
+        {
+          new_username: username,
+          new_full_name: full_name,
+          new_email: email,
+          new_role: 'admin'
+        },
+        ip,
+        userAgent
+      );
+
+      console.log('New admin created:', {
+        id: result.data?.adminId,
+        username,
+        full_name,
+        created_by: c.get('user')?.username
+      });
+
+      return c.json({
+        success: true,
+        message: 'Admin user created successfully',
+        data: {
+          id: result.data?.adminId,
+          username,
+          full_name,
+          email,
+          role: 'admin'
+        }
+      });
+    } else {
+      return c.json({
+        success: false,
+        message: 'Failed to create admin user',
+        error: result.error
+      }, 400);
+    }
+
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    return c.json({
+      success: false,
+      message: 'Admin registration failed',
+      error: String(error)
+    }, 500);
+  }
+});
     }
 
     return c.json(result);
@@ -415,6 +524,115 @@ authRoutes.get('/activity', async (c: Context<{ Bindings: Env; Variables: AppVar
     return c.json({
       success: false,
       message: 'Failed to get activity logs',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// ===========================================
+// Dev Only - Register Admin Endpoint
+// ===========================================
+
+// POST /api/auth/register-admin (Dev only - requires session + secret)
+authRoutes.post('/register-admin', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const { username, password, full_name, email, secret } = await c.req.json();
+    
+    // Validate required fields
+    if (!username || !password || !full_name || !secret) {
+      return c.json({
+        success: false,
+        message: 'Username, password, full_name, and secret are required'
+      }, 400);
+    }
+
+    // Check secret key (Dev protection)
+    const expectedSecret = c.env.ADMIN_REGISTER_SECRET;
+    if (!expectedSecret) {
+      return c.json({
+        success: false,
+        message: 'Admin registration not available (no secret configured)'
+      }, 503);
+    }
+
+    if (secret !== expectedSecret) {
+      console.log('Invalid secret attempt:', {
+        provided: secret.substring(0, 5) + '...',
+        expected: expectedSecret.substring(0, 5) + '...'
+      });
+      return c.json({
+        success: false,
+        message: 'Invalid secret key'
+      }, 403);
+    }
+
+    console.log('Admin registration attempt by:', c.get('user')?.username);
+
+    // Get client info
+    const ip = c.req.header('CF-Connecting-IP') || 
+               c.req.header('X-Forwarded-For') || 
+               c.req.header('X-Real-IP');
+    const userAgent = c.req.header('User-Agent');
+
+    // Create new admin user
+    const authManager = new AuthManager(c.env.DB, c.env);
+    const result = await authManager.createUser({
+      username,
+      password,
+      full_name,
+      email: email || null,
+      role: 'admin' // Default role for new admins
+    });
+
+    if (result.success) {
+      // Log the registration activity
+      await authManager.logActivity(
+        c.get('user').id!,
+        'ADMIN_REGISTRATION',
+        'admin_users',
+        result.data?.adminId?.toString(),
+        undefined,
+        {
+          new_username: username,
+          new_full_name: full_name,
+          new_email: email,
+          new_role: 'admin'
+        },
+        ip,
+        userAgent
+      );
+
+      console.log('New admin created:', {
+        id: result.data?.adminId,
+        username,
+        full_name,
+        created_by: c.get('user')?.username
+      });
+
+      return c.json({
+        success: true,
+        message: 'Admin user created successfully',
+        data: {
+          id: result.data?.adminId,
+          username,
+          full_name,
+          email,
+          role: 'admin'
+        }
+      });
+    } else {
+      return c.json({
+        success: false,
+        message: 'Failed to create admin user',
+        error: result.error
+      }, 400);
+    }
+
+  } catch (error) {
+    console.error('Admin registration error:', error);
+    return c.json({
+      success: false,
+      message: 'Admin registration failed',
       error: String(error)
     }, 500);
   }
