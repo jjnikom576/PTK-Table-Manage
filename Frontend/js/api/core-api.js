@@ -29,7 +29,7 @@ class CoreAPI {
     }
 
     try {
-      const result = await apiManager.get('academic-years');
+      const result = await apiManager.get('core/academic-years');
       
       if (result.success) {
         this.cache.academicYears = result.data;
@@ -150,7 +150,7 @@ class CoreAPI {
     }
 
     try {
-      const result = await apiManager.get(`semesters/${year}`);
+      const result = await apiManager.get(`core/academic-years/${year}/semesters`);
       
       if (result.success) {
         this.cache.semesters.set(year, result.data);
