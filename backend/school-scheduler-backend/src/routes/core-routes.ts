@@ -65,12 +65,29 @@ coreRoutes.post('/academic-years', requireJSON, async (c: Context<{ Bindings: En
     }
 
     // Validate year range (reasonable academic years)
-    const currentYear = new Date().getFullYear();
-    if (body.year < (currentYear - 10) || body.year > (currentYear + 10)) {
-      return c.json({
-        success: false,
-        message: 'Year must be within reasonable range (±10 years from current year)'
-      }, 400);
+    // Support both Buddhist Era (2500+) and Christian Era (1900+)
+    const currentYear = new Date().getFullYear(); // 2025 (ค.ศ.)
+    const currentBuddhistYear = currentYear + 543; // 2568 (พ.ศ.)
+    
+    // Check if input is Buddhist Era (พ.ศ.) or Christian Era (ค.ศ.)
+    const isBuddhistEra = body.year > 2500;
+    
+    if (isBuddhistEra) {
+      // Buddhist Era validation (2558-2578 for current year 2568)
+      if (body.year < (currentBuddhistYear - 10) || body.year > (currentBuddhistYear + 10)) {
+        return c.json({
+          success: false,
+          message: `Year must be within reasonable range (${currentBuddhistYear - 10}-${currentBuddhistYear + 10} for Buddhist Era)`
+        }, 400);
+      }
+    } else {
+      // Christian Era validation (2015-2035 for current year 2025)
+      if (body.year < (currentYear - 10) || body.year > (currentYear + 10)) {
+        return c.json({
+          success: false,
+          message: `Year must be within reasonable range (${currentYear - 10}-${currentYear + 10} for Christian Era)`
+        }, 400);
+      }
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);

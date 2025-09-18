@@ -491,7 +491,7 @@ class SchoolScheduleApp {
   }
 
   /**
-   * Update semester options when year changes (FIXED)
+   * Update semester options when year changes (FIXED - Use real API)
    */
   async updateSemesterOptions() {
     const yearSelector = document.getElementById('year-selector');
@@ -500,41 +500,54 @@ class SchoolScheduleApp {
     if (!yearSelector || !semesterSelector) return;
     
     const selectedYear = parseInt(yearSelector.value);
-    if (!selectedYear) return;
+    if (!selectedYear) {
+      // Clear semester options when no year selected
+      semesterSelector.innerHTML = '<option value="">เลือกปีการศึกษาก่อน</option>';
+      return;
+    }
     
     console.log(`📅 Updating semester options for year: ${selectedYear}`);
     
     try {
-      // ⭐ FIX: Use mock data directly instead of context
-      const { mockData } = await import('./data/index.js');
+      // ⭐ FIX: Use globalContext data instead of mock data
+      const { getContext } = await import('./context/globalContext.js');
+      const currentContext = getContext();
       
-      const yearData = mockData.academicYears?.find(y => y.year === selectedYear);
+      // Find year data from available years
+      const yearData = currentContext.availableYears?.find(y => y.year === selectedYear);
       if (!yearData) {
-        console.warn('Year data not found in mockData:', selectedYear);
+        console.warn('Year data not found in globalContext:', selectedYear);
+        semesterSelector.innerHTML = '<option value="">ไม่พบข้อมูลปีการศึกษา</option>';
         return;
       }
       
-      // Filter semesters for selected year
-      const filteredSemesters = mockData.semesters?.filter(s => 
-        s.academic_year_id === yearData.id
-      ) || [];
+      // Get semesters for this year from backend
+      const semestersResult = await coreAPI.getSemesters(selectedYear);
       
-      console.log(`Found ${filteredSemesters.length} semesters for year ${selectedYear}:`, filteredSemesters.map(s => s.semester_name));
-      
-      // Clear and populate semester selector
-      semesterSelector.innerHTML = '<option value="">เลือกภาคเรียน</option>';
-      
-      filteredSemesters.forEach(semester => {
-        const option = document.createElement('option');
-        option.value = semester.id;
-        option.textContent = semester.semester_name;
-        semesterSelector.appendChild(option);
-      });
-      
-      // Auto-select first semester
-      if (filteredSemesters.length > 0) {
-        semesterSelector.value = filteredSemesters[0].id;
-        console.log(`Auto-selected semester: ${filteredSemesters[0].id} (${filteredSemesters[0].semester_name})`);
+      if (semestersResult.success && semestersResult.data && semestersResult.data.length > 0) {
+        const filteredSemesters = semestersResult.data;
+        
+        console.log(`Found ${filteredSemesters.length} semesters for year ${selectedYear}:`, filteredSemesters.map(s => s.semester_name));
+        
+        // Clear and populate semester selector
+        semesterSelector.innerHTML = '<option value="">เลือกภาคเรียน</option>';
+        
+        filteredSemesters.forEach(semester => {
+          const option = document.createElement('option');
+          option.value = semester.id;
+          option.textContent = semester.semester_name;
+          semesterSelector.appendChild(option);
+        });
+        
+        // Auto-select first semester
+        if (filteredSemesters.length > 0) {
+          semesterSelector.value = filteredSemesters[0].id;
+          console.log(`Auto-selected semester: ${filteredSemesters[0].id} (${filteredSemesters[0].semester_name})`);
+        }
+      } else {
+        // No semesters found for this year
+        console.log(`No semesters found for year ${selectedYear}`);
+        semesterSelector.innerHTML = '<option value="">ไม่มีภาคเรียน - เพิ่มใหม่ในหน้าแอดมิน</option>';
       }
       
     } catch (error) {

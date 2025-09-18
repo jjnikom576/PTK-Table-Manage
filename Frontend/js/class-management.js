@@ -2,7 +2,7 @@
 // Similar to teacher management but for classes (ชั้นเรียน)
 // Fixed import for showLoading/hideLoading
 
-import { showLoading, hideLoading } from './pages/admin.js';
+import { showLoading, hideLoading } from './loading.js';
 
 // Global helper fallback
 if (typeof window.showLoading === 'undefined') {

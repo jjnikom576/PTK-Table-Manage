@@ -114,7 +114,9 @@ async function loadContextFromAPI() {
       globalContext.availableYears = [];
     }
     
-    // 2. If we have years, load semesters for active year
+    // 2. If we have years, load semesters for selected year
+    globalContext.availableSemesters = []; // Reset semesters
+    
     if (globalContext.availableYears.length > 0) {
       // Find active year or use latest
       const activeYear = globalContext.availableYears.find(y => y.is_active) || 
@@ -126,7 +128,7 @@ async function loadContextFromAPI() {
         const semestersResult = await coreAPI.getSemesters(activeYear.year);
         console.log('[GlobalContext] Semesters API response:', semestersResult); // DEBUG
         
-        if (semestersResult.success && semestersResult.data) {
+        if (semestersResult.success && semestersResult.data && semestersResult.data.length > 0) {
           globalContext.availableSemesters = semestersResult.data;
           console.log('[GlobalContext] Loaded semesters from API:', semestersResult.data.length, 'semesters');
           console.log('[GlobalContext] Semesters data:', semestersResult.data); // DEBUG
@@ -138,19 +140,23 @@ async function loadContextFromAPI() {
           if (activeSemester) {
             globalContext.currentYear = activeYear.year;
             globalContext.currentSemester = activeSemester;
-            console.log('[GlobalContext] Set active context:', activeYear.year, activeSemester.name || activeSemester.semester_name);
+            console.log('[GlobalContext] Set active context:', activeYear.year, activeSemester.semester_name || activeSemester.name);
           }
         } else {
-          console.warn('[GlobalContext] Failed to load semesters:', semestersResult);
+          console.log('[GlobalContext] No semesters found for active year:', activeYear.year);
+          console.log('[GlobalContext] Semesters API response:', semestersResult);
+          // Don't set current year if no semesters exist
+          globalContext.availableSemesters = [];
         }
       }
     }
     
-    // 3. If no data found, show empty state
-    if (!globalContext.currentYear || !globalContext.currentSemester) {
-      console.log('[GlobalContext] No active context found - showing empty state');
+    // 3. Final state - clear context if no valid data
+    if (!globalContext.currentYear || !globalContext.currentSemester || globalContext.availableSemesters.length === 0) {
+      console.log('[GlobalContext] No valid context found - clearing state');
       globalContext.currentYear = null;
       globalContext.currentSemester = null;
+      globalContext.availableSemesters = [];
     }
     
   } catch (error) {
@@ -455,14 +461,8 @@ export function validateSemester(semesterId, year) {
     return { ok: false, error: 'Semester ID is required' };
   }
   
-  // Find semester in available semesters or load from data
+  // Find semester in available semesters ONLY (NO fallback to mock data)
   let semester = globalContext.availableSemesters.find(s => s.id === semesterId);
-  
-  if (!semester) {
-    // Try to find in mock data
-    const mockData = dataService.mockData || {};
-    semester = mockData.semesters?.find(s => s.id === semesterId);
-  }
   
   if (!semester) {
     return { ok: false, error: `Semester ${semesterId} not found` };

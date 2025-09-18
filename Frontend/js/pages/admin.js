@@ -24,6 +24,8 @@ async function initAcademicManagement() {
     populateCurrentSemesterTab();
     populateAcademicYearsList();
     populateSemestersList();
+    populateAcademicYearsTable();
+    populateSemestersTable();
     
     // 5. Bind academic management events
     bindAcademicManagementEvents();
@@ -196,6 +198,18 @@ function bindAcademicManagementEvents() {
     yearsList.addEventListener('change', handleYearSelectionChange);
   }
   
+  // NEW: Academic year form submission
+  const academicYearForm = document.getElementById('academic-year-form');
+  if (academicYearForm) {
+    academicYearForm.addEventListener('submit', handleAcademicYearFormSubmit);
+  }
+  
+  // NEW: Semester form submission
+  const semesterForm = document.getElementById('semester-form');
+  if (semesterForm) {
+    semesterForm.addEventListener('submit', handleSemesterFormSubmit);
+  }
+  
   console.log('[Admin] Academic management events bound');
 }
 
@@ -287,6 +301,211 @@ async function handleCurrentSemesterFormSubmit(event) {
     submitBtn.textContent = originalText;
     submitBtn.disabled = false;
   }
+}
+
+/**
+ * Handle academic year form submission (NEW)
+ */
+async function handleAcademicYearFormSubmit(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const year = parseInt(formData.get('year'));
+  
+  if (!year || year < 2500 || year > 2600) {
+    alert('กรุณาระบุปีการศึกษาที่ถูกต้อง (2500-2600)');
+    return;
+  }
+  
+  // Check if year already exists
+  const existingYear = adminState.academicYears.find(y => y.year === year);
+  if (existingYear) {
+    alert(`ปีการศึกษา ${year} มีอยู่แล้ว`);
+    return;
+  }
+  
+  // Get submit button
+  const submitBtn = event.target.querySelector('[type="submit"]');
+  const originalText = submitBtn.textContent;
+  
+  try {
+    // Set loading state
+    submitBtn.textContent = 'กำลังบันทึก...';
+    submitBtn.disabled = true;
+    
+    console.log('[Admin] Creating academic year:', year);
+    
+    // Call API to create academic year
+    const result = await coreAPI.createAcademicYear(year);
+    
+    if (result.success) {
+      // Refresh academic years data
+      await loadAcademicYears();
+      
+      // Update UI
+      populateAcademicYearsList();
+      populateAcademicYearsTable();
+      
+      // Clear form
+      event.target.reset();
+      
+      alert(`เพิ่มปีการศึกษา ${year} เรียบร้อย!`);
+      
+      console.log('[Admin] Academic year created successfully:', result.data);
+      
+    } else {
+      console.error('[Admin] Failed to create academic year:', result.error);
+      alert(`เกิดข้อผิดพลาด: ${result.error || 'ไม่สามารถเพิ่มปีการศึกษาได้'}`);
+    }
+    
+  } catch (error) {
+    console.error('[Admin] Error creating academic year:', error);
+    alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    
+  } finally {
+    // Reset button
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  }
+}
+
+/**
+ * Handle semester form submission (NEW)
+ */
+async function handleSemesterFormSubmit(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const semesterName = formData.get('semester_name')?.trim();
+  
+  if (!semesterName) {
+    alert('กรุณาระบุชื่อภาคเรียน');
+    return;
+  }
+  
+  if (!adminState.activeYear) {
+    alert('กรุณากำหนดปีการศึกษาปัจจุบันก่อน');
+    return;
+  }
+  
+  try {
+    // Set loading state
+    const submitBtn = event.target.querySelector('[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'กำลังบันทึก...';
+    submitBtn.disabled = true;
+    
+    // Call API to create semester
+    const result = await coreAPI.createSemester({
+      name: semesterName,
+      year: adminState.activeYear
+    });
+    
+    if (result.success) {
+      // Refresh semesters data for current year
+      await loadSemesters(adminState.activeYear);
+      
+      // Update UI
+      populateSemestersList();
+      populateSemestersTable();
+      
+      // Clear form
+      event.target.reset();
+      
+      alert(`เพิ่มภาคเรียน "${semesterName}" สำหรับปี ${adminState.activeYear} เรียบร้อย!`);
+      
+      console.log('[Admin] Semester created:', result.data);
+      
+    } else {
+      throw new Error(result.error || 'ไม่สามารถเพิ่มภาคเรียนได้');
+    }
+    
+  } catch (error) {
+    console.error('[Admin] Error creating semester:', error);
+    alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    
+  } finally {
+    // Reset button
+    const submitBtn = event.target.querySelector('[type="submit"]');
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  }
+}
+
+/**
+ * Populate academic years table (NEW)
+ */
+function populateAcademicYearsTable() {
+  const tableBody = document.getElementById('academic-years-table-body');
+  if (!tableBody) return;
+  
+  if (adminState.academicYears.length === 0) {
+    tableBody.innerHTML = '<tr><td colspan="5" class="no-data">ยังไม่มีข้อมูลปีการศึกษา</td></tr>';
+    return;
+  }
+  
+  const rowsHTML = adminState.academicYears.map((year, index) => {
+    const isActive = year.year === adminState.activeYear;
+    return `
+      <tr ${isActive ? 'class="active-row"' : ''}>
+        <td><input type="checkbox" class="row-select" data-id="${year.id}"></td>
+        <td>${year.id}</td>
+        <td>ปีการศึกษา ${year.year} ${isActive ? '<span class="active-badge">ใช้งาน</span>' : ''}</td>
+        <td>${new Date(year.created_at).toLocaleDateString('th-TH')}</td>
+        <td class="table-actions">
+          <button type="button" class="btn btn--sm btn--outline" onclick="editAcademicYear(${year.id})">✏️ แก้ไข</button>
+          <button type="button" class="btn btn--sm btn--danger" onclick="deleteAcademicYear(${year.id}, '${year.year}')" ${isActive ? 'disabled' : ''}>
+            🗑️ ลบ
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  tableBody.innerHTML = rowsHTML;
+  
+  console.log('[Admin] Populated academic years table');
+}
+
+/**
+ * Populate semesters table (NEW)
+ */
+function populateSemestersTable() {
+  const tableBody = document.getElementById('semesters-table-body');
+  if (!tableBody) return;
+  
+  if (adminState.semesters.length === 0) {
+    const message = adminState.activeYear ? 
+      `ยังไม่มีภาคเรียนสำหรับปี ${adminState.activeYear}` :
+      'กรุณากำหนดปีการศึกษาปัจจุบันก่อน';
+    
+    tableBody.innerHTML = `<tr><td colspan="5" class="no-data">${message}</td></tr>`;
+    return;
+  }
+  
+  const rowsHTML = adminState.semesters.map((semester, index) => {
+    const isActive = semester.id === adminState.activeSemester?.id;
+    const semesterName = semester.name || semester.semester_name;
+    
+    return `
+      <tr ${isActive ? 'class="active-row"' : ''}>
+        <td><input type="checkbox" class="row-select" data-id="${semester.id}"></td>
+        <td>${semester.id}</td>
+        <td>${semesterName} ${isActive ? '<span class="active-badge">ใช้งาน</span>' : ''}</td>
+        <td>${new Date(semester.created_at).toLocaleDateString('th-TH')}</td>
+        <td class="table-actions">
+          <button type="button" class="btn btn--sm btn--outline" onclick="editSemester(${semester.id})">✏️ แก้ไข</button>
+          <button type="button" class="btn btn--sm btn--danger" onclick="deleteSemester(${semester.id}, '${semesterName}')" ${isActive ? 'disabled' : ''}>
+            🗑️ ลบ
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+  
+  tableBody.innerHTML = rowsHTML;
+  
+  console.log('[Admin] Populated semesters table');
 }
 
 // =============================================================================
