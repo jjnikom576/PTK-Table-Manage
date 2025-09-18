@@ -1,10 +1,304 @@
+// =============================================================================
+// ACADEMIC YEAR MANAGEMENT (NEW)
+// =============================================================================
+
+/**
+ * Initialize Academic Management after login
+ */
+async function initAcademicManagement() {
+  try {
+    console.log('[Admin] Initializing Academic Management...');
+    
+    // 1. Load current context from backend
+    await loadAdminContext();
+    
+    // 2. Load academic years
+    await loadAcademicYears();
+    
+    // 3. Load semesters for active year (if exists)
+    if (adminState.activeYear) {
+      await loadSemesters(adminState.activeYear);
+    }
+    
+    // 4. Populate UI
+    populateCurrentSemesterTab();
+    populateAcademicYearsList();
+    populateSemestersList();
+    
+    // 5. Bind academic management events
+    bindAcademicManagementEvents();
+    
+    console.log('[Admin] Academic Management initialized successfully');
+    
+  } catch (error) {
+    console.error('[Admin] Error initializing Academic Management:', error);
+    adminState.error = error.message;
+  }
+}
+
+/**
+ * Load current context from backend
+ */
+async function loadAdminContext() {
+  try {
+    const result = await coreAPI.getGlobalContext();
+    
+    if (result.success && result.data) {
+      adminState.activeYear = result.data.currentYear;
+      adminState.activeSemester = result.data.currentSemester;
+      
+      console.log('[Admin] Loaded context:', {
+        activeYear: adminState.activeYear,
+        activeSemester: adminState.activeSemester
+      });
+    }
+  } catch (error) {
+    console.warn('[Admin] Failed to load context:', error);
+  }
+}
+
+/**
+ * Load academic years from API
+ */
+async function loadAcademicYears() {
+  try {
+    const result = await coreAPI.getAcademicYears();
+    
+    if (result.success && result.data) {
+      adminState.academicYears = result.data;
+      console.log('[Admin] Loaded academic years:', result.data.length, 'years');
+    } else {
+      adminState.academicYears = [];
+      console.warn('[Admin] No academic years found');
+    }
+  } catch (error) {
+    console.error('[Admin] Error loading academic years:', error);
+    adminState.academicYears = [];
+  }
+}
+
+/**
+ * Load semesters for a specific year
+ */
+async function loadSemesters(year) {
+  try {
+    const result = await coreAPI.getSemesters(year);
+    
+    if (result.success && result.data) {
+      adminState.semesters = result.data;
+      console.log('[Admin] Loaded semesters for year', year, ':', result.data.length, 'semesters');
+    } else {
+      adminState.semesters = [];
+      console.warn('[Admin] No semesters found for year', year);
+    }
+  } catch (error) {
+    console.error('[Admin] Error loading semesters for year', year, ':', error);
+    adminState.semesters = [];
+  }
+}
+
+/**
+ * Populate "กำหนดภาคเรียนปัจจุบัน" tab
+ */
+function populateCurrentSemesterTab() {
+  // Update current selection display
+  const yearDisplay = document.getElementById('current-year-display');
+  const semesterDisplay = document.getElementById('current-semester-display');
+  
+  if (yearDisplay) {
+    yearDisplay.textContent = adminState.activeYear ? 
+      `ปีการศึกษา ${adminState.activeYear}` : 'ยังไม่ได้เลือก';
+  }
+  
+  if (semesterDisplay) {
+    semesterDisplay.textContent = adminState.activeSemester ? 
+      (adminState.activeSemester.name || adminState.activeSemester.semester_name) : 'ยังไม่ได้เลือก';
+  }
+  
+  console.log('[Admin] Updated current semester tab display');
+}
+
+/**
+ * Populate academic years list in current semester tab
+ */
+function populateAcademicYearsList() {
+  const container = document.getElementById('academic-years-list');
+  if (!container) return;
+  
+  if (adminState.academicYears.length === 0) {
+    container.innerHTML = '<p class="no-data">ยังไม่มีปีการศึกษา - กรุณาเพิ่มในแท็บ "เพิ่มปีการศึกษา"</p>';
+    return;
+  }
+  
+  const yearsHTML = adminState.academicYears.map(year => {
+    const isActive = year.year === adminState.activeYear;
+    return `
+      <div class="selection-item ${isActive ? 'active' : ''}" data-year="${year.year}">
+        <input type="radio" name="academic-year" value="${year.id}" ${isActive ? 'checked' : ''} id="year-${year.id}">
+        <label for="year-${year.id}">ปีการศึกษา ${year.year}</label>
+        ${isActive ? '<span class="active-badge">ใช้งานอยู่</span>' : ''}
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = yearsHTML;
+  
+  console.log('[Admin] Populated academic years list');
+}
+
+/**
+ * Populate semesters list in current semester tab
+ */
+function populateSemestersList() {
+  const container = document.getElementById('semesters-list');
+  if (!container) return;
+  
+  if (adminState.semesters.length === 0) {
+    const message = adminState.activeYear ? 
+      `ยังไม่มีภาคเรียนสำหรับปี ${adminState.activeYear} - กรุณาเพิ่มในแท็บ "เพิ่มภาคเรียน"` :
+      'กรุณาเลือกปีการศึกษาก่อน';
+    
+    container.innerHTML = `<p class="no-data">${message}</p>`;
+    return;
+  }
+  
+  const semestersHTML = adminState.semesters.map(semester => {
+    const isActive = semester.id === adminState.activeSemester?.id;
+    const semesterName = semester.name || semester.semester_name;
+    
+    return `
+      <div class="selection-item ${isActive ? 'active' : ''}" data-semester-id="${semester.id}">
+        <input type="radio" name="semester" value="${semester.id}" ${isActive ? 'checked' : ''} id="semester-${semester.id}">
+        <label for="semester-${semester.id}">${semesterName}</label>
+        ${isActive ? '<span class="active-badge">ใช้งานอยู่</span>' : ''}
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = semestersHTML;
+  
+  console.log('[Admin] Populated semesters list');
+}
+
+/**
+ * Bind events for academic management
+ */
+function bindAcademicManagementEvents() {
+  // Current semester form submission
+  const form = document.getElementById('current-semester-form');
+  if (form) {
+    form.addEventListener('submit', handleCurrentSemesterFormSubmit);
+  }
+  
+  // Year selection change
+  const yearsList = document.getElementById('academic-years-list');
+  if (yearsList) {
+    yearsList.addEventListener('change', handleYearSelectionChange);
+  }
+  
+  console.log('[Admin] Academic management events bound');
+}
+
+/**
+ * Handle year selection change - load semesters for selected year
+ */
+async function handleYearSelectionChange(event) {
+  if (event.target.name === 'academic-year') {
+    const selectedYearId = parseInt(event.target.value);
+    const selectedYear = adminState.academicYears.find(y => y.id === selectedYearId);
+    
+    if (selectedYear) {
+      console.log('[Admin] Year selection changed to:', selectedYear.year);
+      
+      // Load semesters for selected year
+      await loadSemesters(selectedYear.year);
+      populateSemestersList();
+      
+      // Update hidden field
+      const hiddenField = document.getElementById('selected-academic-year');
+      if (hiddenField) {
+        hiddenField.value = selectedYearId;
+      }
+    }
+  }
+}
+
+/**
+ * Handle current semester form submission
+ */
+async function handleCurrentSemesterFormSubmit(event) {
+  event.preventDefault();
+  
+  const formData = new FormData(event.target);
+  const academicYearId = formData.get('academic_year_id');
+  const semesterId = formData.get('semester_id');
+  
+  // Get actual year value
+  const selectedYear = adminState.academicYears.find(y => y.id === parseInt(academicYearId));
+  
+  if (!selectedYear || !semesterId) {
+    alert('กรุณาเลือกปีการศึกษาและภาคเรียน');
+    return;
+  }
+  
+  try {
+    // Set loading state
+    const submitBtn = event.target.querySelector('[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = 'กำลังบันทึก...';
+    submitBtn.disabled = true;
+    
+    // Call APIs to set active context
+    const yearResult = await coreAPI.setActiveAcademicYear(selectedYear.year);
+    const semesterResult = await coreAPI.setActiveSemester(selectedYear.year, parseInt(semesterId));
+    
+    if (yearResult.success && semesterResult.success) {
+      // Update admin state
+      adminState.activeYear = selectedYear.year;
+      adminState.activeSemester = adminState.semesters.find(s => s.id === parseInt(semesterId));
+      
+      // Refresh global context
+      await refreshContextFromBackend();
+      
+      // Update UI
+      populateCurrentSemesterTab();
+      populateAcademicYearsList();
+      populateSemestersList();
+      
+      alert('บันทึกการตั้งค่าเรียบร้อย!');
+      
+      console.log('[Admin] Active context updated:', {
+        year: adminState.activeYear,
+        semester: adminState.activeSemester
+      });
+      
+    } else {
+      const error = !yearResult.success ? yearResult.error : semesterResult.error;
+      throw new Error(error || 'ไม่สามารถบันทึกการตั้งค่าได้');
+    }
+    
+  } catch (error) {
+    console.error('[Admin] Error saving current semester:', error);
+    alert(`เกิดข้อผิดพลาด: ${error.message}`);
+    
+  } finally {
+    // Reset button
+    const submitBtn = event.target.querySelector('[type="submit"]');
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  }
+}
+
+// =============================================================================
+
 /**
  * Admin Page – API Integration Version
  */
 
 import authAPI from '../api/auth-api.js';
+import coreAPI from '../api/core-api.js';
 import scheduleAPI from '../api/schedule-api.js';
-import { getContext } from '../context/globalContext.js';
+import { getContext, refreshContextFromBackend } from '../context/globalContext.js';
 import templateLoader from '../templateLoader.js';
 
 let adminState = {
@@ -12,7 +306,15 @@ let adminState = {
   initialized: false,
   templatesLoaded: false,
   templates: null,
+  
+  // Data Management
   teachers: [],
+  academicYears: [],
+  semesters: [],
+  activeYear: null,
+  activeSemester: null,
+  
+  // UI State
   currentPage: 1,
   itemsPerPage: 10,
   searchTerm: '',
@@ -57,6 +359,9 @@ export async function initAdminPage(context = null) {
     
     // Load templates and initialize management
     await loadAdminTemplates();
+    
+    // NEW: Load academic year management data
+    await initAcademicManagement();
     await initTeacherManagement();
   } else {
     // User not logged in - show login form only

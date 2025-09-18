@@ -172,6 +172,33 @@ function setFallbackContext() {
 }
 
 /**
+ * Refresh Context from Backend (NEW)
+ */
+export async function refreshContextFromBackend() {
+  try {
+    console.log('[GlobalContext] Refreshing context from backend...');
+    
+    if (!authAPI.isAuthenticated()) {
+      console.log('[GlobalContext] Not authenticated, skipping backend refresh');
+      return { ok: false, error: 'Not authenticated' };
+    }
+    
+    // Load fresh data from backend
+    await loadContextFromAPI();
+    
+    // Update UI with refreshed data
+    updateContextUI();
+    
+    console.log('[GlobalContext] Context refreshed from backend successfully');
+    return { ok: true, context: globalContext };
+    
+  } catch (error) {
+    console.error('[GlobalContext] Failed to refresh context from backend:', error);
+    return { ok: false, error: error.message };
+  }
+}
+
+/**
  * Set Context - NEW: Use real API
  */
 export async function setContext(year, semesterId) {
