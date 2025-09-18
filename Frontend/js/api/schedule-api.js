@@ -15,7 +15,8 @@ class ScheduleAPI {
    * Generate year-based endpoint
    */
   getYearEndpoint(entity, year) {
-    return `${entity}_${year}`;
+    // Use backend's correct endpoint format
+    return `schedule/${entity}`;
   }
 
   /**

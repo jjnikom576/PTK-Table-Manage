@@ -1,5 +1,17 @@
 // Classes Management Module
 // Similar to teacher management but for classes (ชั้นเรียน)
+// Fixed import for showLoading/hideLoading
+
+import { showLoading, hideLoading } from './pages/admin.js';
+
+// Global helper fallback
+if (typeof window.showLoading === 'undefined') {
+  window.showLoading = showLoading;
+  window.hideLoading = hideLoading;
+  window.showToast = function(message, type = 'info') {
+    console.log(`📱 Toast (${type}): ${message}`);
+  };
+}
 
 // Global state for classes
 let currentClassesData = [];

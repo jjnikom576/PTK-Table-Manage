@@ -227,6 +227,9 @@ async function loadAdminTemplates() {
           ${templates['forms/admin/add-period']}
         </div>
       `;
+      
+      // Store templates for later use when switching tabs
+      window.adminTemplates = templates;
     }
     
     const academicManagementContent = document.querySelector('#academic-management-content');
@@ -993,6 +996,63 @@ function bindDataSubNavigation() {
       if (targetPage) {
         targetPage.classList.remove('hidden');
         targetPage.classList.add('active');
+        
+        // Reload template content to ensure it shows properly
+        if (window.adminTemplates) {
+          let templateKey = null;
+          
+          // Map targetId to correct template key
+          switch(targetId) {
+            case 'add-teacher':
+              templateKey = 'forms/admin/add-teacher';
+              break;
+            case 'add-class':
+              templateKey = 'forms/admin/add-class';
+              break;
+            case 'add-room':
+              templateKey = 'forms/admin/add-room';
+              break;
+            case 'add-subject':
+              templateKey = 'forms/admin/add-subject';
+              break;
+            case 'add-period':
+              templateKey = 'forms/admin/add-period';
+              break;
+          }
+          
+          if (templateKey && window.adminTemplates[templateKey]) {
+            console.log('🔄 Reloading template:', templateKey);
+            
+            // Parse template and extract inner content
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(window.adminTemplates[templateKey], 'text/html');
+            const templateDiv = doc.querySelector(`#${targetId}`);
+            
+            console.log('🔍 Template parsed. Found div:', !!templateDiv);
+            
+            if (templateDiv) {
+              // Get the innerHTML of the template (without the outer div)
+              targetPage.innerHTML = templateDiv.innerHTML;
+              console.log('✅ Content set from template div');
+            } else {
+              // Fallback: use template as-is
+              targetPage.innerHTML = window.adminTemplates[templateKey];
+              console.log('⚠️ Fallback: using template as-is');
+            }
+            
+            // Re-bind events for specific forms
+            setTimeout(() => {
+              if (targetId === 'add-teacher') {
+                bindTeacherFormEvents();
+                renderTeachersTable();
+              }
+              // Add other form bindings here when implemented
+            }, 100);
+          } else {
+            console.warn('⚠️ Template not found:', templateKey, 'Available:', Object.keys(window.adminTemplates || {}));
+          }
+        }
+        
         console.log('✅ Showing data sub-page:', targetId);
       } else {
         console.error('❌ Target data sub-page not found:', targetId);
