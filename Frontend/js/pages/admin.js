@@ -142,6 +142,8 @@ function populateAcademicYearsList() {
   }).join('');
   
   container.innerHTML = yearsHTML;
+  // Enable click-to-toggle on the whole item
+  enableSelectionItemToggle('academic-years-list');
   
   console.log('[Admin] Populated academic years list');
 }
@@ -153,6 +155,10 @@ function populateSemestersList() {
   const container = document.getElementById('semesters-list');
   if (!container) return;
   
+  if (adminState.semestersLoading && !adminState.semestersLoaded) {
+    container.innerHTML = `<p class="no-data">กำลังโหลด...</p>`;
+    return;
+  }
   if (adminState.semesters.length === 0) {
     container.innerHTML = `<p class="no-data">ยังไม่มีภาคเรียน - กรุณาเพิ่มในแท็บ "เพิ่มภาคเรียน"</p>`;
     return;
@@ -172,8 +178,35 @@ function populateSemestersList() {
   }).join('');
   
   container.innerHTML = semestersHTML;
+  // Enable click-to-toggle on the whole item
+  enableSelectionItemToggle('semesters-list');
   
   console.log('[Admin] Populated semesters list');
+}
+
+/**
+ * Enable click-to-toggle behavior on selection lists (radio) allowing deselect on second click
+ */
+function enableSelectionItemToggle(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container || container.dataset.toggleBound === '1') return;
+  container.dataset.toggleBound = '1';
+  container.addEventListener('click', (e) => {
+    const target = e.target;
+    const item = target && target.closest ? target.closest('.selection-item') : null;
+    if (!item || !container.contains(item)) return;
+    const input = item.querySelector('input[type="radio"]');
+    if (!input) return;
+    // Prevent default label/input behavior; handle manually
+    e.preventDefault();
+    // Always select the clicked item (radio must have a value; no deselect)
+    container.querySelectorAll('input[type="radio"]').forEach((el) => { el.checked = false; });
+    container.querySelectorAll('.selection-item').forEach((el) => el.classList.remove('active'));
+    input.checked = true;
+    item.classList.add('active');
+    // dispatch change for existing handlers
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 }
 
 /**
@@ -238,13 +271,21 @@ async function handleCurrentSemesterFormSubmit(event) {
   event.preventDefault();
   
   const formData = new FormData(event.target);
-  const academicYearId = formData.get('academic_year_id');
-  const semesterId = formData.get('semester_id');
+  const academicYearId = formData.get('academic-year');
+  const semesterId = formData.get('semester');
   
-  // Resolve selected year if provided; otherwise fall back to current active year
-  const selectedYear = academicYearId ? adminState.academicYears.find(y => y.id === parseInt(academicYearId)) : null;
+  // Validate both selections
+  if (!academicYearId) {
+    alert('กรุณาเลือกปีการศึกษา');
+    return;
+  }
   if (!semesterId) {
     alert('กรุณาเลือกภาคเรียน');
+    return;
+  }
+  const selectedYear = adminState.academicYears.find(y => y.id === parseInt(String(academicYearId)));
+  if (!selectedYear) {
+    alert('ปีการศึกษาที่เลือกไม่ถูกต้อง');
     return;
   }
   
@@ -255,19 +296,14 @@ async function handleCurrentSemesterFormSubmit(event) {
     submitBtn.textContent = 'กำลังบันทึก...';
     submitBtn.disabled = true;
     
-    // Call APIs to set active context
-    let yearResult = { success: true };
-    if (selectedYear) {
-      yearResult = await coreAPI.setActiveAcademicYear(selectedYear.year);
-    }
-    const semesterResult = await coreAPI.setActiveSemester(parseInt(semesterId));
+    // Call APIs to set active context (year then semester)
+    const yearResult = await coreAPI.setActiveAcademicYear(selectedYear.year);
+    const semesterResult = await coreAPI.setActiveSemester(parseInt(String(semesterId)));
     
     if (yearResult.success && semesterResult.success) {
       // Update admin state
-      if (selectedYear) {
-        adminState.activeYear = selectedYear.year;
-      }
-      adminState.activeSemester = adminState.semesters.find(s => s.id === parseInt(semesterId));
+      adminState.activeYear = selectedYear.year;
+      adminState.activeSemester = adminState.semesters.find(s => s.id === parseInt(String(semesterId)));
       
       // Refresh global context
       await refreshContextFromBackend();
@@ -1960,7 +1996,7 @@ window.deleteAcademicYear = async function(yearId, year) {
     const { refreshContextFromBackend } = await import('../context/globalContext.js');
     
     // Check if it's the active year (rough check)
-    const confirmed = confirm(`ยืนยันการลบปีการศึกษา ${year} ?\n\nข้อมูลทั้งหมดของปีนี้ (ครู, ชั้นเรียน, ตารางสอน) จะถูกลบด้วย!`);
+    const confirmed = confirm(`ยืนยันการลบปีการศึกษา ${year} ?`);
     if (!confirmed) return;
     
     // Show loading state

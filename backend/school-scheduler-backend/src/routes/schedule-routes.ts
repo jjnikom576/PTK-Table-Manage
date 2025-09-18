@@ -22,33 +22,38 @@ const scheduleRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
-    const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
-    }
 
-    // Get all schedules for the active semester
-    const schedulesResult = await dbManager.getSchedulesBySemester(contextResult.data.semester.id!);
+    // Optional query params for direct selection
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester');
+    let schedulesResult;
+
+    if (yearParam && semesterParam) {
+      const year = parseInt(yearParam);
+      const semesterId = parseInt(semesterParam);
+      if (isNaN(year) || isNaN(semesterId)) {
+        return c.json({ success: false, message: 'Invalid year or semesterId' }, 400);
+      }
+      schedulesResult = await dbManager.getSchedulesBySemesterForYear(semesterId, year);
+    } else {
+      // Fallback to active context
+      const contextResult = await dbManager.getGlobalContext();
+      if (!contextResult.success || !contextResult.data?.semester) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+      schedulesResult = await dbManager.getSchedulesBySemester(contextResult.data.semester.id!);
+    }
     if (!schedulesResult.success) {
       return c.json(schedulesResult);
     }
 
     const schedules = schedulesResult.data || [];
 
-    // Build timetable grid (1-7 days, 1-12 periods) similar to admin route
+    // Build timetable grid (1-7 days, 1-12 periods)
     const timetableData: any = {
       days: [1,2,3,4,5,6,7],
       periods: Array.from({ length: 12 }, (_, i) => i + 1),
-      grid: {},
-      meta: {
-        year: contextResult.data.academic_year?.year || null,
-        semester: contextResult.data.semester || null
-      }
+      grid: {}
     };
 
     // Initialize grid

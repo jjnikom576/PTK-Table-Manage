@@ -779,6 +779,40 @@ export class DatabaseManager {
     }
   }
 
+  // New: Get schedules for a specific semester and year (without relying on active year)
+  async getSchedulesBySemesterForYear(semesterId: number, year: number): Promise<DatabaseResult<any[]>> {
+    try {
+      const tableName = `schedules_${year}`;
+      const schedules = await this.db
+        .prepare(`
+          SELECT 
+            sch.*,
+            sub.subject_name,
+            sub.subject_code,
+            t.full_name as teacher_name,
+            c.class_name,
+            r.room_name,
+            p.period_name,
+            p.start_time,
+            p.end_time
+          FROM ${tableName} sch
+          JOIN subjects_${year} sub ON sch.subject_id = sub.id
+          JOIN teachers_${year} t ON sub.teacher_id = t.id
+          JOIN classes_${year} c ON sub.class_id = c.id
+          LEFT JOIN rooms_${year} r ON sch.room_id = r.id
+          JOIN periods p ON sch.period_no = p.period_no
+          WHERE sch.semester_id = ?
+          ORDER BY sch.day_of_week, sch.period_no
+        `)
+        .bind(semesterId)
+        .all();
+
+      return { success: true, data: schedules.results };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
   async deleteAcademicYear(yearId: number): Promise<DatabaseResult> {
     try {
       const row = await this.db
@@ -788,12 +822,7 @@ export class DatabaseManager {
       if (!row) return { success: false, error: 'Academic year not found' };
       if (row.is_active === 1) return { success: false, error: 'Cannot delete an active academic year' };
 
-      const year = row.year;
-      const tables = [`teachers_${year}`, `classes_${year}`, `rooms_${year}`, `subjects_${year}`, `schedules_${year}`];
-      for (const t of tables) {
-        await this.db.exec(`DROP TABLE IF EXISTS ${t}`);
-      }
-
+      // Do NOT drop dynamic tables; retain data for potential reuse
       const del = await this.db
         .prepare('DELETE FROM academic_years WHERE id = ?')
         .bind(yearId)
@@ -801,7 +830,7 @@ export class DatabaseManager {
       if (del.meta.changes === 0) {
         return { success: false, error: 'Delete failed' };
       }
-      return { success: true, data: { message: 'Academic year deleted', year, droppedTables: tables }, affectedRows: del.meta.changes };
+      return { success: true, data: { message: 'Academic year deleted', year: row.year }, affectedRows: del.meta.changes };
     } catch (error) {
       return { success: false, error: String(error) };
     }

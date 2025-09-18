@@ -212,6 +212,19 @@ class CoreAPI {
     }
   }
 
+  async getTimetableBy(year, semesterId) {
+    try {
+      const params = new URLSearchParams();
+      if (year) params.set('year', String(year));
+      if (semesterId) params.set('semesterId', String(semesterId));
+      const url = `schedule/timetable?${params.toString()}`;
+      const result = await apiManager.get(url);
+      return result;
+    } catch (error) {
+      return { success: false, error: 'ไม่สามารถโหลดตารางสอนตามปี/ภาคเรียนได้' };
+    }
+  }
+
   /**
    * Check if cache is valid
    */

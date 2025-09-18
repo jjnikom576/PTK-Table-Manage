@@ -144,7 +144,10 @@ coreRoutes.delete('/academic-years/:id', requireAdmin, async (c: Context<{ Bindi
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     const result = await dbManager.deleteAcademicYear(yearId);
-    const status = result.success ? 200 : 400;
+    let status = 200;
+    if (!result.success) {
+      status = /active/i.test(result.error || '') ? 409 : 400;
+    }
     return c.json(result, status);
   } catch (error) {
     console.error('Delete academic year error:', error);
@@ -256,7 +259,10 @@ coreRoutes.delete('/semesters/:id', requireAdmin, async (c: Context<{ Bindings: 
     }
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     const result = await dbManager.deleteSemester(id);
-    const status = result.success ? 200 : 400;
+    let status = 200;
+    if (!result.success) {
+      status = /active/i.test(result.error || '') ? 409 : 400;
+    }
     return c.json(result, status);
   } catch (error) {
     console.error('Delete semester error:', error);
