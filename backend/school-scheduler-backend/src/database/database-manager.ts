@@ -123,7 +123,11 @@ export class DatabaseManager {
         }
       };
     } catch (error) {
-      return { success: false, error: String(error) };
+      const message = String(error);
+      if (message.includes('UNIQUE constraint failed')) {
+        return { success: false, error: 'Class already exists for this semester' };
+      }
+      return { success: false, error: message };
     }
   }
 
@@ -146,7 +150,84 @@ export class DatabaseManager {
 
       return { success: true, data: { message: 'Active academic year updated' } };
     } catch (error) {
-      return { success: false, error: String(error) };
+      const message = String(error);
+      if (message.includes('UNIQUE constraint failed')) {
+        return { success: false, error: 'Class already exists for this semester' };
+      }
+      return { success: false, error: message };
+    }
+  }
+
+  async updateClass(classId: number, semesterId: number, data: Partial<CreateClassRequest>, forYear?: number): Promise<DatabaseResult<Class>> {
+    try {
+      const year = forYear ?? await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+
+      const tableName = `classes_${year}`;
+      const fields: string[] = [];
+      const values: any[] = [];
+
+      if (data.grade_level) {
+        fields.push('grade_level = ?');
+        values.push(data.grade_level);
+      }
+      if (data.section !== undefined) {
+        fields.push('section = ?');
+        values.push(data.section);
+      }
+
+      if (fields.length === 0) {
+        return { success: false, error: 'No class fields to update' };
+      }
+
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+
+      const result = await this.db
+        .prepare(`UPDATE ${tableName} SET ${fields.join(', ')} WHERE id = ? AND semester_id = ? AND is_active = 1`)
+        .bind(...values, classId, semesterId)
+        .run();
+
+      if (result.meta.changes === 0) {
+        return { success: false, error: 'Class not found' };
+      }
+
+      const updatedClass = await this.db
+        .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+        .bind(classId)
+        .first<Class>();
+
+      return { success: true, data: updatedClass! };
+    } catch (error) {
+      const message = String(error);
+      if (message.includes('UNIQUE constraint failed')) {
+        return { success: false, error: 'Class already exists for this semester' };
+      }
+      return { success: false, error: message };
+    }
+  }
+
+  async deleteClass(classId: number, semesterId: number, forYear?: number): Promise<DatabaseResult> {
+    try {
+      const year = forYear ?? await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+
+      const tableName = `classes_${year}`;
+      const result = await this.db
+        .prepare(`DELETE FROM ${tableName} WHERE id = ? AND semester_id = ?`)
+        .bind(classId, semesterId)
+        .run();
+
+      if (result.meta.changes === 0) {
+        return { success: false, error: 'Class not found' };
+      }
+
+      return { success: true, data: { message: 'Class deleted successfully' } };
+    } catch (error) {
+      const message = String(error);
+      if (message.includes('FOREIGN KEY constraint failed')) {
+        return { success: false, error: 'Cannot delete class while schedules or subjects still reference it' };
+      }
+      return { success: false, error: message };
     }
   }
 
@@ -568,12 +649,16 @@ export class DatabaseManager {
 
   async updateTeacher(teacherId: number, semesterId: number, data: Partial<CreateTeacherRequest>, forYear?: number): Promise<DatabaseResult> {
     try {
+      console.log('🔧 updateTeacher called with:', { teacherId, semesterId, data, forYear }); // Debug
+      
       const year = forYear ?? await this.getActiveYear();
       const tableName = `teachers_${year}`;
+      console.log('📝 Using table:', tableName); // Debug
 
       const fields: string[] = [];
       const values: any[] = [];
 
+      if (data.title !== undefined) { fields.push('title = ?'); values.push(data.title); }
       if (data.f_name) { fields.push('f_name = ?'); values.push(data.f_name); }
       if (data.l_name) { fields.push('l_name = ?'); values.push(data.l_name); }
       if (data.email !== undefined) { fields.push('email = ?'); values.push(data.email); }
@@ -584,10 +669,16 @@ export class DatabaseManager {
       fields.push('updated_at = CURRENT_TIMESTAMP');
       values.push(teacherId);
 
+      const sql = `UPDATE ${tableName} SET ${fields.join(', ')} WHERE id = ?`;
+      console.log('📝 SQL Query:', sql); // Debug
+      console.log('📝 SQL Values:', values); // Debug
+
       const result = await this.db
-        .prepare(`UPDATE ${tableName} SET ${fields.join(', ')} WHERE id = ?`)
+        .prepare(sql)
         .bind(...values)
         .run();
+
+      console.log('📝 SQL Result:', result); // Debug
 
       if (result.meta.changes === 0) {
         return { success: false, error: 'Teacher not found' };
@@ -595,6 +686,7 @@ export class DatabaseManager {
 
       return { success: true, data: { message: 'Teacher updated successfully' } };
     } catch (error) {
+      console.error('❌ updateTeacher error:', error); // Debug
       return { success: false, error: String(error) };
     }
   }

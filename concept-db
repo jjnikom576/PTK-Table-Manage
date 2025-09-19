@@ -112,13 +112,13 @@ sql-- Template สำหรับสร้าง dynamic tables แต่ละ�
 
 
 
------ dynamic_case_{YEAR}
+----- dynamic_case_{YEAR}  {YEAR} จาก global context
 
 
 -- Teachers Table
 CREATE TABLE teachers_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  semester_id INTEGER NOT NULL,
+  semester_id INTEGER NOT NULL, -- จาก global context
   f_name TEXT NOT NULL,
   l_name TEXT NOT NULL,
   full_name TEXT GENERATED ALWAYS AS (f_name || ' ' || l_name) STORED,
@@ -144,7 +144,7 @@ CREATE UNIQUE INDEX idx_teachers_{YEAR}_email ON teachers_{YEAR}(email) WHERE em
 -- Classes Table
 CREATE TABLE classes_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  semester_id INTEGER NOT NULL,
+  semester_id INTEGER NOT NULL, -- จาก global context
   grade_level TEXT NOT NULL,
   section INTEGER NOT NULL,
   class_name TEXT GENERATED ALWAYS AS (grade_level || '/' || section) STORED,
@@ -165,7 +165,7 @@ CREATE UNIQUE INDEX idx_classes_{YEAR}_unique_class ON classes_{YEAR}(semester_i
 -- Rooms Table
 CREATE TABLE rooms_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  semester_id INTEGER NOT NULL,
+  semester_id INTEGER NOT NULL, -- จาก global context
   room_name TEXT NOT NULL,
   room_type TEXT NOT NULL CHECK (room_type IN ('ทั่วไป', 'ปฏิบัติการคอมพิวเตอร์')),
   is_active INTEGER DEFAULT 1,
@@ -186,7 +186,7 @@ CREATE UNIQUE INDEX idx_rooms_{YEAR}_unique_name ON rooms_{YEAR}(semester_id, ro
 -- Subjects Table (Junction table for many-to-many)
 CREATE TABLE subjects_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  semester_id INTEGER NOT NULL,
+  semester_id INTEGER NOT NULL, -- จาก global context
   teacher_id INTEGER NOT NULL,
   class_id INTEGER NOT NULL,
   subject_name TEXT NOT NULL,
@@ -218,7 +218,7 @@ CREATE UNIQUE INDEX idx_subjects_{YEAR}_unique ON subjects_{YEAR}(semester_id, t
 -- Schedules Table (ตารางจริง)
 CREATE TABLE schedules_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  semester_id INTEGER NOT NULL,
+  semester_id INTEGER NOT NULL, -- จาก global context
   subject_id INTEGER NOT NULL,
   day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
   period_no INTEGER NOT NULL,

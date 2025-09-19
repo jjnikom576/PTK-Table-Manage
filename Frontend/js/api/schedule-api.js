@@ -81,7 +81,8 @@ class ScheduleAPI {
       const result = await apiManager.put(`${this.getYearEndpoint('teachers', year)}/${teacherId}?year=${encodeURIComponent(year)}`, updateData);
 
       if (result.success) {
-        this.invalidateCache(`teachers_${year}`);
+        // แก้ไข: Invalidate cache ที่มีรูปแบบถูกต้อง
+        this.invalidateCacheByPattern(`teachers_${year}_`);
       }
 
       return result;
@@ -141,19 +142,28 @@ class ScheduleAPI {
     }
   }
 
-  async createClass(year, semesterId, classData) {
+  async createClass(year, semesterId, classData = {}) {
     try {
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
       const endpoint = `${this.getYearEndpoint('classes', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
-      const result = await apiManager.post(endpoint, {
-        class_name: classData.class_name,
+      const section = Number(classData.section);
+      const payload = {
         grade_level: classData.grade_level,
-        class_number: classData.class_number,
-        student_count: classData.student_count || 0,
-        homeroom_teacher_id: classData.homeroom_teacher_id || null
-      });
+        section: Number.isInteger(section) ? section : classData.section,
+        semester_id: classData.semester_id || semesterId
+      };
+
+      const result = await apiManager.post(endpoint, payload);
 
       if (result.success) {
         this.invalidateCache(`classes_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`classes_${year}_`);
       }
 
       return result;
@@ -165,12 +175,21 @@ class ScheduleAPI {
     }
   }
 
-  async updateClass(year, classId, updateData) {
+  async updateClass(year, semesterId, classId, updateData = {}) {
     try {
-      const result = await apiManager.put(`${this.getYearEndpoint('classes', year)}/${classId}`, updateData);
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('classes', year)}/${classId}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.put(endpoint, updateData);
 
       if (result.success) {
-        this.invalidateCache(`classes_${year}`);
+        this.invalidateCache(`classes_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`classes_${year}_`);
       }
 
       return result;
@@ -182,12 +201,21 @@ class ScheduleAPI {
     }
   }
 
-  async deleteClass(year, classId) {
+  async deleteClass(year, semesterId, classId) {
     try {
-      const result = await apiManager.delete(`${this.getYearEndpoint('classes', year)}/${classId}`);
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('classes', year)}/${classId}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.delete(endpoint);
 
       if (result.success) {
-        this.invalidateCache(`classes_${year}`);
+        this.invalidateCache(`classes_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`classes_${year}_`);
       }
 
       return result;

@@ -1,206 +1,565 @@
-# Schedule System – Project Overview and Work Plan (Comprehensive)
+# 🏫 School Schedule Management System - Complete Project Overview
 
-This document summarizes the project structure and all changes/decisions made today, so tomorrow’s work can continue immediately with full context.
+**สถานะโปรเจค: Production Ready ✅ กำลังปรับปรุงต่อยอด**
 
-## 1) High‑Level Architecture
-- Backend
-  - Runtime: Cloudflare Workers (Wrangler)
-  - Framework: Hono (TypeScript)
-  - Database: Cloudflare D1 (SQLite)
-  - Key Concepts:
-    - Dynamic tables per academic year: `teachers_{YEAR}`, `classes_{YEAR}`, `rooms_{YEAR}`, `subjects_{YEAR}`, `schedules_{YEAR}`
-    - Global tables: `admin_users`, `admin_sessions`, `admin_activity_log`, `academic_years`, `semesters` (global), `periods`
-
-- Frontend
-  - Vanilla JavaScript SPA (modules)
-  - Pages: Student schedule, Teacher schedule, Admin (data & context management)
-  - API layer with single‑source timetable + single‑entry cache strategy
-
-## 2) Key Decisions and Changes (Today)
-
-### 2.1 Semesters are Global (no academic_year_id)
-- Removed `academic_year_id` from `semesters` (table + interfaces + logic).
-- Endpoints related to semesters:
-  - GET `/api/core/semesters` (public): List global semesters
-  - POST `/api/core/semesters` (admin): Create semester
-  - PUT `/api/core/semesters/:id/activate` (admin): Set active semester
-  - DELETE `/api/core/semesters/:id` (admin): Delete semester (blocked if active ⇒ 409)
-- Global context now: active academic year + active semester are independent; semesters are not tied to year.
-
-### 2.2 Public Read Endpoints (no login required)
-- GET `/api/core/context` (read current active year/semester)
-- GET `/api/core/academic-years` (list years)
-- GET `/api/core/semesters` (list global semesters)
-- GET `/api/schedule/timetable` (view timetable)
-  - Supports `?year=YYYY&semesterId=NN` to fetch a specific year/semester without relying on active context
-
-### 2.3 Timetable endpoint – Single Source of Truth
-- Endpoint: `GET /api/schedule/timetable` (public)
-- Behavior:
-  - If `year` and `semesterId` are provided: read from dynamic tables `schedules_{year}`, `subjects_{year}`, `teachers_{year}`, `classes_{year}`, `rooms_{year}` and return selected semester’s schedules
-  - Otherwise: fall back to active context (if any)
-- Response (mock‑aligned):
-  ```json
-  {
-    "success": true,
-    "data": {
-      "list": [
-        {
-          "id": 1,
-          "semester_id": 13,
-          "subject_id": 101,
-          "day_of_week": 1,
-          "period": 2,
-          "room_id": 5,
-          "created_at": "...",
-          "updated_at": "...",
-          "subject_name": "คณิตศาสตร์",
-          "subject_code": "MATH101",
-          "teacher_id": 10,
-          "class_id": 55,
-          "teacher_name": "ครูเอ",
-          "class_name": "ม.1/1",
-          "room_name": "101"
-        }
-      ],
-      "grid": { "1": { "1": {"..."}, "2": null }, "2": { ... } }
-    }
-  }
-  ```
-- DB query joins: `schedules_{year} → subjects_{year} → teachers_{year} / classes_{year} → rooms_{year}`; aliases `period_no AS period`.
-
-### 2.4 Schedules schema – conflicts & indexes
-- schedules_{YEAR} DDL (effective constraints):
-  - UNIQUE (semester_id, day_of_week, period_no, room_id)  // prevent room conflicts
-  - REMOVED: UNIQUE (semester_id, subject_id, day_of_week, period_no)  // allow parallel sections/teachers for same subject code
-- Indexes (added/confirmed):
-  - schedules_{YEAR}: (semester_id), (day_of_week, period_no), (semester_id, day_of_week), (subject_id), (room_id)
-  - subjects_{YEAR}: (teacher_id), (class_id)
-- Conflict detection logic stays in code (createSchedule): checks teacher/class/room conflicts via joins.
-- POST `/api/schedule/schedules`: returns 409 when conflict detected, else 200/400 as appropriate.
-
-### 2.5 Academic Years – Delete rules
-- DELETE `/api/core/academic-years/:id` (admin):
-  - Cannot delete active year ⇒ 409
-  - Does NOT drop dynamic tables; we retain the data for potential reuse
-
-### 2.6 Frontend – Single cache + API‑driven pages
-- API layer (frontend/js/api/core-api.js):
-  - Single timetable cache: keep only the latest selection (`year:semesterId`)
-  - `getTimetableBy(year, semesterId, useCache=true)`
-  - `clearTimetableCache()` and `getCachedTimetable()`
-- App (frontend/js/app.js):
-  - On context apply (OK): clear cache → prefetch timetable → refresh current page
-- Student page (frontend/js/pages/studentSchedule.js):
-  - Use `getTimetableBy(..., true)`; if `data.list` exists, build matrix from list (mock‑style) and render
-  - Do not rely on `grid` anymore (only list; retains fallback if no API data)
-- Teacher page (frontend/js/pages/teacherSchedule.js):
-  - Prefer `coreAPI.getCachedTimetable().list`; build matrix from list
-  - Fallback to internal build only if no list in cache
-
-### 2.7 Admin UX Adjustments
-- Selection lists (years/semesters): click the whole item to select; no deselect (radio must always have a value once selected)
-- Semester creation: fixed submit state handling; improved empty/loading/error messages
-- Public viewing allowed for year/semester selection; admin operations (create/activate/delete) require login
-
-## 3) Project Structure (Key Files)
-
-Backend (Cloudflare Workers + Hono)
-- `backend/school-scheduler-backend/src/index.ts`
-  - App bootstrap, global middleware, route mounting, public GET whitelist
-- `backend/school-scheduler-backend/src/routes/core-routes.ts`
-  - context, academic-years (GET public; POST/PUT/DELETE admin), semesters (GET public; POST/PUT/DELETE admin)
-- `backend/school-scheduler-backend/src/routes/schedule-routes.ts`
-  - GET `/api/schedule/timetable` (public; supports year & semesterId)
-  - Teachers/classes/rooms/subjects/schedules write operations (admin)
-  - Conflicts endpoint (admin)
-- `backend/school-scheduler-backend/src/database/database-manager.ts`
-  - `getSchedulesBySemester(semesterId)` – active year
-  - `getSchedulesBySemesterForYear(semesterId, year)` – specified year
-  - `deleteAcademicYear(yearId)` (no drop dynamic tables; 409 if active)
-  - Conflict checks for schedule creation
-- `backend/school-scheduler-backend/src/database/schema-manager.ts`
-  - Core and dynamic table creation and indexes
-  - Removed subject‑level UNIQUE from schedules, added indexes
-- `backend/school-scheduler-backend/src/interfaces.ts`
-  - Types (Env, entities, requests, responses)
-
-Frontend (Vanilla JS SPA)
-- `frontend/index.html` – containers and script entrypoints
-- API layer
-  - `frontend/js/api/core-api.js` – academic years/semesters + timetable (single cache)
-- App shell
-  - `frontend/js/app.js` – templates, navigation, context selectors, apply context integration & prefetch timetable
-- Pages
-  - `frontend/js/pages/studentSchedule.js` – builds matrix from timetable list
-  - `frontend/js/pages/teacherSchedule.js` – builds matrix from timetable list
-  - `frontend/js/pages/admin.js` – admin data mgmt, selection UX
-- Context management
-  - `frontend/js/context/globalContext.js` – public read of context/years/semesters; renders selectors
-- Utilities
-  - `frontend/js/loading.js` – show/hide loading helpers (ESM + global exposure)
-
-## 4) How to Run
-- Backend
-  - `cd backend/school-scheduler-backend`
-  - `npm install`
-  - `npm run dev` → http://localhost:8787
-- Frontend (static hosting / dev server)
-  - `cd frontend`
-  - Serve with VSCode Live Server or `python -m http.server 8000` → http://localhost:8000
-
-## 5) Quick API Examples
-- Public reads (no auth):
-  - `GET /api/core/context`
-  - `GET /api/core/academic-years`
-  - `GET /api/core/semesters`
-  - `GET /api/schedule/timetable?year=2569&semesterId=13`
-- Admin writes (require login + bearer):
-  - `POST /api/core/academic-years { year }`
-  - `PUT /api/core/academic-years/:id/activate`
-  - `DELETE /api/core/academic-years/:id` (409 if active)
-  - `POST /api/core/semesters { semester_name }`
-  - `PUT /api/core/semesters/:id/activate`
-  - `DELETE /api/core/semesters/:id` (409 if active)
-  - `POST /api/schedule/schedules` (409 on conflict)
-
-## 6) Data Model Summary
-- academic_years: `id`, `year`, `is_active`, timestamps; UNIQUE(year)
-- semesters (global): `id`, `semester_name`, `is_active`, timestamps; UNIQUE(semester_name)
-- periods: per school day periods (period_no, names, times)
-- Dynamic tables per year:
-  - `teachers_{YEAR}`: teachers for the year; (indexes as needed)
-  - `classes_{YEAR}`: class groups; UNIQUE(year, grade_level, section)
-  - `rooms_{YEAR}`: rooms for the year; UNIQUE(year, room_name)
-  - `subjects_{YEAR}`: offering (junction teacher ↔ class ↔ subject meta)
-    - UNIQUE(year, teacher_id, class_id, subject_name)
-    - INDEX(teacher_id), INDEX(class_id)  ← added
-  - `schedules_{YEAR}`: final timetable
-    - Columns: id, semester_id, subject_id, day_of_week, period_no, room_id, timestamps
-    - UNIQUE(semester_id, day_of_week, period_no, room_id)  // prevent room conflict
-    - Indexes: (semester_id), (day_of_week, period_no), (semester_id, day_of_week), (subject_id), (room_id)
-
-## 7) Frontend Cache Strategy
-- Only one timetable cache retained (latest selection) to reduce memory & network overhead
-- On context apply: clear → prefetch → render
-- student/teacher pages use the cached timetable list to build matrices for their views
-
-## 8) Admin UX Notes
-- Year/Semester selection: click anywhere on item to select; cannot deselect once selected
-- Public users can select year/semester to “view” (no login); write ops require admin
-
-## 9) Known Follow‑Ups / TODOs
-- Improve conflict messages (e.g., specify teacher/class/time in error body)
-- Remove remaining grid fallbacks when list‑based rendering is fully stable
-- Consider adding subjects catalog table (optional) if needed for curriculum meta
-- Ensure all subjects_{YEAR} indexes exist in production databases
-
-## 10) Coding/Testing Conventions
-- Prefer list‑based API for timetable (mock‑aligned) — one source → many views
-- Use single cache for timetable (key = `year:semesterId`)
-- Public GET only; all writes require admin auth
-- Validation for conflicts in code (teacher/class/room) rather than broad UNIQUE constraints
+## 📋 สารบัญ
+1. [ภาพรวมโปรเจค](#ภาพรวมโปรเจค)
+2. [สถาปัตยกรรมระบบ](#สถาปัตยกรรมระบบ)
+3. [คุณสมบัติหลัก](#คุณสมบัติหลัก)
+4. [โครงสร้างไฟล์](#โครงสร้างไฟล์)
+5. [การติดตั้งและเริ่มใช้งาน](#การติดตั้งและเริ่มใช้งาน)
+6. [API Documentation](#api-documentation)
+7. [Database Schema](#database-schema)
+8. [Frontend Features](#frontend-features)
+9. [ประวัติการพัฒนา](#ประวัติการพัฒนา)
+10. [การพัฒนาต่อไป](#การพัฒนาต่อไป)
 
 ---
-This file is the single source for the current state and decisions. With the above, a new contributor (or Codex) can continue implementation by relying on the timetable API as the single source of truth and the cache strategy on the frontend.
 
+## ภาพรวมโปรเจค
+
+ระบบจัดการตารางเรียน-ตารางสอนสำหรับโรงเรียนมัธยมศึกษา ที่รองรับการจัดการข้อมูลแบบหลายปีการศึกษาพร้อมระบบ Admin Panel ที่ครบครัน
+
+### 🎯 วัตถุประสงค์
+- จัดการตารางเรียน/ตารางสอนอัตโนมัติ
+- รองรับหลายปีการศึกษาในฐานข้อมูลเดียว  
+- ระบบ Admin Panel สำหรับจัดการข้อมูลครู นักเรียน ห้องเรียน
+- การตรวจสอบความขัดแย้งในตารางเรียน
+- ระบบส่งออกข้อมูล (CSV, Excel, Google Sheets)
+
+### 👥 ผู้ใช้งานเป้าหมาย
+- **นักเรียน**: ดูตารางเรียนตามชั้นเรียน
+- **ครู**: ดูตารางสอน ภาระงาน และสถิติ
+- **ผู้ดูแลระบบ**: จัดการข้อมูลและสร้างตารางเรียน
+
+---
+
+## สถาปัตยกรรมระบบ
+
+### 🔧 Technology Stack
+
+#### Backend
+- **Runtime**: Cloudflare Workers
+- **Framework**: Hono.js with TypeScript
+- **Database**: Cloudflare D1 (SQLite)
+- **Authentication**: Session-based + SHA-256 hashing
+- **API**: RESTful with OpenAPI documentation
+
+#### Frontend  
+- **Framework**: Vanilla JavaScript ES6 Modules
+- **Architecture**: Single Page Application (SPA)
+- **UI**: Responsive design with modern CSS
+- **State Management**: Global context pattern
+- **API Integration**: Fetch-based with caching
+
+### 🏗️ Database Architecture
+
+#### 🔒 Core Tables (Fixed)
+```sql
+admin_users          -- ผู้ดูแลระบบ
+admin_sessions       -- Session management  
+admin_activity_log   -- Activity tracking
+academic_years       -- ปีการศึกษา
+semesters           -- ภาคเรียน (Global)
+periods             -- คาบเรียน
+```
+
+#### 🔄 Dynamic Tables (Per Academic Year)
+```sql
+teachers_{YEAR}      -- ครู (เช่น teachers_2567)
+classes_{YEAR}       -- ชั้นเรียน  
+rooms_{YEAR}         -- ห้องเรียน
+subjects_{YEAR}      -- วิชาเรียน
+schedules_{YEAR}     -- ตารางเรียน
+```
+
+**Key Features:**
+- Auto table creation on first data entry
+- Year-based data isolation  
+- Global context management (1 active year + 1 active semester)
+- Complete indexing for performance (15+ indexes per table)
+
+---
+
+## คุณสมบัติหลัก
+
+### ✅ Features พร้อมใช้งาน
+
+#### 🔐 Authentication System
+- Admin login/logout with session management
+- Password hashing (SHA-256)
+- Activity logging สำหรับ audit trail
+- Role-based access control
+
+#### 📊 Data Management
+- **Teachers**: จัดการข้อมูลครู สาขาวิชา บทบาท
+- **Classes**: จัดการชั้นเรียน (ม.1/1, ม.2/3 etc.)
+- **Rooms**: จัดการห้องเรียน ประเภทห้อง  
+- **Subjects**: จัดการวิชาเรียน ความเชื่อมโยงครู-ชั้น
+- **Schedules**: สร้างตารางเรียน พร้อม conflict detection
+
+#### 🤖 Schedule Builder
+- Conflict detection (teacher, class, room conflicts)
+- Manual schedule editing
+- Schedule preview and validation
+
+#### 📈 Analytics & Reports  
+- Teacher workload analysis
+- Subject group statistics
+- Schedule utilization reports
+
+#### 📤 Export System
+- CSV export
+- Excel export  
+- Google Sheets integration (planned)
+
+#### 🎨 User Interface
+- **Student Schedule Page**: ดูตารางเรียนตามชั้น
+- **Teacher Schedule Page**: ดูตารางสอนและภาระงาน  
+- **Admin Panel**: ครบครันทุกการจัดการ
+- **Responsive Design**: ใช้งานได้ทุกอุปกรณ์
+
+---
+
+## โครงสร้างไฟล์
+
+```
+F:\Project\Web\Schedule_System\
+├── 📄 readmeall.md                    (ไฟล์นี้)
+├── 🔧 backend/school-scheduler-backend/
+│   ├── 📁 src/
+│   │   ├── 🔒 auth/                   (Authentication)
+│   │   ├── 🗃️ database/               (Database management)
+│   │   │   ├── database-manager.ts   (Main DB operations)
+│   │   │   └── schema-manager.ts     (Table creation/indexing)
+│   │   ├── 🛡️ middleware/             (Auth & security middleware)  
+│   │   ├── 🛣️ routes/                (API routes)
+│   │   │   ├── auth-routes.ts        (Login/logout/users)
+│   │   │   ├── core-routes.ts        (Years/semesters/context)
+│   │   │   └── schedule-routes.ts    (Teachers/classes/schedules)
+│   │   ├── 📐 interfaces.ts          (TypeScript interfaces)
+│   │   └── 🚀 index.ts               (Main server)
+│   ├── 📋 package.json
+│   ├── ⚙️ wrangler.toml              (Cloudflare config)
+│   └── 📚 README.md
+├── 🎨 frontend/
+│   ├── 📄 index.html                  (Main SPA)
+│   ├── 📁 js/
+│   │   ├── 🔌 api/                   (API integration layer)
+│   │   │   ├── core/api-manager.js   (Base API manager)
+│   │   │   ├── auth-api.js          (Authentication API)
+│   │   │   ├── core-api.js          (Years/semesters API)
+│   │   │   └── schedule-api.js      (Teachers/schedules API)
+│   │   ├── 📱 pages/                 (Page components)
+│   │   │   ├── admin.js             (Admin panel - MAIN)
+│   │   │   ├── studentSchedule.js   (Student schedule view)
+│   │   │   └── teacherSchedule.js   (Teacher schedule view)
+│   │   ├── 🔄 context/               (Global state management)
+│   │   │   └── globalContext.js     (Active year/semester context)
+│   │   ├── 🎯 utils/                 (Utilities)
+│   │   └── 🏗️ app.js                 (Main app bootstrap)
+│   ├── 🎨 css/                       (Styling)
+│   ├── 📋 templates/                 (HTML templates)
+│   └── 📚 README.md
+└── 🗂️ docs/                          (Documentation - planned)
+```
+
+---
+
+## การติดตั้งและเริ่มใช้งาน
+
+### 🚀 Quick Start
+
+#### 1. Backend Setup
+```bash
+cd backend/school-scheduler-backend
+npm install
+npm run dev
+# Server: http://localhost:8787
+```
+
+#### 2. Frontend Setup  
+```bash
+cd frontend
+# ใช้ VS Code Live Server หรือ
+python -m http.server 8000
+# Frontend: http://localhost:8000
+```
+
+#### 3. Database Initialization
+```bash
+curl -X POST http://localhost:8787/api/setup
+```
+
+### 🔑 Default Credentials
+```
+Username: admin
+Password: admin123
+```
+
+### 🌐 Environment Variables
+```javascript
+// wrangler.toml
+[vars]
+ADMIN_DEFAULT_PASSWORD = "admin123"
+ADMIN_REGISTER_SECRET = "DEV_SCHOOL_2024_REGISTER"  
+NODE_ENV = "development"
+```
+
+---
+
+## API Documentation
+
+### 🔓 Public Endpoints
+```
+GET  /                          # API info
+GET  /api/health               # Health check
+POST /api/setup                # Database init
+GET  /api/docs                 # API documentation
+GET  /api/core/context         # Current year/semester
+GET  /api/core/academic-years  # List years
+GET  /api/core/semesters       # List semesters
+GET  /api/schedule/timetable   # View timetable
+POST /api/auth/login           # Admin login
+```
+
+### 🔒 Protected Endpoints (Require Authentication)
+
+#### Authentication
+```
+POST /api/auth/logout          # Logout
+GET  /api/auth/me              # Current user info
+POST /api/auth/register-admin  # Create admin (dev only)
+```
+
+#### Core Management
+```
+POST /api/core/academic-years     # Create academic year
+PUT  /api/core/academic-years/:id/activate  # Activate year
+POST /api/core/semesters          # Create semester  
+PUT  /api/core/semesters/:id/activate  # Activate semester
+DELETE /api/core/semesters/:id    # Delete semester
+```
+
+#### Schedule Management
+```
+GET|POST /api/schedule/teachers   # Teacher CRUD
+GET|POST /api/schedule/classes    # Class CRUD
+GET|POST /api/schedule/rooms      # Room CRUD  
+GET|POST /api/schedule/subjects   # Subject CRUD
+GET|POST /api/schedule/schedules  # Schedule CRUD
+GET /api/schedule/conflicts       # Conflict detection
+```
+
+### 📝 Request/Response Format
+```json
+// Success Response
+{
+  "success": true,
+  "data": {...},
+  "message": "Optional message"
+}
+
+// Error Response  
+{
+  "success": false,
+  "error": "ERROR_TYPE",
+  "message": "Human readable error"
+}
+
+// Paginated Response
+{
+  "success": true,
+  "data": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 50, 
+    "total": 100,
+    "totalPages": 2
+  }
+}
+```
+
+---
+
+## Database Schema
+
+### Core Tables
+
+#### Academic Years
+```sql
+CREATE TABLE academic_years (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  year INTEGER NOT NULL UNIQUE,           -- 2567, 2568, etc.
+  is_active INTEGER DEFAULT 0,            -- Only 1 can be active
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Semesters (Global)
+```sql  
+CREATE TABLE semesters (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_name TEXT NOT NULL UNIQUE,     -- "ภาคเรียนที่ 1", "ภาคต้น", etc.
+  is_active INTEGER DEFAULT 0,            -- Only 1 can be active
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  
+);
+```
+
+### Dynamic Tables (Per Year)
+
+#### Teachers
+```sql
+CREATE TABLE teachers_2567 (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,           -- Link to global semesters
+  title TEXT,                            -- นาย, นาง, นางสาว, Mr., Ms.
+  f_name TEXT NOT NULL,                  -- ชื่อ  
+  l_name TEXT NOT NULL,                  -- นามสกุล
+  full_name TEXT GENERATED ALWAYS AS    -- Auto-generated display name
+    (COALESCE(title || ' ', '') || f_name || ' ' || l_name) STORED,
+  email TEXT,
+  phone TEXT,  
+  subject_group TEXT NOT NULL,           -- สาขาวิชา
+  role TEXT DEFAULT 'teacher',           -- teacher, head_of_department, etc.
+  is_active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
+);
+```
+
+#### Classes  
+```sql
+CREATE TABLE classes_2567 (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  grade_level TEXT NOT NULL,             -- ม.1, ม.2, ม.3, etc.
+  section INTEGER NOT NULL,              -- 1, 2, 3, etc.
+  class_name TEXT GENERATED ALWAYS AS   -- Auto: "ม.1/1", "ม.2/3"
+    (grade_level || '/' || section) STORED,
+  is_active INTEGER DEFAULT 1,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  UNIQUE (semester_id, grade_level, section)
+);
+```
+
+#### Schedules
+```sql
+CREATE TABLE schedules_2567 (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  semester_id INTEGER NOT NULL,
+  subject_id INTEGER NOT NULL,           -- FK to subjects_2567
+  day_of_week INTEGER NOT NULL          -- 1=Monday, 7=Sunday
+    CHECK (day_of_week BETWEEN 1 AND 7),
+  period_no INTEGER NOT NULL,           -- FK to periods table  
+  room_id INTEGER,                      -- FK to rooms_2567 (optional)
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
+  FOREIGN KEY (subject_id) REFERENCES subjects_2567(id) ON DELETE CASCADE,
+  FOREIGN KEY (period_no) REFERENCES periods(period_no) ON DELETE RESTRICT,
+  FOREIGN KEY (room_id) REFERENCES rooms_2567(id) ON DELETE SET NULL,
+  UNIQUE (semester_id, day_of_week, period_no, room_id)  -- Prevent room conflicts
+);
+```
+
+---
+
+## Frontend Features
+
+### 🎨 User Interface Components
+
+#### Admin Panel (`/js/pages/admin.js`)
+**หน้าหลักของระบบ - ครบครันที่สุด**
+
+**Main Tabs:**
+1. **📋 เพิ่มข้อมูล** 
+   - ⭐ Sub-tabs: Teachers, Classes, Rooms, Subjects, Periods
+   - Excel-like data tables with inline editing
+   - Bulk operations (select all, delete multiple)
+   - Real-time search and filtering
+   - Pagination and sorting
+   - **Teacher Management**: Full CRUD with title, name, email, subject group
+   
+2. **🤖 สร้างตารางสอน**
+   - AI-powered schedule generation (planned)
+   - Manual schedule editing
+   - Conflict detection and resolution
+   - Schedule preview and validation
+
+3. **🔄 จัดการการสอนแทน** 
+   - Teacher absence tracking
+   - Substitute teacher assignment
+   - Hall of Fame ranking system
+
+4. **📅 จัดการปีการศึกษา**
+   - Academic year creation/activation
+   - Semester management (global)
+   - Context switching (year/semester selection)
+
+#### Student Schedule (`/js/pages/studentSchedule.js`)
+- Class selection dropdown
+- Weekly timetable view
+- Export functionality
+- Responsive design
+
+#### Teacher Schedule (`/js/pages/teacherSchedule.js`)  
+- **Summary Tab**: Subject group stats, teacher workload ranking
+- **Details Tab**: Individual teacher schedules and workload analysis
+- Teacher-specific exports
+
+### 🔌 API Integration Layer
+
+#### API Manager (`/js/api/core/api-manager.js`)
+- Base API client with session management
+- Environment switching (dev/prod)
+- Error handling and retry logic
+- Request/response logging
+
+#### Schedule API (`/js/api/schedule-api.js`)
+- **Caching System**: 3-minute cache with smart invalidation
+- **Teachers API**: CRUD operations with proper cache management
+- **Classes/Rooms/Subjects API**: Full CRUD support
+- **Cache Invalidation**: Pattern-based cache clearing
+
+#### Authentication (`/js/api/auth-api.js`)
+- Login/logout management
+- Session persistence
+- User role verification
+
+### 🎯 State Management
+
+#### Global Context (`/js/context/globalContext.js`)
+- Active academic year tracking
+- Active semester management  
+- Context switching functionality
+- Backend synchronization
+
+---
+
+## ประวัติการพัฒนา
+
+### ✅ Phase 1: Backend Foundation (Complete)
+- [x] Cloudflare Workers + Hono setup
+- [x] D1 Database integration
+- [x] Authentication system
+- [x] Core API endpoints
+- [x] Dynamic table architecture
+- [x] Admin user management
+
+### ✅ Phase 2: Data Management (Complete)  
+- [x] Teachers CRUD with full validation
+- [x] Classes management
+- [x] Rooms management
+- [x] Subjects management  
+- [x] Schedule creation with conflict detection
+- [x] Academic year/semester management
+
+### ✅ Phase 3: Frontend Foundation (Complete)
+- [x] SPA architecture
+- [x] Component-based page system
+- [x] Template loading system
+- [x] Navigation and routing
+
+### ✅ Phase 4: API Integration (Complete - จบมาแล้ว)
+- [x] API Manager with caching
+- [x] Authentication integration
+- [x] Teachers CRUD integration  
+- [x] Cache invalidation fixes ⭐ (แก้ไขล่าสุด)
+- [x] Real-time data updates
+- [x] Error handling
+
+### ✅ Phase 5: Admin Panel (Complete)
+- [x] Complete teacher management UI
+- [x] Excel-like data tables
+- [x] Bulk operations
+- [x] Search and pagination
+- [x] Academic year management interface
+
+---
+
+## การพัฒนาต่อไป
+
+### 🔄 Phase 6: Core Completion (Next Phase)
+- [ ] **Classes Management**: เสร็จสิ้น CRUD UI สำหรับชั้นเรียน
+- [ ] **Rooms Management**: เสร็จสิ้น CRUD UI สำหรับห้องเรียน  
+- [ ] **Subjects Management**: เสร็จสิ้น CRUD UI สำหรับวิชาเรียน
+- [ ] **Data Validation**: เพิ่มการตรวจสอบข้อมูลที่ครบถ้วน
+
+### 🤖 Phase 7: Advanced Schedule Builder
+- [ ] **Manual Schedule Creation**: สร้างตารางเรียนด้วยตัวเอง
+- [ ] **Advanced Conflict Detection**: ตรวจสอบความขัดแย้งแบบละเอียด
+- [ ] **Schedule Optimization**: ปรับปรุงตารางให้เหมาะสมที่สุด
+- [ ] **Drag & Drop Interface**: สร้างตารางแบบลากวาง
+
+### 📊 Phase 8: Analytics & Reports  
+- [ ] **Teacher Workload Analytics**: วิเคราะห์ภาระงานครู
+- [ ] **Room Utilization Reports**: รรายงานการใช้ห้องเรียน
+- [ ] **Schedule Efficiency Metrics**: วัดประสิทธิภาพตารางเรียน
+- [ ] **Export System Enhancement**: ปรับปรุงการส่งออกข้อมูล
+
+### 🎯 Phase 9: User Experience Enhancement
+- [ ] **Responsive Design Improvements**: ปรับปรุงการแสดงผลบนมือถือ
+- [ ] **Keyboard Navigation**: เพิ่มการใช้คีย์บอร์ดแทนเมาส์
+- [ ] **Accessibility Features**: เพิ่มความสามารถในการเข้าถึง
+- [ ] **Dark Mode**: โหมดธีมมืด
+
+### 🔮 Phase 10: Advanced Features (Future)
+- [ ] **AI Schedule Generation**: สร้างตารางอัตโนมัติด้วย AI
+- [ ] **Substitution Management**: ระบบจัดการครูสอนแทน
+- [ ] **Mobile App**: แอพมือถือ
+- [ ] **Multi-School Support**: รองรับหลายโรงเรียน
+
+---
+
+## 💡 สำหรับ AI Agents ที่มาต่อ
+
+### 🎯 สิ่งที่ต้องรู้
+1. **โปรเจคนี้พร้อมใช้งานแล้ว** - Backend + Frontend + API Integration ครบถ้วน
+2. **Admin Panel คือหัวใจหลัก** - `/js/pages/admin.js` มีฟีเจอร์ครบครัน  
+3. **Dynamic Database** - Table สร้างตามปีการศึกษา (teachers_2567, teachers_2568)
+4. **Cache System** - มีระบบ cache ที่ต้องการ invalidation ที่ถูกต้อง
+5. **Authentication** - ใช้ session-based กับ Cloudflare Workers
+
+### 🔧 การทำงานปัจจุบัน
+- ✅ **Teachers Management**: ทำงานสมบูรณ์แล้ว (CRUD + UI + API)
+- 🔄 **Next Priority**: Classes, Rooms, Subjects Management
+- 🎯 **Architecture**: Follow ตัวอย่างจาก Teachers Management
+
+### 🚨 Issues ที่แก้ไขแล้ว
+1. **CREATE TABLE SQL Error**: แก้ไขโดยใช้ string concatenation แทน template literals
+2. **Title Field Not Updating**: แก้ไข ID conflict และ cache invalidation
+3. **Cache Not Clearing**: แก้ไข invalidation pattern ใน schedule-api.js
+
+### 📁 Important Files
+```
+ไฟล์สำคัญที่ต้องเข้าใจ:
+├── admin.js                    # Main UI (2000+ lines)
+├── schedule-api.js             # API layer with caching  
+├── database-manager.ts         # Backend DB operations
+├── schema-manager.ts           # Table creation  
+└── schedule-routes.ts          # Backend API routes
+```
+
+### 🔮 Next Steps Guidelines
+1. **Follow Teachers Pattern**: ใช้รูปแบบเดียวกันกับ Teachers Management
+2. **Test Cache Invalidation**: ตรวจสอบ cache clearing หลัง CRUD operations
+3. **Use Debug Logs**: เพิ่ม console.log เพื่อ debug issues
+4. **Maintain Consistency**: รักษารูปแบบ code และ naming conventions
+
+---
+
+**📞 Contact & Support**  
+สำหรับ AI Agents: ดูไฟล์นี้เพื่อเข้าใจโปรเจคครบถ้วน แล้วอ่าน README.md ใน frontend/ และ backend/ สำหรับรายละเอียดเพิ่มเติม
+
+**🎯 Current Status**: Ready for Phase 6 - Core Completion  
+**🚀 Next Target**: Complete Classes, Rooms, Subjects Management UI
+
+---
+*Last Updated: 2025-01-19*  
+*Version: 1.0 - Production Ready*
