@@ -314,7 +314,9 @@ export class SchemaManager {
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_class ON ${tableName}(class_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_room ON ${tableName}(default_room_id) WHERE default_room_id IS NOT NULL`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_active ON ${tableName}(semester_id, is_active)`,
-      `CREATE UNIQUE INDEX IF NOT EXISTS idx_${tableName}_unique ON ${tableName}(semester_id, teacher_id, class_id, subject_name)`
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_${tableName}_unique ON ${tableName}(semester_id, teacher_id, class_id, subject_name)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_teacher ON ${tableName}(teacher_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_class ON ${tableName}(class_id)`
     ];
 
     for (const index of indexes) {

@@ -761,8 +761,6 @@ async function getTeacherScheduleData(teacherId, context) {
         raw: item
       };
     });
-  } else if (cached && cached.grid) {
-    matrix = cached.grid;
   } else {
     matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
   }

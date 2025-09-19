@@ -350,8 +350,6 @@ export async function loadScheduleForContext(classRef, context) {
               matrix[day][period] = cell;
             });
             pageState.currentSchedule = { matrix };
-          } else if (cached.grid) {
-            pageState.currentSchedule = { matrix: cached.grid };
           }
         }
       }

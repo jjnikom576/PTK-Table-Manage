@@ -636,9 +636,12 @@ scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env
         null,
         body
       );
+      return c.json(result);
+    } else {
+      const err = (result.error || '').toLowerCase();
+      const isConflict = err.includes('conflict');
+      return c.json(result, isConflict ? 409 : 400);
     }
-
-    return c.json(result);
   } catch (error) {
     console.error('Create schedule error:', error);
     return c.json({
