@@ -599,9 +599,9 @@ export async function loadSubstitutionDataForContext(context) {
       getSubstitutionSchedules(),
       getTeachers(),
       getSchedules(),
-      getSubjects(),
-      getClasses(),
-      getRooms()
+      getSubjects(), // TODO: update to pass year+semester if needed
+      getClasses(),  // TODO: update to pass year+semester if needed
+      getRooms()     // TODO: update to pass year+semester if needed
     ]);
     
     // Store loaded data

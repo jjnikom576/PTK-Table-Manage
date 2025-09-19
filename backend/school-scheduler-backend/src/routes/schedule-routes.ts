@@ -93,19 +93,20 @@ scheduleRoutes.get('/teachers', async (c: Context<{ Bindings: Env; Variables: Ap
     const limit = parseInt(c.req.query('limit') || '50');
     
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
-    const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+    // Allow explicit year/semester selection via query
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    if (yearParam && semesterParam) {
+      const year = parseInt(yearParam);
+      const semesterId = parseInt(semesterParam);
+      if (isNaN(year) || isNaN(semesterId)) {
+        return c.json({ success: false, message: 'Invalid year or semesterId' }, 400);
+      }
+      const direct = await dbManager.getTeachersBySemesterForYear(semesterId, year, page, limit);
+      return c.json(direct);
     }
-
-    const result = await dbManager.getTeachersBySemester(contextResult.data.semester.id!, page, limit);
-    
-    return c.json(result);
+    // Require explicit year+semesterId
+    return c.json({ success: false, message: 'year and semesterId are required' }, 400);
   } catch (error) {
     console.error('Get teachers error:', error);
     return c.json({
@@ -129,6 +130,8 @@ scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env;
       }, 400);
     }
 
+    // Title is optional and free-text
+
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
     // Get active semester
@@ -140,10 +143,24 @@ scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env;
       }, 400);
     }
 
-    // Set semester_id from active context
-    body.semester_id = contextResult.data.semester.id!;
-    
-    const result = await dbManager.createTeacher(body);
+    // Allow explicit semester/year via query
+    const semParam = c.req.query('semesterId') || c.req.query('semester_id');
+    if (semParam) {
+      const s = parseInt(semParam);
+      if (isNaN(s)) {
+        return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      }
+      body.semester_id = s;
+    }
+
+    // Require explicit year and semesterId
+    const yearParam = c.req.query('year');
+    let forYear = yearParam ? parseInt(yearParam) : undefined;
+    if (!forYear || !body.semester_id || isNaN(forYear)) {
+      return c.json({ success: false, message: 'year and semesterId are required' }, 400);
+    }
+
+    const result = await dbManager.createTeacher(body, forYear);
 
     // Log activity
     if (result.success) {
@@ -194,7 +211,12 @@ scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: E
       }, 400);
     }
 
-    const result = await dbManager.updateTeacher(teacherId, contextResult.data.semester.id!, body);
+    const yearParam = c.req.query('year');
+    const forYear = yearParam ? parseInt(yearParam) : contextResult.data.academic_year?.year;
+    if (yearParam && (forYear === undefined || isNaN(forYear))) {
+      return c.json({ success: false, message: 'Invalid year' }, 400);
+    }
+    const result = await dbManager.updateTeacher(teacherId, contextResult.data.semester.id!, body, forYear);
 
     // Log activity
     if (result.success) {
@@ -244,7 +266,12 @@ scheduleRoutes.delete('/teachers/:id', async (c: Context<{ Bindings: Env; Variab
       }, 400);
     }
 
-    const result = await dbManager.deleteTeacher(teacherId, contextResult.data.semester.id!);
+    const yearParam = c.req.query('year');
+    const forYear = yearParam ? parseInt(yearParam) : contextResult.data.academic_year?.year;
+    if (yearParam && (forYear === undefined || isNaN(forYear))) {
+      return c.json({ success: false, message: 'Invalid year' }, 400);
+    }
+    const result = await dbManager.deleteTeacher(teacherId, contextResult.data.semester.id!, forYear);
 
     // Log activity
     if (result.success) {
@@ -278,13 +305,24 @@ scheduleRoutes.get('/classes', async (c: Context<{ Bindings: Env; Variables: App
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     
-    // Get active semester
+    // year/semester selection via query
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    if (yearParam && semesterParam) {
+      const year = parseInt(yearParam);
+      const semesterId = parseInt(semesterParam);
+      if (isNaN(year) || isNaN(semesterId)) {
+        return c.json({ success: false, message: 'Invalid year or semesterId' }, 400);
+      }
+      const result = await dbManager.getClassesBySemesterForYear(semesterId, year);
+      return c.json(result);
+    }
+    return c.json({ success: false, message: 'year and semesterId are required' }, 400);
+
+    // Fallback to active context
     const contextResult = await dbManager.getGlobalContext();
     if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+      return c.json({ success: false, message: 'No active semester found' }, 400);
     }
 
     const result = await dbManager.getClassesBySemester(contextResult.data.semester.id!);
@@ -322,20 +360,29 @@ scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env; 
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
-    const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+    // Query params year/semester
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    let forYear: number | undefined = undefined;
+    if (yearParam) {
+      const y = parseInt(yearParam);
+      if (isNaN(y)) return c.json({ success: false, message: 'Invalid year' }, 400);
+      forYear = y;
     }
-
-    // Set semester_id from active context
-    body.semester_id = contextResult.data.semester.id!;
-    
-    const result = await dbManager.createClass(body);
+    if (semesterParam) {
+      const s = parseInt(semesterParam);
+      if (isNaN(s)) return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      body.semester_id = s;
+    }
+    if (!body.semester_id) {
+      const contextResult = await dbManager.getGlobalContext();
+      if (!contextResult.success || !contextResult.data?.semester) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+      body.semester_id = contextResult.data.semester.id!;
+      if (!forYear) forYear = contextResult.data.academic_year?.year;
+    }
+    const result = await dbManager.createClass(body, forYear);
 
     // Log activity
     if (result.success) {
@@ -370,16 +417,21 @@ scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env; 
 scheduleRoutes.get('/rooms', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    if (yearParam && semesterParam) {
+      const year = parseInt(yearParam);
+      const semesterId = parseInt(semesterParam);
+      if (isNaN(year) || isNaN(semesterId)) {
+        return c.json({ success: false, message: 'Invalid year or semesterId' }, 400);
+      }
+      const result = await dbManager.getRoomsBySemesterForYear(semesterId, year);
+      return c.json(result);
+    }
     const contextResult = await dbManager.getGlobalContext();
     if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+      return c.json({ success: false, message: 'No active semester found' }, 400);
     }
-
     const result = await dbManager.getRoomsBySemester(contextResult.data.semester.id!);
     
     return c.json(result);
@@ -415,20 +467,29 @@ scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env; Va
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
-    const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    let forYear: number | undefined = undefined;
+    if (yearParam) {
+      const y = parseInt(yearParam);
+      if (isNaN(y)) return c.json({ success: false, message: 'Invalid year' }, 400);
+      forYear = y;
     }
-
-    // Set semester_id from active context
-    body.semester_id = contextResult.data.semester.id!;
+    if (semesterParam) {
+      const s = parseInt(semesterParam);
+      if (isNaN(s)) return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      body.semester_id = s;
+    }
+    if (!body.semester_id) {
+      const contextResult = await dbManager.getGlobalContext();
+      if (!contextResult.success || !contextResult.data?.semester) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+      body.semester_id = contextResult.data.semester.id!;
+      if (!forYear) forYear = contextResult.data.academic_year?.year;
+    }
     
-    const result = await dbManager.createRoom(body);
+    const result = await dbManager.createRoom(body, forYear);
 
     // Log activity
     if (result.success) {
@@ -463,16 +524,21 @@ scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env; Va
 scheduleRoutes.get('/subjects', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    if (yearParam && semesterParam) {
+      const year = parseInt(yearParam);
+      const semesterId = parseInt(semesterParam);
+      if (isNaN(year) || isNaN(semesterId)) {
+        return c.json({ success: false, message: 'Invalid year or semesterId' }, 400);
+      }
+      const result = await dbManager.getSubjectsBySemesterForYear(semesterId, year);
+      return c.json(result);
+    }
     const contextResult = await dbManager.getGlobalContext();
     if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+      return c.json({ success: false, message: 'No active semester found' }, 400);
     }
-
     const result = await dbManager.getSubjectsBySemester(contextResult.data.semester.id!);
     
     return c.json(result);
@@ -508,20 +574,29 @@ scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env;
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    
-    // Get active semester
-    const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    let forYear: number | undefined = undefined;
+    if (yearParam) {
+      const y = parseInt(yearParam);
+      if (isNaN(y)) return c.json({ success: false, message: 'Invalid year' }, 400);
+      forYear = y;
     }
-
-    // Set semester_id from active context
-    body.semester_id = contextResult.data.semester.id!;
+    if (semesterParam) {
+      const s = parseInt(semesterParam);
+      if (isNaN(s)) return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      body.semester_id = s;
+    }
+    if (!body.semester_id) {
+      const contextResult = await dbManager.getGlobalContext();
+      if (!contextResult.success || !contextResult.data?.semester) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+      body.semester_id = contextResult.data.semester.id!;
+      if (!forYear) forYear = contextResult.data.academic_year?.year;
+    }
     
-    const result = await dbManager.createSubject(body);
+    const result = await dbManager.createSubject(body, forYear);
 
     // Log activity
     if (result.success) {
@@ -609,20 +684,41 @@ scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+    let forYear: number | undefined = undefined;
+    if (yearParam) {
+      const y = parseInt(yearParam);
+      if (isNaN(y)) return c.json({ success: false, message: 'Invalid year' }, 400);
+      forYear = y;
+    }
+    if (semesterParam) {
+      const s = parseInt(semesterParam);
+      if (isNaN(s)) return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      body.semester_id = s;
+    }
+    if (!body.semester_id) {
+      const contextResult = await dbManager.getGlobalContext();
+      if (!contextResult.success || !contextResult.data?.semester) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+      body.semester_id = contextResult.data.semester.id!;
+      if (!forYear) forYear = contextResult.data.academic_year?.year;
+    }
     
-    // Get active semester
-    const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
-      return c.json({
-        success: false,
-        message: 'No active semester found'
-      }, 400);
+    // Determine year to use (use previously declared yearParam/forYear if any)
+    if (yearParam) {
+      const y = parseInt(yearParam);
+      if (isNaN(y)) return c.json({ success: false, message: 'Invalid year' }, 400);
+      forYear = y;
+    } else {
+      if (!contextResult.success || !contextResult.data?.academic_year?.year) {
+        return c.json({ success: false, message: 'No active academic year found' }, 400);
+      }
+      forYear = contextResult.data.academic_year.year;
     }
 
-    // Set semester_id from active context
-    body.semester_id = contextResult.data.semester.id!;
-    
-    const result = await dbManager.createSchedule(body);
+    const result = await dbManager.createSchedule(body, forYear);
 
     // Log activity
     if (result.success) {
@@ -675,7 +771,21 @@ scheduleRoutes.delete('/schedules/:id', async (c: Context<{ Bindings: Env; Varia
       }, 400);
     }
 
-    const result = await dbManager.deleteSchedule(scheduleId, contextResult.data.semester.id!);
+    // Determine year to use
+    const yearParam = c.req.query('year');
+    let forYear: number | undefined = undefined;
+    if (yearParam) {
+      const y = parseInt(yearParam);
+      if (isNaN(y)) return c.json({ success: false, message: 'Invalid year' }, 400);
+      forYear = y;
+    } else {
+      if (!contextResult.success || !contextResult.data?.academic_year?.year) {
+        return c.json({ success: false, message: 'No active academic year found' }, 400);
+      }
+      forYear = contextResult.data.academic_year.year;
+    }
+
+    const result = await dbManager.deleteSchedule(scheduleId, contextResult.data.semester.id!, forYear);
 
     // Log activity
     if (result.success) {

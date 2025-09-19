@@ -494,13 +494,7 @@ export function validateSemester(semesterId, year) {
     return { ok: false, error: `Semester ${semesterId} not found` };
   }
   
-  // Validate semester belongs to year if year is provided
-  if (year) {
-    const yearData = globalContext.availableYears.find(y => y.year === year);
-    if (yearData && semester.academic_year_id !== yearData.id) {
-      return { ok: false, error: `Semester ${semesterId} does not belong to year ${year}` };
-    }
-  }
+  // Semesters are global; no year linkage validation
   
   return { ok: true, semester };
 }
@@ -736,25 +730,11 @@ export function updateSemesterSelector(availableSemesters) {
     return;
   }
   
-  const yearSelector = document.getElementById('year-selector');
-  const selectedYear = yearSelector ? parseInt(yearSelector.value) : null;
-  
-  console.log('[GlobalContext] Updating semester selector. Selected year:', selectedYear);
-  
+  // Semesters are global now; no year-based filtering
   const currentValue = semesterSelector.value;
   const userIsSelecting = document.activeElement === semesterSelector;
-  
-  // Filter semesters by selected year (if any)
-  let filteredSemesters = [];
-  
-  if (selectedYear && globalContext.availableYears.length > 0) {
-    // Find the year data to get its ID
-    const yearData = globalContext.availableYears.find(y => y.year === selectedYear);
-    if (yearData && Array.isArray(availableSemesters)) {
-      filteredSemesters = availableSemesters.filter(s => s.academic_year_id === yearData.id);
-      console.log(`[GlobalContext] Filtered semesters for year ${selectedYear} (ID: ${yearData.id}):`, filteredSemesters.length);
-    }
-  }
+  const filteredSemesters = Array.isArray(availableSemesters) ? availableSemesters : [];
+  console.log('[GlobalContext] Updating semester selector (global). Count:', filteredSemesters.length);
   
   // FORCE rebuild when conditions change
   const currentOptions = Array.from(semesterSelector.options);
@@ -774,22 +754,14 @@ export function updateSemesterSelector(availableSemesters) {
     // Clear options safely
     semesterSelector.innerHTML = '';
     
-    // Add default option based on current state
+    // Add default option (global semesters)
     const defaultOption = document.createElement('option');
     defaultOption.value = '';
-    
-    if (!selectedYear) {
-      // No year selected
-      defaultOption.textContent = 'เลือกปีการศึกษาก่อน';
-      defaultOption.disabled = true;
-      console.log('[GlobalContext] Setting "select year first" message');
-    } else if (filteredSemesters.length === 0) {
-      // Year selected but no semesters
+    if (filteredSemesters.length === 0) {
       defaultOption.textContent = 'ยังไม่มีภาคเรียน - เพิ่มใหม่ในหน้าแอดมิน';
       defaultOption.disabled = true;
       console.log('[GlobalContext] Setting "no semesters" message');
     } else {
-      // Year selected and has semesters
       defaultOption.textContent = 'เลือกภาคเรียน';
       console.log('[GlobalContext] Setting normal "select semester" message');
     }

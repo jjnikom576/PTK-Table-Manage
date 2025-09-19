@@ -210,12 +210,13 @@ async function loadTeachersData(context) {
     }
 
     // ⭐ FIX: ส่ง year parameter ให้ทุก API call
+    const semesterId = currentContext.semester?.id || currentContext.semesterId;
     const [teachersResult, schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
-      dataService.getTeachers(targetYear),      // ✅ ใส่ year
-      dataService.getSchedules(targetYear),     // ✅ ใส่ year  
-      dataService.getSubjects(targetYear),      // ✅ ใส่ year
-      dataService.getClasses(targetYear),       // ✅ ใส่ year
-      dataService.getRooms(targetYear)          // ✅ ใส่ year
+      dataService.getTeachers(targetYear),
+      dataService.getSchedules(targetYear),
+      dataService.getSubjects(targetYear, semesterId),
+      dataService.getClasses(targetYear, semesterId),
+      dataService.getRooms(targetYear, semesterId)
     ]);
 
     // ตรวจสอบผลลัพธ์
@@ -695,11 +696,12 @@ async function getTeacherScheduleData(teacherId, context) {
     console.log(`[TeacherSchedule] Loading data for year: ${targetYear}`);
     
     // ⭐ FIX: ส่ง year parameter ให้ทุก API call
+    const semesterId = currentContext.semester?.id || currentContext.semesterId;
     const [schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
       dataService.getSchedules(targetYear),
-      dataService.getSubjects(targetYear),
-      dataService.getClasses(targetYear),
-      dataService.getRooms(targetYear)
+      dataService.getSubjects(targetYear, semesterId),
+      dataService.getClasses(targetYear, semesterId),
+      dataService.getRooms(targetYear, semesterId)
     ]);
     
     // ตรวจสอบผลลัพธ์

@@ -86,7 +86,7 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   }
   
   // Get fresh classes data with current context
-  const result = await dataService.getClasses(currentContext.currentYear);
+  const result = await dataService.getClasses(currentContext.currentYear, currentContext.currentSemester?.id || currentContext.semester?.id || currentContext.semesterId);
   
   let classes = [];
   if (result.ok && result.data.length > 0) {
@@ -379,7 +379,7 @@ export async function loadScheduleForContext(classRef, context) {
     // 3) Fallback: fetch classes for the context year and resolve by id or name
     if (!classId) {
       const year = context.currentYear || context.year;
-      const classesRes = await dataService.getClasses(year);
+      const classesRes = await dataService.getClasses(year, context.currentSemester?.id || context.semester?.id || context.semesterId);
       if (classesRes.ok && classesRes.data?.length) {
         pageState.availableClasses = classesRes.data;
 
@@ -808,7 +808,7 @@ async function robustLoadSchedule(classRef, context) {
       const byName = pageState.availableClasses.find(c => c.class_name === String(classRef));
       if (byName) classId = byName.id;
       if (!classId) {
-        const clsRes = await dataService.getClasses(ctx.currentYear || ctx.year);
+        const clsRes = await dataService.getClasses(ctx.currentYear || ctx.year, ctx.currentSemester?.id || ctx.semester?.id || ctx.semesterId);
         if (clsRes.ok) {
           pageState.availableClasses = clsRes.data;
           const found = clsRes.data.find(c => c.class_name === String(classRef));
@@ -1014,7 +1014,7 @@ function extractRoomType(roomString) {
  */
 async function loadAvailableClasses(context) {
   try {
-    const classes = await dataService.getClasses();
+    const classes = await dataService.getClasses(context?.currentYear || context?.year, context?.currentSemester?.id || context?.semester?.id || context?.semesterId);
     if (classes.ok) {
       pageState.availableClasses = classes.data;
       renderClassSelector(classes.data, pageState.selectedClass);

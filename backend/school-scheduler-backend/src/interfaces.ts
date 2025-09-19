@@ -47,6 +47,7 @@ export interface Period {
 export interface Teacher {
   id?: number;
   semester_id: number;
+  title?: 'นาย' | 'นาง' | 'นางสาว';
   f_name: string;
   l_name: string;
   full_name?: string; // Generated column
@@ -224,6 +225,7 @@ export interface CreateSemesterRequest {
 // Dynamic table requests (year-specific)
 export interface CreateTeacherRequest {
   semester_id: number;
+  title?: 'นาย' | 'นาง' | 'นางสาว';
   f_name: string;
   l_name: string;
   email?: string;

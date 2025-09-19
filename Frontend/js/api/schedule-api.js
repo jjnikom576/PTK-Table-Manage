@@ -22,8 +22,8 @@ class ScheduleAPI {
   /**
    * TEACHERS API
    */
-  async getTeachers(year) {
-    const cacheKey = `teachers_${year}`;
+  async getTeachers(year, semesterId) {
+    const cacheKey = `teachers_${year}_${semesterId}`;
     
     if (this.isCacheValid(cacheKey)) {
       return {
@@ -33,7 +33,8 @@ class ScheduleAPI {
     }
 
     try {
-      const result = await apiManager.get(this.getYearEndpoint('teachers', year));
+      const endpoint = `${this.getYearEndpoint('teachers', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.get(endpoint);
       
       if (result.success) {
         this.cache.set(cacheKey, result.data);
@@ -49,9 +50,11 @@ class ScheduleAPI {
     }
   }
 
-  async createTeacher(year, teacherData) {
+  async createTeacher(year, semesterId, teacherData) {
     try {
-      const result = await apiManager.post(this.getYearEndpoint('teachers', year), {
+      const endpoint = `${this.getYearEndpoint('teachers', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.post(endpoint, {
+        title: teacherData.title,
         f_name: teacherData.f_name,
         l_name: teacherData.l_name,
         email: teacherData.email,
@@ -61,7 +64,7 @@ class ScheduleAPI {
       });
 
       if (result.success) {
-        this.invalidateCache(`teachers_${year}`);
+        this.invalidateCache(`teachers_${year}_${semesterId}`);
       }
 
       return result;
@@ -75,7 +78,7 @@ class ScheduleAPI {
 
   async updateTeacher(year, teacherId, updateData) {
     try {
-      const result = await apiManager.put(`${this.getYearEndpoint('teachers', year)}/${teacherId}`, updateData);
+      const result = await apiManager.put(`${this.getYearEndpoint('teachers', year)}/${teacherId}?year=${encodeURIComponent(year)}`, updateData);
 
       if (result.success) {
         this.invalidateCache(`teachers_${year}`);
@@ -92,10 +95,10 @@ class ScheduleAPI {
 
   async deleteTeacher(year, teacherId) {
     try {
-      const result = await apiManager.delete(`${this.getYearEndpoint('teachers', year)}/${teacherId}`);
+      const result = await apiManager.delete(`${this.getYearEndpoint('teachers', year)}/${teacherId}?year=${encodeURIComponent(year)}`);
 
       if (result.success) {
-        this.invalidateCache(`teachers_${year}`);
+        this.invalidateCacheByPattern(`teachers_${year}_`);
       }
 
       return result;
@@ -110,8 +113,8 @@ class ScheduleAPI {
   /**
    * CLASSES API
    */
-  async getClasses(year) {
-    const cacheKey = `classes_${year}`;
+  async getClasses(year, semesterId) {
+    const cacheKey = `classes_${year}_${semesterId}`;
     
     if (this.isCacheValid(cacheKey)) {
       return {
@@ -121,7 +124,8 @@ class ScheduleAPI {
     }
 
     try {
-      const result = await apiManager.get(this.getYearEndpoint('classes', year));
+      const endpoint = `${this.getYearEndpoint('classes', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.get(endpoint);
       
       if (result.success) {
         this.cache.set(cacheKey, result.data);
@@ -137,9 +141,10 @@ class ScheduleAPI {
     }
   }
 
-  async createClass(year, classData) {
+  async createClass(year, semesterId, classData) {
     try {
-      const result = await apiManager.post(this.getYearEndpoint('classes', year), {
+      const endpoint = `${this.getYearEndpoint('classes', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.post(endpoint, {
         class_name: classData.class_name,
         grade_level: classData.grade_level,
         class_number: classData.class_number,
@@ -148,7 +153,7 @@ class ScheduleAPI {
       });
 
       if (result.success) {
-        this.invalidateCache(`classes_${year}`);
+        this.invalidateCache(`classes_${year}_${semesterId}`);
       }
 
       return result;
@@ -197,8 +202,8 @@ class ScheduleAPI {
   /**
    * ROOMS API
    */
-  async getRooms(year) {
-    const cacheKey = `rooms_${year}`;
+  async getRooms(year, semesterId) {
+    const cacheKey = `rooms_${year}_${semesterId}`;
     
     if (this.isCacheValid(cacheKey)) {
       return {
@@ -208,7 +213,8 @@ class ScheduleAPI {
     }
 
     try {
-      const result = await apiManager.get(this.getYearEndpoint('rooms', year));
+      const endpoint = `${this.getYearEndpoint('rooms', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.get(endpoint);
       
       if (result.success) {
         this.cache.set(cacheKey, result.data);
@@ -224,9 +230,10 @@ class ScheduleAPI {
     }
   }
 
-  async createRoom(year, roomData) {
+  async createRoom(year, semesterId, roomData) {
     try {
-      const result = await apiManager.post(this.getYearEndpoint('rooms', year), {
+      const endpoint = `${this.getYearEndpoint('rooms', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.post(endpoint, {
         room_name: roomData.room_name,
         room_type: roomData.room_type || 'CLASS',
         capacity: roomData.capacity || 0,
@@ -235,7 +242,7 @@ class ScheduleAPI {
       });
 
       if (result.success) {
-        this.invalidateCache(`rooms_${year}`);
+        this.invalidateCache(`rooms_${year}_${semesterId}`);
       }
 
       return result;
@@ -284,8 +291,8 @@ class ScheduleAPI {
   /**
    * SUBJECTS API
    */
-  async getSubjects(year) {
-    const cacheKey = `subjects_${year}`;
+  async getSubjects(year, semesterId) {
+    const cacheKey = `subjects_${year}_${semesterId}`;
     
     if (this.isCacheValid(cacheKey)) {
       return {
@@ -295,7 +302,8 @@ class ScheduleAPI {
     }
 
     try {
-      const result = await apiManager.get(this.getYearEndpoint('subjects', year));
+      const endpoint = `${this.getYearEndpoint('subjects', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.get(endpoint);
       
       if (result.success) {
         this.cache.set(cacheKey, result.data);
@@ -311,9 +319,10 @@ class ScheduleAPI {
     }
   }
 
-  async createSubject(year, subjectData) {
+  async createSubject(year, semesterId, subjectData) {
     try {
-      const result = await apiManager.post(this.getYearEndpoint('subjects', year), {
+      const endpoint = `${this.getYearEndpoint('subjects', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.post(endpoint, {
         subject_code: subjectData.subject_code,
         subject_name: subjectData.subject_name,
         subject_group: subjectData.subject_group,
@@ -323,7 +332,7 @@ class ScheduleAPI {
       });
 
       if (result.success) {
-        this.invalidateCache(`subjects_${year}`);
+        this.invalidateCache(`subjects_${year}_${semesterId}`);
       }
 
       return result;
@@ -406,7 +415,7 @@ class ScheduleAPI {
 
   async createSchedule(year, scheduleData) {
     try {
-      const result = await apiManager.post(this.getYearEndpoint('schedules', year), {
+      const result = await apiManager.post(`${this.getYearEndpoint('schedules', year)}?year=${encodeURIComponent(year)}`, {
         semester_id: scheduleData.semester_id,
         class_id: scheduleData.class_id,
         subject_id: scheduleData.subject_id,
@@ -434,7 +443,7 @@ class ScheduleAPI {
 
   async updateSchedule(year, scheduleId, updateData) {
     try {
-      const result = await apiManager.put(`${this.getYearEndpoint('schedules', year)}/${scheduleId}`, updateData);
+      const result = await apiManager.put(`${this.getYearEndpoint('schedules', year)}/${scheduleId}?year=${encodeURIComponent(year)}`, updateData);
 
       if (result.success) {
         // Invalidate related caches
@@ -452,7 +461,7 @@ class ScheduleAPI {
 
   async deleteSchedule(year, scheduleId) {
     try {
-      const result = await apiManager.delete(`${this.getYearEndpoint('schedules', year)}/${scheduleId}`);
+      const result = await apiManager.delete(`${this.getYearEndpoint('schedules', year)}/${scheduleId}?year=${encodeURIComponent(year)}`);
 
       if (result.success) {
         // Invalidate related caches
@@ -473,7 +482,7 @@ class ScheduleAPI {
    */
   async validateSchedule(year, scheduleData) {
     try {
-      const result = await apiManager.post(`${this.getYearEndpoint('schedules', year)}/validate`, scheduleData);
+      const result = await apiManager.post(`${this.getYearEndpoint('schedules', year)}/validate?year=${encodeURIComponent(year)}`, scheduleData);
       return result;
     } catch (error) {
       return {
@@ -488,7 +497,7 @@ class ScheduleAPI {
    */
   async bulkCreateSchedules(year, schedulesData) {
     try {
-      const result = await apiManager.post(`${this.getYearEndpoint('schedules', year)}/bulk`, {
+      const result = await apiManager.post(`${this.getYearEndpoint('schedules', year)}/bulk?year=${encodeURIComponent(year)}`, {
         schedules: schedulesData
       });
 
@@ -507,7 +516,7 @@ class ScheduleAPI {
 
   async bulkDeleteSchedules(year, scheduleIds) {
     try {
-      const result = await apiManager.delete(`${this.getYearEndpoint('schedules', year)}/bulk`, {
+      const result = await apiManager.delete(`${this.getYearEndpoint('schedules', year)}/bulk?year=${encodeURIComponent(year)}`, {
         ids: scheduleIds
       });
 

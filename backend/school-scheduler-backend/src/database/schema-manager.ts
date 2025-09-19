@@ -193,9 +193,10 @@ export class SchemaManager {
       CREATE TABLE IF NOT EXISTS ${tableName} (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         semester_id INTEGER NOT NULL,
+        title TEXT,
         f_name TEXT NOT NULL,
         l_name TEXT NOT NULL,
-        full_name TEXT GENERATED ALWAYS AS (f_name || ' ' || l_name) STORED,
+        full_name TEXT GENERATED ALWAYS AS (COALESCE(title || ' ', '') || f_name || ' ' || l_name) STORED,
         email TEXT,
         phone TEXT,
         subject_group TEXT NOT NULL,
@@ -206,6 +207,18 @@ export class SchemaManager {
         FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
       )
     `);
+
+    // Ensure 'title' column exists for previously created tables
+    try {
+      const col = await this.db
+        .prepare(`SELECT 1 as ok FROM pragma_table_info('${tableName}') WHERE name='title'`)
+        .first<{ ok: number }>();
+      if (!col) {
+        await this.db.exec(`ALTER TABLE ${tableName} ADD COLUMN title TEXT`);
+      }
+    } catch (_) {
+      // ignore
+    }
 
     // Create indexes
     const indexes = [

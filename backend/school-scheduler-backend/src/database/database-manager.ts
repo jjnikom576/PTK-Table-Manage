@@ -348,19 +348,20 @@ export class DatabaseManager {
   // Teachers Management
   // ===========================================
 
-  async createTeacher(data: CreateTeacherRequest): Promise<DatabaseResult<Teacher>> {
+  async createTeacher(data: CreateTeacherRequest, forYear?: number): Promise<DatabaseResult<Teacher>> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `teachers_${year}`;
       const result = await this.db
         .prepare(`
-          INSERT INTO ${tableName} (semester_id, f_name, l_name, email, phone, subject_group, role, is_active, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          INSERT INTO ${tableName} (semester_id, title, f_name, l_name, email, phone, subject_group, role, is_active, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `)
         .bind(
           data.semester_id,
+          data.title || null,
           data.f_name,
           data.l_name,
           data.email || null,
@@ -371,7 +372,24 @@ export class DatabaseManager {
         .run();
 
       const newTeacher = await this.db
-        .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+        .prepare(`
+          SELECT 
+            id,
+            semester_id,
+            title,
+            f_name,
+            l_name,
+            COALESCE(title || ' ', '') || f_name || ' ' || l_name AS full_name,
+            email,
+            phone,
+            subject_group,
+            role,
+            is_active,
+            created_at,
+            updated_at
+          FROM ${tableName}
+          WHERE id = ?
+        `)
         .bind(result.meta.last_row_id)
         .first<Teacher>();
 
@@ -397,9 +415,23 @@ export class DatabaseManager {
       // Get teachers
       const teachers = await this.db
         .prepare(`
-          SELECT * FROM ${tableName} 
+          SELECT 
+            id,
+            semester_id,
+            title,
+            f_name,
+            l_name,
+            COALESCE(title || ' ', '') || f_name || ' ' || l_name AS full_name,
+            email,
+            phone,
+            subject_group,
+            role,
+            is_active,
+            created_at,
+            updated_at
+          FROM ${tableName}
           WHERE semester_id = ? AND is_active = 1 
-          ORDER BY full_name
+          ORDER BY f_name
           LIMIT ? OFFSET ?
         `)
         .bind(semesterId, limit, offset)
@@ -426,9 +458,59 @@ export class DatabaseManager {
     }
   }
 
-  async updateTeacher(teacherId: number, semesterId: number, data: Partial<CreateTeacherRequest>): Promise<DatabaseResult> {
+  async getTeachersBySemesterForYear(semesterId: number, year: number, page = 1, limit = 50): Promise<PaginatedResponse<Teacher>> {
     try {
-      const year = await this.getActiveYear();
+      const tableName = `teachers_${year}`;
+
+      const offset = (page - 1) * limit;
+
+      const countResult = await this.db
+        .prepare(`SELECT COUNT(*) as count FROM ${tableName} WHERE semester_id = ? AND is_active = 1`)
+        .bind(semesterId)
+        .first<{ count: number }>();
+
+      const teachers = await this.db
+        .prepare(`
+          SELECT 
+            id,
+            semester_id,
+            title,
+            f_name,
+            l_name,
+            COALESCE(title || ' ', '') || f_name || ' ' || l_name AS full_name,
+            email,
+            phone,
+            subject_group,
+            role,
+            is_active,
+            created_at,
+            updated_at
+          FROM ${tableName}
+          WHERE semester_id = ? AND is_active = 1 
+          ORDER BY f_name
+          LIMIT ? OFFSET ?
+        `)
+        .bind(semesterId, limit, offset)
+        .all<Teacher>();
+
+      const total = countResult?.count || 0;
+      return {
+        success: true,
+        data: teachers.results,
+        pagination: { page, limit, total, totalPages: Math.ceil(total / limit) }
+      };
+    } catch (error) {
+      return {
+        success: false,
+        data: [],
+        pagination: { page, limit, total: 0, totalPages: 0 }
+      };
+    }
+  }
+
+  async updateTeacher(teacherId: number, semesterId: number, data: Partial<CreateTeacherRequest>, forYear?: number): Promise<DatabaseResult> {
+    try {
+      const year = forYear ?? await this.getActiveYear();
       const tableName = `teachers_${year}`;
 
       const fields: string[] = [];
@@ -459,9 +541,9 @@ export class DatabaseManager {
     }
   }
 
-  async deleteTeacher(teacherId: number, semesterId: number): Promise<DatabaseResult> {
+  async deleteTeacher(teacherId: number, semesterId: number, forYear?: number): Promise<DatabaseResult> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       const tableName = `teachers_${year}`;
 
       const result = await this.db
@@ -483,9 +565,9 @@ export class DatabaseManager {
   // Classes Management  
   // ===========================================
 
-  async createClass(data: CreateClassRequest): Promise<DatabaseResult<Class>> {
+  async createClass(data: CreateClassRequest, forYear?: number): Promise<DatabaseResult<Class>> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `classes_${year}`;
@@ -528,13 +610,30 @@ export class DatabaseManager {
     }
   }
 
+  async getClassesBySemesterForYear(semesterId: number, year: number): Promise<DatabaseResult<Class[]>> {
+    try {
+      const tableName = `classes_${year}`;
+      const classes = await this.db
+        .prepare(`
+          SELECT * FROM ${tableName}
+          WHERE semester_id = ? AND is_active = 1
+          ORDER BY grade_level, section
+        `)
+        .bind(semesterId)
+        .all<Class>();
+      return { success: true, data: classes.results };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
   // ===========================================
   // Rooms Management
   // ===========================================
 
-  async createRoom(data: CreateRoomRequest): Promise<DatabaseResult<Room>> {
+  async createRoom(data: CreateRoomRequest, forYear?: number): Promise<DatabaseResult<Room>> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `rooms_${year}`;
@@ -577,13 +676,30 @@ export class DatabaseManager {
     }
   }
 
+  async getRoomsBySemesterForYear(semesterId: number, year: number): Promise<DatabaseResult<Room[]>> {
+    try {
+      const tableName = `rooms_${year}`;
+      const rooms = await this.db
+        .prepare(`
+          SELECT * FROM ${tableName}
+          WHERE semester_id = ? AND is_active = 1
+          ORDER BY room_name
+        `)
+        .bind(semesterId)
+        .all<Room>();
+      return { success: true, data: rooms.results };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
   // ===========================================
   // Subjects Management
   // ===========================================
 
-  async createSubject(data: CreateSubjectRequest): Promise<DatabaseResult<Subject>> {
+  async createSubject(data: CreateSubjectRequest, forYear?: number): Promise<DatabaseResult<Subject>> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `subjects_${year}`;
@@ -639,13 +755,34 @@ export class DatabaseManager {
     }
   }
 
+  async getSubjectsBySemesterForYear(semesterId: number, year: number): Promise<DatabaseResult<any[]>> {
+    try {
+      const tableName = `subjects_${year}`;
+      const subjects = await this.db
+        .prepare(`
+          SELECT s.*, t.full_name as teacher_name, c.class_name, r.room_name
+          FROM ${tableName} s
+          JOIN teachers_${year} t ON s.teacher_id = t.id
+          JOIN classes_${year} c ON s.class_id = c.id
+          LEFT JOIN rooms_${year} r ON s.default_room_id = r.id
+          WHERE s.semester_id = ? AND s.is_active = 1
+          ORDER BY c.class_name, s.subject_name
+        `)
+        .bind(semesterId)
+        .all();
+      return { success: true, data: subjects.results };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
   // ===========================================
   // Schedules Management
   // ===========================================
 
-  async createSchedule(data: CreateScheduleRequest): Promise<DatabaseResult<Schedule>> {
+  async createSchedule(data: CreateScheduleRequest, forYear?: number): Promise<DatabaseResult<Schedule>> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `schedules_${year}`;
@@ -854,9 +991,9 @@ export class DatabaseManager {
     }
   }
 
-  async deleteSchedule(scheduleId: number, semesterId: number): Promise<DatabaseResult> {
+  async deleteSchedule(scheduleId: number, semesterId: number, forYear?: number): Promise<DatabaseResult> {
     try {
-      const year = await this.getActiveYear();
+      const year = forYear ?? await this.getActiveYear();
       const tableName = `schedules_${year}`;
 
       const result = await this.db

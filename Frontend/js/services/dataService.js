@@ -442,15 +442,19 @@ export async function getTeachers(year = null) {
 /**
  * Get Classes (FIXED - เพิ่ม year parameter)
  */
-export async function getClasses(year = null) {
+export async function getClasses(year = null, semesterId = null) {
   const targetYear = year || currentContext.year;
+  const targetSemester = semesterId || currentContext.semester?.id || currentContext.semesterId;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
+  if (!targetSemester) {
+    return { ok: false, error: 'No semester specified' };
+  }
   
-  console.log(`[DataService] getClasses for year: ${targetYear}`);
+  console.log(`[DataService] getClasses for year: ${targetYear}, semester: ${targetSemester}`);
   
-  const cacheKey = `classes_${targetYear}`;
+  const cacheKey = `classes_${targetYear}_${targetSemester}`;
   let cached = cache.get(cacheKey);
   if (cached) {
     console.log(`[DataService] ✅ Classes cache HIT for year ${targetYear}:`, cached.length);
@@ -470,7 +474,7 @@ export async function getClasses(year = null) {
       cache.set(cacheKey, classes);
       return { ok: true, data: classes };
     } else {
-      const result = await classesAPI.getClasses(targetYear);
+      const result = await scheduleAPI.getClasses(targetYear, targetSemester);
       if (result.ok) {
         cache.set(cacheKey, result.data);
       }
@@ -485,15 +489,19 @@ export async function getClasses(year = null) {
 /**
  * Get Rooms (FIXED - เพิ่ม year parameter)
  */
-export async function getRooms(year = null) {
+export async function getRooms(year = null, semesterId = null) {
   const targetYear = year || currentContext.year;
+  const targetSemester = semesterId || currentContext.semester?.id || currentContext.semesterId;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
+  if (!targetSemester) {
+    return { ok: false, error: 'No semester specified' };
+  }
   
-  console.log(`[DataService] getRooms for year: ${targetYear}`);
+  console.log(`[DataService] getRooms for year: ${targetYear}, semester: ${targetSemester}`);
   
-  const cacheKey = `rooms_${targetYear}`;
+  const cacheKey = `rooms_${targetYear}_${targetSemester}`;
   let cached = cache.get(cacheKey);
   if (cached) {
     console.log(`[DataService] ✅ Rooms cache HIT for year ${targetYear}:`, cached.length);
@@ -513,7 +521,7 @@ export async function getRooms(year = null) {
       cache.set(cacheKey, rooms);
       return { ok: true, data: rooms };
     } else {
-      const result = await roomsAPI.getRooms(targetYear);
+      const result = await scheduleAPI.getRooms(targetYear, targetSemester);
       if (result.ok) {
         cache.set(cacheKey, result.data);
       }
@@ -528,15 +536,19 @@ export async function getRooms(year = null) {
 /**
  * Get Subjects (FIXED - เพิ่ม year parameter)
  */
-export async function getSubjects(year = null) {
+export async function getSubjects(year = null, semesterId = null) {
   const targetYear = year || currentContext.year;
+  const targetSemester = semesterId || currentContext.semester?.id || currentContext.semesterId;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
+  if (!targetSemester) {
+    return { ok: false, error: 'No semester specified' };
+  }
   
-  console.log(`[DataService] getSubjects for year: ${targetYear}`);
+  console.log(`[DataService] getSubjects for year: ${targetYear}, semester: ${targetSemester}`);
   
-  const cacheKey = `subjects_${targetYear}`;
+  const cacheKey = `subjects_${targetYear}_${targetSemester}`;
   let cached = cache.get(cacheKey);
   if (cached) {
     console.log(`[DataService] ✅ Subjects cache HIT for year ${targetYear}:`, cached.length);
@@ -556,7 +568,7 @@ export async function getSubjects(year = null) {
       cache.set(cacheKey, subjects);
       return { ok: true, data: subjects };
     } else {
-      const result = await subjectsAPI.getSubjects(targetYear);
+      const result = await scheduleAPI.getSubjects(targetYear, targetSemester);
       if (result.ok) {
         cache.set(cacheKey, result.data);
       }

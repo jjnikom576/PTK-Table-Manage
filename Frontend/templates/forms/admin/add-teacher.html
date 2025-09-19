@@ -10,6 +10,10 @@
                                     <h3>📝 เพิ่มครูใหม่</h3>
                                     <form id="teacher-form" class="admin-form">
                                         <div class="form-group">
+                                            <label for="teacher-title">คำนำหน้า:</label>
+                                            <input type="text" id="teacher-title" name="title" placeholder="เช่น นาย / นาง / นางสาว / Mr. / Ms. / ...">
+                                        </div>
+                                        <div class="form-group">
                                             <label for="teacher-f-name">ชื่อ:</label>
                                             <input type="text" id="teacher-f-name" name="f_name" required>
                                         </div>
@@ -29,14 +33,13 @@
                                             <label for="teacher-subject-group">สาขาวิชา:</label>
                                             <select id="teacher-subject-group" name="subject_group" required>
                                                 <option value="">-- เลือกสาขาวิชา --</option>
-                                                <option value="วิทยาศาสตร์">วิทยาศาสตร์</option>
+                                                <option value="วิทยาศาสตร์">วิทยาศาสตร์และเทคโนโลยี</option>
                                                 <option value="คณิตศาสตร์">คณิตศาสตร์</option>
                                                 <option value="ภาษาไทย">ภาษาไทย</option>
-                                                <option value="ภาษาอังกฤษ">ภาษาอังกฤษ</option>
-                                                <option value="สังคมศึกษา">สังคมศึกษา</option>
+                                                <option value="ภาษาอังกฤษ">ภาษาต่างประเทศ</option>
+                                                <option value="สังคมศึกษา">สังคมศึกษา ศาสนา และวัฒนธรรม</option>
                                                 <option value="ศิลปะ">ศิลปะ</option>
                                                 <option value="พลศึกษา">พลศึกษา</option>
-                                                <option value="เทคโนโลยี">เทคโนโลยี</option>
                                                 <option value="การงานอาชีพ">การงานอาชีพ</option>
                                             </select>
                                         </div>
@@ -44,9 +47,9 @@
                                             <label for="teacher-role">บทบาท:</label>
                                             <div class="radio-group">
                                                 <label><input type="radio" name="role" value="teacher" checked> ครู</label>
-                                                <label><input type="radio" name="role" value="head_of_department"> หัวหน้า</label>
-                                                <label><input type="radio" name="role" value="vice_principal"> รองครูใหญ่</label>
-                                                <label><input type="radio" name="role" value="principal"> ครูใหญ่</label>
+                                                <label><input type="radio" name="role" value="head_of_department"> หัวหน้ากลุ่มสาระการเรียนรู้</label>
+                                                <label><input type="radio" name="role" value="vice_principal"> รองผู้อำนวยการ</label>
+                                                <label><input type="radio" name="role" value="principal"> ผู้อำนวยการ</label>
                                             </div>
                                         </div>
                                         <div class="form-buttons">
@@ -84,8 +87,7 @@
                                                 <tr>
                                                     <th class="col-checkbox">✓</th>
                                                     <th class="col-id" data-sortable data-column="id">ID</th>
-                                                    <th class="col-fname" data-sortable data-column="f_name">ชื่อ</th>
-                                                    <th class="col-lname" data-sortable data-column="l_name">นามสกุล</th>
+                                                    <th class="col-name" data-sortable data-column="full_name">ชื่อ-นามสกุล</th>
                                                     <th class="col-email" data-sortable data-column="email">อีเมล</th>
                                                     <th class="col-phone" data-sortable data-column="phone">เบอร์โทร</th>
                                                     <th class="col-subject" data-sortable data-column="subject_group">สาขาวิชา</th>

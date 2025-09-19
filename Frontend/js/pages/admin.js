@@ -62,7 +62,7 @@ async function loadAdminContext() {
  */
 async function loadAcademicYears() {
   try {
-    const result = await coreAPI.getAcademicYears();
+    const result = await coreAPI.getAcademicYears(false); // force fresh fetch after login/admin ops
     
     if (result.success && result.data) {
       adminState.academicYears = result.data;
@@ -82,7 +82,7 @@ async function loadAcademicYears() {
  */
 async function loadSemesters() {
   try {
-    const result = await coreAPI.getSemesters();
+    const result = await coreAPI.getSemesters(false); // force fresh fetch after login/admin ops
     
     if (result.success && result.data) {
       adminState.semesters = result.data;
@@ -691,6 +691,8 @@ function bindAuthForm() {
         showAdminSections(); 
         updateUsernameHeader();
         
+        // Load academic year/semester data every time after login
+        await initAcademicManagement();
         // Initialize teacher management after successful login
         await initTeacherManagement();
         
@@ -871,7 +873,8 @@ async function loadTeachersData() {
     const year = context?.year || 2567;
     
     console.log(`📊 Loading teachers for year ${year}...`);
-    const result = await scheduleAPI.getTeachers(year);
+    const semesterId = context?.semester?.id || context?.semesterId;
+    const result = await scheduleAPI.getTeachers(year, semesterId);
     
     if (result.success) {
       adminState.teachers = result.data || [];
@@ -907,7 +910,8 @@ async function addNewTeacher(teacherData) {
     const year = context?.year || 2567;
     
     console.log('📝 Creating new teacher...', teacherData);
-    const result = await scheduleAPI.createTeacher(year, teacherData);
+    const semesterId = context?.semester?.id || context?.semesterId;
+    const result = await scheduleAPI.createTeacher(year, semesterId, teacherData);
     
     if (result.success) {
       console.log('✅ Teacher created successfully:', result.data);
@@ -990,6 +994,7 @@ async function handleTeacherSubmit(e) {
   const formData = new FormData(e.target);
   
   const teacherData = {
+    title: formData.get('title'),
     f_name: formData.get('f_name'),
     l_name: formData.get('l_name'),
     email: formData.get('email'),
@@ -1264,6 +1269,10 @@ function editTeacher(id) {
   const teacher = adminState.teachers.find(t => t.id === id);
   if (!teacher) return;
   
+  // Set title input
+  const titleInput = document.getElementById('teacher-title');
+  if (titleInput) titleInput.value = teacher.title || '';
+
   document.getElementById('teacher-f-name').value = teacher.f_name || '';
   document.getElementById('teacher-l-name').value = teacher.l_name || '';
   document.getElementById('teacher-email').value = teacher.email || '';
@@ -1293,7 +1302,7 @@ function viewTeacher(id) {
   
   const firstName = teacher.f_name || 'ไม่ระบุ';
   const lastName = teacher.l_name || 'ไม่ระบุ';
-  const fullName = `${firstName} ${lastName}`;
+  const fullName = `${teacher.title ? teacher.title + ' ' : ''}${firstName} ${lastName}`;
   
   alert(`รายละเอียดครู:\n\nชื่อ: ${fullName}\nอีเมล: ${teacher.email || 'ไม่ระบุ'}\nเบอร์โทร: ${teacher.phone || 'ไม่ระบุ'}\nสาขาวิชา: ${teacher.subject_group}\nบทบาท: ${getRoleDisplayName(teacher.role)}`);
 }
@@ -1314,6 +1323,7 @@ function renderTeachersTable() {
     if (!adminState.searchTerm) return true;
     
     const searchableText = [
+      teacher.title,
       teacher.f_name,
       teacher.l_name,
       teacher.email,
@@ -1326,8 +1336,15 @@ function renderTeachersTable() {
   
   // Sort filtered teachers
   filteredTeachers.sort((a, b) => {
-    const aValue = a[adminState.sortColumn];
-    const bValue = b[adminState.sortColumn];
+    let aValue = a[adminState.sortColumn];
+    let bValue = b[adminState.sortColumn];
+    // Sort by display full name (with title) when column is full_name
+    if (adminState.sortColumn === 'full_name') {
+      const ad = `${a.title ? a.title + ' ' : ''}${a.f_name || ''} ${a.l_name || ''}`.toLowerCase();
+      const bd = `${b.title ? b.title + ' ' : ''}${b.f_name || ''} ${b.l_name || ''}`.toLowerCase();
+      aValue = ad;
+      bValue = bd;
+    }
     
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
@@ -1363,6 +1380,7 @@ function renderTeachersTable() {
     tableBody.innerHTML = paginatedTeachers.map(teacher => {
       const firstName = teacher.f_name || 'ไม่ระบุ';
       const lastName = teacher.l_name || 'ไม่ระบุ';
+      const displayName = `${teacher.title ? teacher.title + ' ' : ''}${firstName} ${lastName}`;
       const fullName = `${firstName} ${lastName}`;
       
       return `
@@ -1371,8 +1389,7 @@ function renderTeachersTable() {
             <input type="checkbox" class="teacher-row-checkbox" data-teacher-id="${teacher.id}">
           </td>
           <td style="padding: 0.75rem; text-align: center;">${teacher.id}</td>
-          <td style="padding: 0.75rem;">${firstName}</td>
-          <td style="padding: 0.75rem;">${lastName}</td>
+          <td style="padding: 0.75rem;">${displayName}</td>
           <td style="padding: 0.75rem;" title="${teacher.email || ''}">${teacher.email || '-'}</td>
           <td style="padding: 0.75rem;" title="${teacher.phone || ''}">${teacher.phone || '-'}</td>
           <td style="padding: 0.75rem;">${teacher.subject_group || '-'}</td>
@@ -1477,7 +1494,7 @@ function getSelectedTeacherIds() {
 function changePage(newPage) {
   const totalItems = adminState.teachers.filter(teacher => {
     if (!adminState.searchTerm) return true;
-    const searchableText = [teacher.f_name, teacher.l_name, teacher.email, teacher.phone, teacher.subject_group].join(' ').toLowerCase();
+    const searchableText = [teacher.title, teacher.f_name, teacher.l_name, teacher.email, teacher.phone, teacher.subject_group].join(' ').toLowerCase();
     return searchableText.includes(adminState.searchTerm);
   }).length;
   
