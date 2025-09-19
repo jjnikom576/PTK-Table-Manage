@@ -144,23 +144,6 @@ export class SchemaManager {
     // academic_year_id was removed; keep semesters global
     await this.db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_semesters_active ON semesters(is_active) WHERE is_active = 1");
 
-    console.log('Creating periods table...');
-    // Periods (Shared across all years)
-    await this.db.exec(
-      "CREATE TABLE IF NOT EXISTS periods (" +
-      "period_no INTEGER PRIMARY KEY, " +
-      "period_name TEXT NOT NULL, " +
-      "start_time TIME NOT NULL, " +
-      "end_time TIME NOT NULL, " +
-      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
-      ")"
-    );
-
-    console.log('Creating periods indexes...');
-    // Periods Indexes
-    await this.db.exec("CREATE INDEX IF NOT EXISTS idx_periods_time_range ON periods(start_time, end_time)");
-    
     console.log('All academic tables created successfully');
   }
 
@@ -175,12 +158,13 @@ export class SchemaManager {
         this.createClassesTable(year),
         this.createRoomsTable(year),
         this.createSubjectsTable(year),
+        this.createPeriodsTable(year),
         this.createSchedulesTable(year)
       ];
 
       await Promise.all(tables);
 
-      return { success: true, data: { year, tablesCreated: 5 } };
+      return { success: true, data: { year, tablesCreated: 6 } };
     } catch (error) {
       return { success: false, error: String(error) };
     }
@@ -227,6 +211,36 @@ export class SchemaManager {
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_search ON ${tableName}(f_name, l_name, subject_group)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_name_search ON ${tableName}(full_name)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_${tableName}_email ON ${tableName}(email) WHERE email IS NOT NULL`
+    ];
+
+    for (const index of indexes) {
+      await this.db.exec(index);
+    }
+  }
+
+  private async createPeriodsTable(year: number): Promise<void> {
+    const tableName = `periods_${year}`;
+
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "period_no INTEGER NOT NULL, " +
+      "period_name TEXT NOT NULL, " +
+      "start_time TIME NOT NULL, " +
+      "end_time TIME NOT NULL, " +
+      "is_active INTEGER DEFAULT 1, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
+      "UNIQUE (semester_id, period_no)" +
+      ")"
+    );
+
+    const indexes = [
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_semester ON ${tableName}(semester_id);`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_active ON ${tableName}(semester_id, is_active);`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_time ON ${tableName}(start_time, end_time);`
     ];
 
     for (const index of indexes) {
@@ -352,7 +366,7 @@ export class SchemaManager {
       "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
       "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
       "FOREIGN KEY (subject_id) REFERENCES subjects_" + year + "(id) ON DELETE CASCADE, " +
-      "FOREIGN KEY (period_no) REFERENCES periods(period_no) ON DELETE RESTRICT, " +
+      "FOREIGN KEY (semester_id, period_no) REFERENCES periods_" + year + "(semester_id, period_no) ON DELETE RESTRICT, " +
       "FOREIGN KEY (room_id) REFERENCES rooms_" + year + "(id) ON DELETE SET NULL, " +
       "UNIQUE (semester_id, day_of_week, period_no, room_id)" +
       ")"
@@ -477,49 +491,4 @@ export class SchemaManager {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   }
 
-  async createDefaultPeriods(): Promise<DatabaseResult> {
-    try {
-      // Check if periods exist
-      const existingPeriods = await this.db
-        .prepare('SELECT COUNT(*) as count FROM periods')
-        .first<{ count: number }>();
-
-      if (existingPeriods && existingPeriods.count > 0) {
-        return { success: true, data: { message: 'Periods already exist' } };
-      }
-
-      // Create default periods (8 periods per day)
-      const periods = [
-        { period_no: 1, period_name: 'คาบ 1', start_time: '08:40', end_time: '09:30' },
-        { period_no: 2, period_name: 'คาบ 2', start_time: '09:30', end_time: '10:20' },
-        { period_no: 3, period_name: 'คาบ 3', start_time: '10:20', end_time: '11:10' },
-        { period_no: 4, period_name: 'คาบ 4', start_time: '11:10', end_time: '12:00' },
-        { period_no: 5, period_name: 'พักเที่ยง', start_time: '12:00', end_time: '13:00' },
-        { period_no: 6, period_name: 'คาบ 6', start_time: '13:00', end_time: '13:50' },
-        { period_no: 7, period_name: 'คาบ 7', start_time: '13:50', end_time: '14:40' },
-        { period_no: 8, period_name: 'คาบ 8', start_time: '14:40', end_time: '15:30' },
-      ];
-
-      const stmt = this.db.prepare(`
-        INSERT INTO periods (period_no, period_name, start_time, end_time)
-        VALUES (?, ?, ?, ?)
-      `);
-
-      for (const period of periods) {
-        await stmt
-          .bind(period.period_no, period.period_name, period.start_time, period.end_time)
-          .run();
-      }
-
-      return { 
-        success: true, 
-        data: { 
-          message: 'Default periods created',
-          periodsCreated: periods.length 
-        } 
-      };
-    } catch (error) {
-      return { success: false, error: String(error) };
-    }
-  }
 }

@@ -29,12 +29,15 @@ export interface Semester {
   updated_at?: string;
 }
 
-// Period Entity (Shared across all years)
+// Period Entity (per year)
 export interface Period {
+  id?: number;
+  semester_id: number;
   period_no: number;
   period_name: string;
   start_time: string; // TIME format
   end_time: string; // TIME format
+  is_active: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -244,6 +247,14 @@ export interface CreateRoomRequest {
   semester_id: number;
   room_name: string;
   room_type: 'ทั่วไป' | 'ปฏิบัติการคอมพิวเตอร์';
+}
+
+export interface CreatePeriodRequest {
+  semester_id: number;
+  period_no: number;
+  period_name: string;
+  start_time: string;
+  end_time: string;
 }
 
 export interface CreateSubjectRequest {

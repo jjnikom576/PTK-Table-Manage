@@ -18,6 +18,7 @@ import {
   CreateTeacherRequest,
   CreateClassRequest,
   CreateRoomRequest,
+  CreatePeriodRequest,
   CreateSubjectRequest,
   CreateScheduleRequest,
   PaginatedResponse
@@ -65,23 +66,13 @@ export class DatabaseManager {
       }
       console.log('Default admin user created successfully');
       
-      // Create default periods if none exist
-      console.log('Creating default periods...');
-      const periodsResult = await this.schemaManager.createDefaultPeriods();
-      if (!periodsResult.success) {
-        console.error('Failed to create periods:', periodsResult.error);
-        return { success: false, error: `Periods creation failed: ${periodsResult.error}` };
-      }
-      console.log('Default periods created successfully');
-
       return { 
         success: true, 
         data: { 
           message: 'Database initialized successfully',
           details: {
             coreTables: coreTablesResult.data || 'created',
-            adminUser: adminResult.data || 'created',
-            periods: periodsResult.data || 'created'
+            adminUser: adminResult.data || 'created'
           }
         } 
       };
@@ -248,6 +239,10 @@ export class DatabaseManager {
         return { success: false, error: 'Semester not found' };
       }
 
+      const year = await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+      await this.ensureDefaultPeriodsForSemester(year, semesterId);
+
       return { success: true, data: { message: 'Active semester updated' } };
     } catch (error) {
       return { success: false, error: String(error) };
@@ -358,10 +353,20 @@ export class DatabaseManager {
   // Period Management
   // ===========================================
 
-  async getPeriods(): Promise<DatabaseResult<Period[]>> {
+  async getPeriodsBySemester(semesterId: number, forYear?: number): Promise<DatabaseResult<Period[]>> {
     try {
+      const year = forYear ?? await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+      await this.ensureDefaultPeriodsForSemester(year, semesterId);
+
+      const tableName = `periods_${year}`;
       const periods = await this.db
-        .prepare('SELECT * FROM periods ORDER BY period_no')
+        .prepare(`
+          SELECT * FROM ${tableName}
+          WHERE semester_id = ? AND is_active = 1
+          ORDER BY period_no
+        `)
+        .bind(semesterId)
         .all<Period>();
 
       return { success: true, data: periods.results };
@@ -370,24 +375,173 @@ export class DatabaseManager {
     }
   }
 
-  async updatePeriod(periodNo: number, periodName: string, startTime: string, endTime: string): Promise<DatabaseResult> {
+  async getPeriodsBySemesterForYear(semesterId: number, year: number): Promise<DatabaseResult<Period[]>> {
     try {
+      await this.ensureDynamicTablesExist(year);
+      await this.ensureDefaultPeriodsForSemester(year, semesterId);
+
+      const tableName = `periods_${year}`;
+      const periods = await this.db
+        .prepare(`
+          SELECT * FROM ${tableName}
+          WHERE semester_id = ? AND is_active = 1
+          ORDER BY period_no
+        `)
+        .bind(semesterId)
+        .all<Period>();
+
+      return { success: true, data: periods.results };
+    } catch (error) {
+      return { success: false, error: String(error) };
+    }
+  }
+
+  async createPeriod(data: CreatePeriodRequest, forYear?: number): Promise<DatabaseResult<Period>> {
+    try {
+      const year = forYear ?? await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+
+      const tableName = `periods_${year}`;
       const result = await this.db
         .prepare(`
-          UPDATE periods 
-          SET period_name = ?, start_time = ?, end_time = ?, updated_at = CURRENT_TIMESTAMP
-          WHERE period_no = ?
+          INSERT INTO ${tableName} (semester_id, period_no, period_name, start_time, end_time, is_active, created_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
         `)
-        .bind(periodName, startTime, endTime, periodNo)
+        .bind(
+          data.semester_id,
+          data.period_no,
+          data.period_name,
+          data.start_time,
+          data.end_time
+        )
+        .run();
+
+      const newPeriod = await this.db
+        .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+        .bind(result.meta.last_row_id)
+        .first<Period>();
+
+      return { success: true, data: newPeriod! };
+    } catch (error) {
+      const message = String(error);
+      if (message.includes('UNIQUE constraint failed')) {
+        return { success: false, error: 'Period number already exists for this semester' };
+      }
+      return { success: false, error: message };
+    }
+  }
+
+  async updatePeriod(periodId: number, semesterId: number, data: Partial<CreatePeriodRequest>, forYear?: number): Promise<DatabaseResult<Period>> {
+    try {
+      const year = forYear ?? await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+
+      const tableName = `periods_${year}`;
+      const fields: string[] = [];
+      const values: any[] = [];
+
+      if (data.period_no !== undefined) {
+        fields.push('period_no = ?');
+        values.push(data.period_no);
+      }
+      if (data.period_name) {
+        fields.push('period_name = ?');
+        values.push(data.period_name);
+      }
+      if (data.start_time) {
+        fields.push('start_time = ?');
+        values.push(data.start_time);
+      }
+      if (data.end_time) {
+        fields.push('end_time = ?');
+        values.push(data.end_time);
+      }
+      if (data.start_time || data.end_time || data.period_name || data.period_no !== undefined) {
+        fields.push('updated_at = CURRENT_TIMESTAMP');
+      }
+
+      if (fields.length === 0) {
+        return { success: false, error: 'No period fields to update' };
+      }
+
+      values.push(periodId, semesterId);
+
+      const result = await this.db
+        .prepare(`UPDATE ${tableName} SET ${fields.join(', ')} WHERE id = ? AND semester_id = ?`)
+        .bind(...values)
         .run();
 
       if (result.meta.changes === 0) {
         return { success: false, error: 'Period not found' };
       }
 
-      return { success: true, data: { message: 'Period updated successfully' } };
+      const updatedPeriod = await this.db
+        .prepare(`SELECT * FROM ${tableName} WHERE id = ?`)
+        .bind(periodId)
+        .first<Period>();
+
+      return { success: true, data: updatedPeriod! };
+    } catch (error) {
+      const message = String(error);
+      if (message.includes('UNIQUE constraint failed')) {
+        return { success: false, error: 'Period number already exists for this semester' };
+      }
+      return { success: false, error: message };
+    }
+  }
+
+  async deletePeriod(periodId: number, semesterId: number, forYear?: number): Promise<DatabaseResult> {
+    try {
+      const year = forYear ?? await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+
+      const tableName = `periods_${year}`;
+      const result = await this.db
+        .prepare(`DELETE FROM ${tableName} WHERE id = ? AND semester_id = ?`)
+        .bind(periodId, semesterId)
+        .run();
+
+      if (result.meta.changes === 0) {
+        return { success: false, error: 'Period not found' };
+      }
+
+      return { success: true, data: { message: 'Period deleted successfully' } };
     } catch (error) {
       return { success: false, error: String(error) };
+    }
+  }
+
+  private async ensureDefaultPeriodsForSemester(year: number, semesterId: number): Promise<void> {
+    const tableName = `periods_${year}`;
+    const check = await this.db
+      .prepare(`SELECT COUNT(*) as count FROM ${tableName} WHERE semester_id = ?`)
+      .bind(semesterId)
+      .first<{ count: number }>();
+
+    if (check && check.count > 0) {
+      return;
+    }
+
+    const defaults = [
+      { period_no: 1, period_name: 'คาบ 1', start_time: '08:40', end_time: '09:30' },
+      { period_no: 2, period_name: 'คาบ 2', start_time: '09:30', end_time: '10:20' },
+      { period_no: 3, period_name: 'คาบ 3', start_time: '10:20', end_time: '11:10' },
+      { period_no: 4, period_name: 'คาบ 4', start_time: '11:10', end_time: '12:00' },
+      { period_no: 5, period_name: 'พักเที่ยง', start_time: '12:00', end_time: '13:00' },
+      { period_no: 6, period_name: 'คาบ 6', start_time: '13:00', end_time: '13:50' },
+      { period_no: 7, period_name: 'คาบ 7', start_time: '13:50', end_time: '14:40' },
+      { period_no: 8, period_name: 'คาบ 8', start_time: '14:40', end_time: '15:30' }
+    ];
+
+    const stmt = this.db.prepare(`
+      INSERT INTO ${tableName} (semester_id, period_no, period_name, start_time, end_time, is_active, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    `);
+
+    for (const period of defaults) {
+      await stmt
+        .bind(semesterId, period.period_no, period.period_name, period.start_time, period.end_time)
+        .run();
     }
   }
 
@@ -430,7 +584,7 @@ export class DatabaseManager {
     const status = await this.schemaManager.getYearTablesStatus(year);
     
     // Check if all tables exist
-    const requiredTables = [`teachers_${year}`, `classes_${year}`, `rooms_${year}`, `subjects_${year}`, `schedules_${year}`];
+    const requiredTables = [`teachers_${year}`, `classes_${year}`, `rooms_${year}`, `periods_${year}`, `subjects_${year}`, `schedules_${year}`];
     const missingTables = requiredTables.filter(table => !status[table]);
     
     if (missingTables.length > 0) {
@@ -1011,9 +1165,20 @@ export class DatabaseManager {
     try {
       const year = forYear ?? await this.getActiveYear();
       await this.ensureDynamicTablesExist(year);
+      await this.ensureDefaultPeriodsForSemester(year, data.semester_id);
 
       const tableName = `schedules_${year}`;
-      
+      const periodsTable = `periods_${year}`;
+
+      const periodExists = await this.db
+        .prepare(`SELECT 1 FROM ${periodsTable} WHERE semester_id = ? AND period_no = ? AND is_active = 1`)
+        .bind(data.semester_id, data.period_no)
+        .first();
+
+      if (!periodExists) {
+        return { success: false, error: 'Selected period does not exist for this semester' };
+      }
+
       // Check for conflicts
       const conflicts = await this.checkScheduleConflicts(data, year);
       if (conflicts.length > 0) {
@@ -1111,6 +1276,8 @@ export class DatabaseManager {
   async getSchedulesBySemester(semesterId: number): Promise<DatabaseResult<any[]>> {
     try {
       const year = await this.getActiveYear();
+      await this.ensureDynamicTablesExist(year);
+      await this.ensureDefaultPeriodsForSemester(year, semesterId);
       const tableName = `schedules_${year}`;
 
       const schedules = await this.db
@@ -1139,7 +1306,7 @@ export class DatabaseManager {
           JOIN teachers_${year} t ON sub.teacher_id = t.id
           JOIN classes_${year} c ON sub.class_id = c.id
           LEFT JOIN rooms_${year} r ON sch.room_id = r.id
-          JOIN periods p ON sch.period_no = p.period_no
+          JOIN periods_${year} p ON p.semester_id = sch.semester_id AND p.period_no = sch.period_no AND p.is_active = 1
           WHERE sch.semester_id = ?
           ORDER BY sch.day_of_week, sch.period_no
         `)
@@ -1155,6 +1322,8 @@ export class DatabaseManager {
   // New: Get schedules for a specific semester and year (without relying on active year)
   async getSchedulesBySemesterForYear(semesterId: number, year: number): Promise<DatabaseResult<any[]>> {
     try {
+      await this.ensureDynamicTablesExist(year);
+      await this.ensureDefaultPeriodsForSemester(year, semesterId);
       const tableName = `schedules_${year}`;
       const schedules = await this.db
         .prepare(`
@@ -1182,7 +1351,7 @@ export class DatabaseManager {
           JOIN teachers_${year} t ON sub.teacher_id = t.id
           JOIN classes_${year} c ON sub.class_id = c.id
           LEFT JOIN rooms_${year} r ON sch.room_id = r.id
-          JOIN periods p ON sch.period_no = p.period_no
+          JOIN periods_${year} p ON p.semester_id = sch.semester_id AND p.period_no = sch.period_no AND p.is_active = 1
           WHERE sch.semester_id = ?
           ORDER BY sch.day_of_week, sch.period_no
         `)

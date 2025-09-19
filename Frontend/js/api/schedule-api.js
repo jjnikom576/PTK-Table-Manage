@@ -341,6 +341,121 @@ class ScheduleAPI {
   }
 
   /**
+   * PERIODS API
+   */
+  async getPeriods(year, semesterId) {
+    const cacheKey = `periods_${year}_${semesterId}`;
+
+    if (this.isCacheValid(cacheKey)) {
+      return {
+        success: true,
+        data: this.cache.get(cacheKey)
+      };
+    }
+
+    try {
+      const endpoint = `${this.getYearEndpoint('periods', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.get(endpoint);
+
+      if (result.success) {
+        this.cache.set(cacheKey, result.data);
+        this.updateCacheTimestamp(cacheKey);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: `ไม่สามารถโหลดข้อมูลคาบเรียนปี ${year} ได้`
+      };
+    }
+  }
+
+  async createPeriod(year, semesterId, periodData = {}) {
+    try {
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('periods', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.post(endpoint, {
+        semester_id: periodData.semester_id || semesterId,
+        period_no: periodData.period_no,
+        period_name: periodData.period_name,
+        start_time: periodData.start_time,
+        end_time: periodData.end_time
+      });
+
+      if (result.success) {
+        this.invalidateCache(`periods_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`periods_${year}_`);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถเพิ่มคาบเรียนใหม่ได้'
+      };
+    }
+  }
+
+  async updatePeriod(year, semesterId, periodId, updateData = {}) {
+    try {
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('periods', year)}/${periodId}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.put(endpoint, updateData);
+
+      if (result.success) {
+        this.invalidateCache(`periods_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`periods_${year}_`);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถอัปเดตข้อมูลคาบเรียนได้'
+      };
+    }
+  }
+
+  async deletePeriod(year, semesterId, periodId) {
+    try {
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('periods', year)}/${periodId}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.delete(endpoint);
+
+      if (result.success) {
+        this.invalidateCache(`periods_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`periods_${year}_`);
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถลบคาบเรียนได้'
+      };
+    }
+  }
+
+  /**
    * SUBJECTS API
    */
   async getSubjects(year, semesterId) {

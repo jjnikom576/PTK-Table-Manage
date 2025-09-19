@@ -278,8 +278,19 @@ coreRoutes.delete('/semesters/:id', requireAdmin, async (c: Context<{ Bindings: 
 coreRoutes.get('/periods', async (c: Context<{ Bindings: Env }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    const result = await dbManager.getPeriods();
-    
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.academic_year?.year || !contextResult.data?.semester?.id) {
+      return c.json({
+        success: false,
+        message: 'No active academic context found'
+      }, 400);
+    }
+
+    const result = await dbManager.getPeriodsBySemesterForYear(
+      contextResult.data.semester.id!,
+      contextResult.data.academic_year.year
+    );
+
     return c.json(result);
   } catch (error) {
     console.error('Get periods error:', error);
@@ -292,7 +303,7 @@ coreRoutes.get('/periods', async (c: Context<{ Bindings: Env }>) => {
 });
 
 // PUT /api/core/periods/:periodNo
-coreRoutes.put('/periods/:periodNo', requireJSON, async (c: Context<{ Bindings: Env }>) => {
+coreRoutes.put('/periods/:periodNo', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env }>) => {
   try {
     const periodNo = parseInt(c.req.param('periodNo'));
     const body = await c.req.json<{
@@ -337,9 +348,43 @@ coreRoutes.put('/periods/:periodNo', requireJSON, async (c: Context<{ Bindings: 
     }
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
-    const result = await dbManager.updatePeriod(periodNo, body.period_name, body.start_time, body.end_time);
-    
-    return c.json(result);
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.academic_year?.year || !contextResult.data?.semester?.id) {
+      return c.json({
+        success: false,
+        message: 'No active academic context found'
+      }, 400);
+    }
+
+    const periodsResult = await dbManager.getPeriodsBySemesterForYear(
+      contextResult.data.semester.id!,
+      contextResult.data.academic_year.year
+    );
+
+    if (!periodsResult.success || !periodsResult.data) {
+      return c.json(periodsResult, 400);
+    }
+
+    const targetPeriod = periodsResult.data.find(period => period.period_no === periodNo);
+    if (!targetPeriod || !targetPeriod.id) {
+      return c.json({
+        success: false,
+        message: 'Period not found'
+      }, 404);
+    }
+
+    const updateResult = await dbManager.updatePeriod(
+      targetPeriod.id,
+      contextResult.data.semester.id!,
+      {
+        period_name: body.period_name,
+        start_time: body.start_time,
+        end_time: body.end_time
+      },
+      contextResult.data.academic_year.year
+    );
+
+    return c.json(updateResult);
   } catch (error) {
     console.error('Update period error:', error);
     return c.json({
@@ -365,8 +410,17 @@ coreRoutes.get('/status', async (c: Context<{ Bindings: Env }>) => {
     // Get academic years
     const yearsResult = await dbManager.getAcademicYears();
     
-    // Get periods count
-    const periodsResult = await dbManager.getPeriods();
+    // Get periods count for active context
+    let periodsCount = 0;
+    if (contextResult.success && contextResult.data?.academic_year?.year && contextResult.data?.semester?.id) {
+      const periodsResult = await dbManager.getPeriodsBySemesterForYear(
+        contextResult.data.semester.id!,
+        contextResult.data.academic_year.year
+      );
+      if (periodsResult.success && periodsResult.data) {
+        periodsCount = periodsResult.data.length;
+      }
+    }
     
     let tableStatus = {};
     if (contextResult.success && contextResult.data?.academic_year) {
@@ -381,7 +435,7 @@ coreRoutes.get('/status', async (c: Context<{ Bindings: Env }>) => {
       data: {
         context: contextResult.data || null,
         academic_years_count: yearsResult.success ? yearsResult.data?.length : 0,
-        periods_count: periodsResult.success ? periodsResult.data?.length : 0,
+        periods_count: periodsCount,
         table_status: tableStatus,
         timestamp: new Date().toISOString()
       }

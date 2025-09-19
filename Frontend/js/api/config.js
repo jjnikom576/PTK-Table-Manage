@@ -33,7 +33,6 @@ const config = API_CONFIG[CURRENT_ENV];
 const FIXED_ENDPOINTS = {
     ACADEMIC_YEARS: '/academic-years',
     SEMESTERS: '/semesters/:yearId',
-    PERIODS: '/periods', // คาบเรียน optional
     SYSTEM_CONFIG: '/system/config'
 };
 
@@ -42,6 +41,7 @@ const DYNAMIC_TABLES = {
     TEACHERS: 'teachers',
     CLASSES: 'classes', 
     ROOMS: 'rooms',     // ← ใหม่
+    PERIODS: 'periods',
     SUBJECTS: 'subjects',
     SCHEDULES: 'schedules',
     SUBSTITUTIONS: 'substitutions'
