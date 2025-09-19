@@ -144,7 +144,7 @@ coreRoutes.delete('/academic-years/:id', requireAdmin, async (c: Context<{ Bindi
 
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     const result = await dbManager.deleteAcademicYear(yearId);
-    let status = 200;
+    let status: 200 | 400 | 409 = 200;
     if (!result.success) {
       status = /active/i.test(result.error || '') ? 409 : 400;
     }
@@ -259,7 +259,7 @@ coreRoutes.delete('/semesters/:id', requireAdmin, async (c: Context<{ Bindings: 
     }
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     const result = await dbManager.deleteSemester(id);
-    let status = 200;
+    let status: 200 | 400 | 409 = 200;
     if (!result.success) {
       status = /active/i.test(result.error || '') ? 409 : 400;
     }

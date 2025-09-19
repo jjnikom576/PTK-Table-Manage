@@ -258,19 +258,25 @@ class ScheduleAPI {
     }
   }
 
-  async createRoom(year, semesterId, roomData) {
+  async createRoom(year, semesterId, roomData = {}) {
     try {
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
       const endpoint = `${this.getYearEndpoint('rooms', year)}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
       const result = await apiManager.post(endpoint, {
         room_name: roomData.room_name,
-        room_type: roomData.room_type || 'CLASS',
-        capacity: roomData.capacity || 0,
-        location: roomData.location || '',
-        description: roomData.description || ''
+        room_type: roomData.room_type || 'ทั่วไป',
+        semester_id: roomData.semester_id || semesterId
       });
 
       if (result.success) {
         this.invalidateCache(`rooms_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`rooms_${year}_`);
       }
 
       return result;
@@ -282,12 +288,21 @@ class ScheduleAPI {
     }
   }
 
-  async updateRoom(year, roomId, updateData) {
+  async updateRoom(year, semesterId, roomId, updateData = {}) {
     try {
-      const result = await apiManager.put(`${this.getYearEndpoint('rooms', year)}/${roomId}`, updateData);
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('rooms', year)}/${roomId}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.put(endpoint, updateData);
 
       if (result.success) {
-        this.invalidateCache(`rooms_${year}`);
+        this.invalidateCache(`rooms_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`rooms_${year}_`);
       }
 
       return result;
@@ -299,12 +314,21 @@ class ScheduleAPI {
     }
   }
 
-  async deleteRoom(year, roomId) {
+  async deleteRoom(year, semesterId, roomId) {
     try {
-      const result = await apiManager.delete(`${this.getYearEndpoint('rooms', year)}/${roomId}`);
+      if (!semesterId) {
+        return {
+          success: false,
+          error: 'ไม่พบภาคเรียนที่ใช้งานอยู่'
+        };
+      }
+
+      const endpoint = `${this.getYearEndpoint('rooms', year)}/${roomId}?year=${encodeURIComponent(year)}&semesterId=${encodeURIComponent(semesterId)}`;
+      const result = await apiManager.delete(endpoint);
 
       if (result.success) {
-        this.invalidateCache(`rooms_${year}`);
+        this.invalidateCache(`rooms_${year}_${semesterId}`);
+        this.invalidateCacheByPattern(`rooms_${year}_`);
       }
 
       return result;

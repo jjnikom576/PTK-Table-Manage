@@ -631,16 +631,20 @@ scheduleRoutes.get('/rooms', async (c: Context<{ Bindings: Env; Variables: AppVa
       if (isNaN(year) || isNaN(semesterId)) {
         return c.json({ success: false, message: 'Invalid year or semesterId' }, 400);
       }
-      const result = await dbManager.getRoomsBySemesterForYear(semesterId, year);
-      return c.json(result);
+      const direct = await dbManager.getRoomsBySemesterForYear(semesterId, year);
+      return c.json(direct);
     }
+
     const contextResult = await dbManager.getGlobalContext();
-    if (!contextResult.success || !contextResult.data?.semester) {
+    const context = contextResult.data;
+    if (!contextResult.success || !context || !context.semester || !context.academic_year?.year) {
       return c.json({ success: false, message: 'No active semester found' }, 400);
     }
-    const result = await dbManager.getRoomsBySemester(contextResult.data.semester.id!);
-    
-    return c.json(result);
+
+    const semesterId = context.semester.id!;
+    const year = context.academic_year.year;
+    const fallback = await dbManager.getRoomsBySemesterForYear(semesterId, year);
+    return c.json(fallback);
   } catch (error) {
     console.error('Get rooms error:', error);
     return c.json({
@@ -734,6 +738,184 @@ scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env; Va
     return c.json({
       success: false,
       message: 'Failed to create room',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// PUT /api/schedule/rooms/:id
+scheduleRoutes.put('/rooms/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const roomId = parseInt(c.req.param('id'));
+    if (Number.isNaN(roomId)) {
+      return c.json({ success: false, message: 'Invalid room ID' }, 400);
+    }
+
+    const payload = await c.req.json<Partial<CreateRoomRequest>>();
+    const updates: Partial<CreateRoomRequest> = {};
+
+    if (typeof payload.room_name === 'string') {
+      const trimmed = payload.room_name.trim();
+      if (!trimmed) {
+        return c.json({ success: false, message: 'Room name cannot be empty' }, 400);
+      }
+      updates.room_name = trimmed;
+    }
+
+    if (typeof payload.room_type === 'string') {
+      const trimmedType = payload.room_type.trim();
+      const validRoomTypes: Array<CreateRoomRequest['room_type']> = ['ทั่วไป', 'ปฏิบัติการคอมพิวเตอร์'];
+      if (!validRoomTypes.includes(trimmedType as CreateRoomRequest['room_type'])) {
+        return c.json({ success: false, message: 'Room type must be "ทั่วไป" or "ปฏิบัติการคอมพิวเตอร์"' }, 400);
+      }
+      updates.room_type = trimmedType as CreateRoomRequest['room_type'];
+    }
+
+    if (!updates.room_name && !updates.room_type) {
+      return c.json({ success: false, message: 'No room fields to update' }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+
+    let resolvedYear: number | undefined;
+    let resolvedSemester: number | undefined;
+
+    if (yearParam) {
+      const parsedYear = parseInt(yearParam);
+      if (Number.isNaN(parsedYear)) {
+        return c.json({ success: false, message: 'Invalid year' }, 400);
+      }
+      resolvedYear = parsedYear;
+    }
+
+    if (semesterParam) {
+      const parsedSemester = parseInt(semesterParam);
+      if (Number.isNaN(parsedSemester)) {
+        return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      }
+      resolvedSemester = parsedSemester;
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      const contextResult = await dbManager.getGlobalContext();
+      const context = contextResult.data;
+      if (!contextResult.success || !context || !context.semester || !context.academic_year?.year) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+
+      if (!resolvedYear) {
+        resolvedYear = context.academic_year.year;
+      }
+      if (!resolvedSemester) {
+        resolvedSemester = context.semester.id!;
+      }
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      return c.json({ success: false, message: 'year and semesterId are required' }, 400);
+    }
+
+    const result = await dbManager.updateRoom(roomId, resolvedSemester, updates, resolvedYear);
+
+    if (result.success) {
+      const user = c.get('user');
+      const authManager = new AuthManager(c.env.DB, c.env);
+      const tableName = `rooms_${resolvedYear}`;
+      await authManager.logActivity(
+        user.id!,
+        'UPDATE_ROOM',
+        tableName,
+        roomId.toString(),
+        null,
+        updates
+      );
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Update room error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to update room',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// DELETE /api/schedule/rooms/:id
+scheduleRoutes.delete('/rooms/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const roomId = parseInt(c.req.param('id'));
+    if (Number.isNaN(roomId)) {
+      return c.json({ success: false, message: 'Invalid room ID' }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+
+    let resolvedYear: number | undefined;
+    let resolvedSemester: number | undefined;
+
+    if (yearParam) {
+      const parsedYear = parseInt(yearParam);
+      if (Number.isNaN(parsedYear)) {
+        return c.json({ success: false, message: 'Invalid year' }, 400);
+      }
+      resolvedYear = parsedYear;
+    }
+
+    if (semesterParam) {
+      const parsedSemester = parseInt(semesterParam);
+      if (Number.isNaN(parsedSemester)) {
+        return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      }
+      resolvedSemester = parsedSemester;
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      const contextResult = await dbManager.getGlobalContext();
+      const context = contextResult.data;
+      if (!contextResult.success || !context || !context.semester || !context.academic_year?.year) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+
+      if (!resolvedYear) {
+        resolvedYear = context.academic_year.year;
+      }
+      if (!resolvedSemester) {
+        resolvedSemester = context.semester.id!;
+      }
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      return c.json({ success: false, message: 'year and semesterId are required' }, 400);
+    }
+
+    const result = await dbManager.deleteRoom(roomId, resolvedSemester, resolvedYear);
+
+    if (result.success) {
+      const user = c.get('user');
+      const authManager = new AuthManager(c.env.DB, c.env);
+      const tableName = `rooms_${resolvedYear}`;
+      await authManager.logActivity(
+        user.id!,
+        'DELETE_ROOM',
+        tableName,
+        roomId.toString(),
+        null,
+        null
+      );
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Delete room error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to delete room',
       error: String(error)
     }, 500);
   }
