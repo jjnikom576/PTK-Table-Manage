@@ -161,6 +161,9 @@ scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env;
     }
 
     const result = await dbManager.createTeacher(body, forYear);
+    if (!result.success) {
+      return c.json(result, 500);
+    }
 
     // Log activity
     if (result.success) {

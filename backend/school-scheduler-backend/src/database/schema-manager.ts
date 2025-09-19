@@ -189,24 +189,24 @@ export class SchemaManager {
   private async createTeachersTable(year: number): Promise<void> {
     const tableName = `teachers_${year}`;
     
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${tableName} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        semester_id INTEGER NOT NULL,
-        title TEXT,
-        f_name TEXT NOT NULL,
-        l_name TEXT NOT NULL,
-        full_name TEXT GENERATED ALWAYS AS (COALESCE(title || ' ', '') || f_name || ' ' || l_name) STORED,
-        email TEXT,
-        phone TEXT,
-        subject_group TEXT NOT NULL,
-        role TEXT DEFAULT 'teacher' CHECK (role IN ('teacher', 'head_of_department', 'vice_principal', 'principal')),
-        is_active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "title TEXT, " +
+      "f_name TEXT NOT NULL, " +
+      "l_name TEXT NOT NULL, " +
+      "full_name TEXT GENERATED ALWAYS AS (COALESCE(title || ' ', '') || f_name || ' ' || l_name) STORED, " +
+      "email TEXT, " +
+      "phone TEXT, " +
+      "subject_group TEXT NOT NULL, " +
+      "role TEXT DEFAULT 'teacher' CHECK (role IN ('teacher', 'head_of_department', 'vice_principal', 'principal')), " +
+      "is_active INTEGER DEFAULT 1, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE" +
+      ")"
+    );
 
     // Ensure 'title' column exists for previously created tables
     try {
@@ -237,20 +237,20 @@ export class SchemaManager {
   private async createClassesTable(year: number): Promise<void> {
     const tableName = `classes_${year}`;
     
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${tableName} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        semester_id INTEGER NOT NULL,
-        grade_level TEXT NOT NULL,
-        section INTEGER NOT NULL,
-        class_name TEXT GENERATED ALWAYS AS (grade_level || '/' || section) STORED,
-        is_active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
-        UNIQUE (semester_id, grade_level, section)
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "grade_level TEXT NOT NULL, " +
+      "section INTEGER NOT NULL, " +
+      "class_name TEXT GENERATED ALWAYS AS (grade_level || '/' || section) STORED, " +
+      "is_active INTEGER DEFAULT 1, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
+      "UNIQUE (semester_id, grade_level, section)" +
+      ")"
+    );
 
     // Create indexes
     const indexes = [
@@ -268,19 +268,19 @@ export class SchemaManager {
   private async createRoomsTable(year: number): Promise<void> {
     const tableName = `rooms_${year}`;
     
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${tableName} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        semester_id INTEGER NOT NULL,
-        room_name TEXT NOT NULL,
-        room_type TEXT NOT NULL CHECK (room_type IN ('ทั่วไป', 'ปฏิบัติการคอมพิวเตอร์')),
-        is_active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
-        UNIQUE (semester_id, room_name)
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "room_name TEXT NOT NULL, " +
+      "room_type TEXT NOT NULL CHECK (room_type IN ('ทั่วไป', 'ปฏิบัติการคอมพิวเตอร์')), " +
+      "is_active INTEGER DEFAULT 1, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
+      "UNIQUE (semester_id, room_name)" +
+      ")"
+    );
 
     // Create indexes
     const indexes = [
@@ -298,27 +298,27 @@ export class SchemaManager {
   private async createSubjectsTable(year: number): Promise<void> {
     const tableName = `subjects_${year}`;
     
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${tableName} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        semester_id INTEGER NOT NULL,
-        teacher_id INTEGER NOT NULL,
-        class_id INTEGER NOT NULL,
-        subject_name TEXT NOT NULL,
-        subject_code TEXT,
-        periods_per_week INTEGER NOT NULL CHECK (periods_per_week > 0),
-        default_room_id INTEGER,
-        special_requirements TEXT,
-        is_active INTEGER DEFAULT 1,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
-        FOREIGN KEY (teacher_id) REFERENCES teachers_${year}(id) ON DELETE CASCADE,
-        FOREIGN KEY (class_id) REFERENCES classes_${year}(id) ON DELETE CASCADE,
-        FOREIGN KEY (default_room_id) REFERENCES rooms_${year}(id) ON DELETE SET NULL,
-        UNIQUE (semester_id, teacher_id, class_id, subject_name)
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "teacher_id INTEGER NOT NULL, " +
+      "class_id INTEGER NOT NULL, " +
+      "subject_name TEXT NOT NULL, " +
+      "subject_code TEXT, " +
+      "periods_per_week INTEGER NOT NULL CHECK (periods_per_week > 0), " +
+      "default_room_id INTEGER, " +
+      "special_requirements TEXT, " +
+      "is_active INTEGER DEFAULT 1, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (teacher_id) REFERENCES teachers_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (class_id) REFERENCES classes_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (default_room_id) REFERENCES rooms_" + year + "(id) ON DELETE SET NULL, " +
+      "UNIQUE (semester_id, teacher_id, class_id, subject_name)" +
+      ")"
+    );
 
     // Create indexes
     const indexes = [
@@ -340,24 +340,23 @@ export class SchemaManager {
   private async createSchedulesTable(year: number): Promise<void> {
     const tableName = `schedules_${year}`;
     
-    await this.db.exec(`
-      CREATE TABLE IF NOT EXISTS ${tableName} (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        semester_id INTEGER NOT NULL,
-        subject_id INTEGER NOT NULL,
-        day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7),
-        period_no INTEGER NOT NULL,
-        room_id INTEGER,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE,
-        FOREIGN KEY (subject_id) REFERENCES subjects_${year}(id) ON DELETE CASCADE,
-        FOREIGN KEY (period_no) REFERENCES periods(period_no) ON DELETE RESTRICT,
-        FOREIGN KEY (room_id) REFERENCES rooms_${year}(id) ON DELETE SET NULL,
-        UNIQUE (semester_id, day_of_week, period_no, room_id),
-        /* Removed subject-level uniqueness to allow parallel sections */
-      )
-    `);
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "subject_id INTEGER NOT NULL, " +
+      "day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7), " +
+      "period_no INTEGER NOT NULL, " +
+      "room_id INTEGER, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (subject_id) REFERENCES subjects_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (period_no) REFERENCES periods(period_no) ON DELETE RESTRICT, " +
+      "FOREIGN KEY (room_id) REFERENCES rooms_" + year + "(id) ON DELETE SET NULL, " +
+      "UNIQUE (semester_id, day_of_week, period_no, room_id)" +
+      ")"
+    );
 
     // Create indexes (Heavy usage - สำคัญมาก)
     const indexes = [

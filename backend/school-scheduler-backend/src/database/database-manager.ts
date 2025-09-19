@@ -314,6 +314,37 @@ export class DatabaseManager {
   // Dynamic Table Operations (Year-specific)
   // ===========================================
 
+  // Emergency creator for teachers_{year} if ensureDynamicTablesExist didn't materialize the table
+  private async createTeachersTableIfMissing(year: number): Promise<void> {
+    const tableName = `teachers_${year}`;
+    const check = await this.db
+      .prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name=?`)
+      .bind(tableName)
+      .first<{ name: string }>();
+    if (check && check.name) return;
+
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "title TEXT, " +
+      "f_name TEXT NOT NULL, " +
+      "l_name TEXT NOT NULL, " +
+      "full_name TEXT GENERATED ALWAYS AS (COALESCE(title || ' ', '') || f_name || ' ' || l_name) STORED, " +
+      "email TEXT, " +
+      "phone TEXT, " +
+      "subject_group TEXT NOT NULL, " +
+      "role TEXT DEFAULT 'teacher', " +
+      "is_active INTEGER DEFAULT 1, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP" +
+      ")"
+    );
+
+    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_semester ON ${tableName}(semester_id);`);
+    await this.db.exec(`CREATE INDEX IF NOT EXISTS idx_${tableName}_active ON ${tableName}(semester_id, is_active);`);
+  }
+
   private async ensureDynamicTablesExist(year: number): Promise<void> {
     const status = await this.schemaManager.getYearTablesStatus(year);
     
@@ -354,22 +385,49 @@ export class DatabaseManager {
       await this.ensureDynamicTablesExist(year);
 
       const tableName = `teachers_${year}`;
-      const result = await this.db
-        .prepare(`
-          INSERT INTO ${tableName} (semester_id, title, f_name, l_name, email, phone, subject_group, role, is_active, created_at, updated_at)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-        `)
-        .bind(
-          data.semester_id,
-          data.title || null,
-          data.f_name,
-          data.l_name,
-          data.email || null,
-          data.phone || null,
-          data.subject_group,
-          data.role || 'teacher'
-        )
-        .run();
+      let result;
+      try {
+        result = await this.db
+          .prepare(`
+            INSERT INTO ${tableName} (semester_id, title, f_name, l_name, email, phone, subject_group, role, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          `)
+          .bind(
+            data.semester_id,
+            data.title || null,
+            data.f_name,
+            data.l_name,
+            data.email || null,
+            data.phone || null,
+            data.subject_group,
+            data.role || 'teacher'
+          )
+          .run();
+      } catch (e) {
+        const msg = String(e);
+        if (msg.includes('no such table')) {
+          await this.ensureDynamicTablesExist(year);
+          await this.createTeachersTableIfMissing(year);
+          result = await this.db
+            .prepare(`
+              INSERT INTO ${tableName} (semester_id, title, f_name, l_name, email, phone, subject_group, role, is_active, created_at, updated_at)
+              VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            `)
+            .bind(
+              data.semester_id,
+              data.title || null,
+              data.f_name,
+              data.l_name,
+              data.email || null,
+              data.phone || null,
+              data.subject_group,
+              data.role || 'teacher'
+            )
+            .run();
+        } else {
+          throw e;
+        }
+      }
 
       const newTeacher = await this.db
         .prepare(`
