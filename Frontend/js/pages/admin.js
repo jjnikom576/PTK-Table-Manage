@@ -714,7 +714,8 @@ let adminState = {
   periodsError: null,
   subjectClassSelection: {
     selectedIds: []
-  }
+  },
+  isGeneratingSchedulePrompt: false
 };
 
 // Helper functions for compatibility
@@ -759,6 +760,7 @@ export async function initAdminPage(context = null) {
     await initRoomManagement();
     await initSubjectManagement();
     await initPeriodManagement();
+    initSchedulePromptTools();
   } else {
     // User not logged in - show login form only
     showAuthOnly();
@@ -2816,6 +2818,406 @@ function getActiveAdminContext() {
     || null;
 
   return { year, semesterId };
+}
+
+// ------------------------ Schedule Prompt Generation ------------------------
+
+function initSchedulePromptTools() {
+  const button = document.getElementById('btn-generate-ai');
+
+  if (!button) {
+    console.warn('⚠️ Schedule prompt button not found in DOM');
+    return;
+  }
+
+  if (!button.textContent || !button.textContent.trim()) {
+    button.textContent = '🧠 Generate Prompt';
+  }
+
+  if (button.dataset.bound === 'true') {
+    return;
+  }
+
+  button.addEventListener('click', handleGenerateSchedulePrompt);
+  button.dataset.bound = 'true';
+}
+
+async function handleGenerateSchedulePrompt() {
+  const button = document.getElementById('btn-generate-ai');
+  if (!button) {
+    return;
+  }
+
+  if (adminState.isGeneratingSchedulePrompt) {
+    return;
+  }
+
+  const originalLabel = button.textContent;
+
+  try {
+    adminState.isGeneratingSchedulePrompt = true;
+    button.disabled = true;
+    button.textContent = '⏳ Preparing prompt...';
+
+    const { year, semesterId } = getActiveAdminContext();
+    const semesterName = adminState.activeSemester?.name
+      || adminState.activeSemester?.semester_name
+      || adminState.context?.semester?.name
+      || adminState.context?.semester?.semester_name
+      || null;
+
+    if (!year) {
+      alert('กรุณาเลือกปีการศึกษาปัจจุบันก่อนสร้าง Prompt');
+      return;
+    }
+
+    if (!semesterId) {
+      alert('กรุณาเลือกภาคเรียนที่ใช้งานอยู่ก่อนสร้าง Prompt');
+      return;
+    }
+
+    await ensureSchedulePromptData(year, semesterId);
+
+    const dataset = buildSchedulePromptDataset(year, semesterId, semesterName);
+
+    if (!dataset.subjects || dataset.subjects.length === 0) {
+      alert('ไม่พบรายวิชาสำหรับภาคเรียนนี้ กรุณาตรวจสอบข้อมูลก่อนค่ะ');
+      return;
+    }
+
+    const promptText = buildSchedulePromptText(dataset);
+    const downloaded = downloadPromptFile(promptText, year, semesterId);
+    if (downloaded) {
+      alert('สร้าง Prompt สำเร็จแล้ว! ตรวจสอบไฟล์ .txt ที่ดาวน์โหลดเพื่อใช้งานกับ AI');
+    }
+  } catch (error) {
+    console.error('❌ Error generating schedule prompt:', error);
+    alert('เกิดข้อผิดพลาดในการสร้าง Prompt กรุณาลองอีกครั้ง');
+  } finally {
+    adminState.isGeneratingSchedulePrompt = false;
+    if (button) {
+      button.disabled = false;
+      button.textContent = originalLabel;
+    }
+  }
+}
+
+async function ensureSchedulePromptData(year, semesterId) {
+  try {
+    if (typeof scheduleAPI.invalidateCacheByPattern === 'function') {
+      scheduleAPI.invalidateCacheByPattern(`subjects_${year}_`);
+      scheduleAPI.invalidateCacheByPattern(`teachers_${year}_`);
+      scheduleAPI.invalidateCacheByPattern(`classes_${year}_`);
+      scheduleAPI.invalidateCacheByPattern(`rooms_${year}_`);
+      scheduleAPI.invalidateCacheByPattern(`periods_${year}_`);
+    }
+  } catch (cacheError) {
+    console.warn('⚠️ Unable to invalidate schedule cache before prompt generation:', cacheError);
+  }
+
+  await loadTeachersData();
+  await loadClassesData();
+  await loadRoomsData();
+  await loadPeriodsData();
+  await loadSubjectsData();
+}
+
+function buildSchedulePromptDataset(year, semesterId, semesterName) {
+  const scheduleTableName = `schedules_${year}`;
+  const generatedAt = new Date().toISOString();
+
+  const subjectsRaw = Array.isArray(adminState.subjectsRaw) ? adminState.subjectsRaw : [];
+
+  const subjects = subjectsRaw
+    .filter(subject => Number(subject.semester_id) === Number(semesterId))
+    .map(subject => {
+      const classIds = parseNumericArray(subject.class_ids, subject.class_id);
+      const classNames = classIds.map(id => getClassDisplayNameById(id)).filter(Boolean);
+      const teacherName = getTeacherDisplayNameById(subject.teacher_id)
+        || normalizeTeacherNameString(subject.teacher_name)
+        || null;
+
+      const defaultRoomId = subject.default_room_id != null ? Number(subject.default_room_id) : null;
+
+      return {
+        id: subject.id != null ? Number(subject.id) : null,
+        group_key: subject.group_key || null,
+        subject_name: subject.subject_name || '',
+        subject_code: subject.subject_code || null,
+        subject_group: subject.subject_group || null,
+        teacher_id: subject.teacher_id != null ? Number(subject.teacher_id) : null,
+        teacher_name: teacherName,
+        class_ids: classIds,
+        classes: classNames,
+        periods_per_week: subject.periods_per_week != null ? Number(subject.periods_per_week) : null,
+        default_room_id: defaultRoomId,
+        default_room_name: subject.room_name || (defaultRoomId ? getRoomDisplayNameById(defaultRoomId) : null),
+        special_requirements: subject.special_requirements || null,
+        notes: subject.notes || null
+      };
+    })
+    .sort((a, b) => {
+      const teacherCompare = (a.teacher_name || '').localeCompare(b.teacher_name || '', 'th');
+      if (teacherCompare !== 0) return teacherCompare;
+      return (a.subject_name || '').localeCompare(b.subject_name || '', 'th');
+    });
+
+  const teacherIdsUsed = new Set(subjects
+    .map(subject => subject.teacher_id)
+    .filter(id => Number.isFinite(id)));
+
+  const classIdsUsed = new Set(subjects
+    .flatMap(subject => subject.class_ids)
+    .filter(id => Number.isFinite(id)));
+
+  const roomIdsUsed = new Set(subjects
+    .map(subject => subject.default_room_id)
+    .filter(id => Number.isFinite(id)));
+
+  const periodEntries = (Array.isArray(adminState.periods) ? adminState.periods : [])
+    .filter(period => Number(period.semester_id) === Number(semesterId))
+    .map(period => ({
+      period_no: Number(period.period_no),
+      period_name: period.period_name || null,
+      start_time: period.start_time || null,
+      end_time: period.end_time || null
+    }))
+    .filter(entry => Number.isFinite(entry.period_no))
+    .sort((a, b) => a.period_no - b.period_no);
+
+  const teacherEntries = (Array.isArray(adminState.teachers) ? adminState.teachers : [])
+    .filter(teacher => teacherIdsUsed.size === 0 || teacherIdsUsed.has(Number(teacher.id)))
+    .map(teacher => {
+      const formattedName = formatTeacherName(teacher)
+        || normalizeTeacherNameString(teacher.full_name)
+        || getFullName(teacher);
+
+      return {
+        id: Number(teacher.id),
+        name: formattedName,
+        title: teacher.title || null,
+        subject_group: teacher.subject_group || null,
+        email: teacher.email || null,
+        phone: teacher.phone || null
+      };
+    })
+    .filter(entry => Number.isFinite(entry.id));
+
+  const missingTeacherIds = [...teacherIdsUsed].filter(id => !teacherEntries.some(entry => entry.id === id));
+  if (missingTeacherIds.length > 0) {
+    missingTeacherIds.forEach(id => {
+      const fallbackSubject = subjects.find(subject => subject.teacher_id === id);
+      teacherEntries.push({
+        id,
+        name: fallbackSubject?.teacher_name || `ครู #${id}`,
+        title: null,
+        subject_group: fallbackSubject?.subject_group || null,
+        email: null,
+        phone: null
+      });
+    });
+  }
+
+  teacherEntries.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
+
+  const classEntries = (Array.isArray(adminState.classes) ? adminState.classes : [])
+    .filter(cls => classIdsUsed.size === 0 || classIdsUsed.has(Number(cls.id)))
+    .map(cls => {
+      const displayName = cls.display_name || cls.class_name || getClassDisplayNameById(cls.id);
+      return {
+        id: Number(cls.id),
+        name: displayName,
+        class_name: cls.class_name || null,
+        grade_level: cls.grade_level ?? null,
+        section: cls.section ?? null,
+        homeroom_teacher_id: cls.homeroom_teacher_id != null ? Number(cls.homeroom_teacher_id) : null
+        // student_count: cls.student_count != null ? Number(cls.student_count) : null
+      };
+    })
+    .filter(entry => Number.isFinite(entry.id))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
+
+  const roomEntries = (Array.isArray(adminState.rooms) ? adminState.rooms : [])
+    .map(room => ({
+      id: Number(room.id),
+      name: room.display_name || room.room_name || `ห้อง ${room.id}`,
+      room_type: room.room_type || null,
+      capacity: room.capacity != null ? Number(room.capacity) : null,
+      attributes: room.attributes || room.special_equipment || null
+    }))
+    .filter(entry => Number.isFinite(entry.id))
+    .sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
+
+  const missingRoomIds = [...roomIdsUsed].filter(id => !roomEntries.some(entry => entry.id === id));
+  if (missingRoomIds.length > 0) {
+    missingRoomIds.forEach(id => {
+      roomEntries.push({
+        id,
+        name: getRoomDisplayNameById(id),
+        room_type: null,
+        capacity: null,
+        attributes: null
+      });
+    });
+    roomEntries.sort((a, b) => (a.name || '').localeCompare(b.name || '', 'th'));
+  }
+
+  const dataset = {
+    context: {
+      generated_at: generatedAt,
+      year,
+      semester_id: semesterId,
+      semester_name: semesterName,
+      schedule_table: scheduleTableName,
+      subject_table: `subjects_${year}`,
+      day_of_week_definition: '1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday',
+      required_insert_columns: ['semester_id', 'subject_id', 'day_of_week', 'period_no', 'room_id'],
+      constraints: [
+        'Each subject must be scheduled exactly periods_per_week times within the week.',
+        'A teacher cannot teach more than one subject in the same day_of_week & period_no slot.',
+        'A class cannot have more than one subject in the same day_of_week & period_no slot.',
+        'Prefer using default_room_id / default_room_name when available.',
+        'Respect any special_requirements, such as consecutive periods or forbidden slots.'
+      ],
+      summary: {
+        subject_count: subjects.length,
+        teacher_count: teacherEntries.length,
+        class_count: classEntries.length,
+        room_count: roomEntries.length,
+        period_count: periodEntries.length
+      }
+    },
+    subjects,
+    teachers: teacherEntries,
+    classes: classEntries,
+    rooms: roomEntries,
+    periods: periodEntries
+  };
+
+  return dataset;
+}
+
+function buildSchedulePromptText(dataset) {
+  const { context } = dataset;
+
+  const lines = [
+    '# School Schedule AI Prompt',
+    '',
+    'ใช้ข้อมูล JSON ด้านล่างเพื่อจัดตารางสอนทั้งสัปดาห์ให้ครบถ้วนตามข้อกำหนด',
+    '',
+    '## Context',
+    `- Academic Year: ${context.year}`,
+    `- Semester ID: ${context.semester_id}`,
+    context.semester_name ? `- Semester Name: ${context.semester_name}` : null,
+    `- Target Table: ${context.schedule_table}`,
+    `- Day of Week Mapping: ${context.day_of_week_definition}`,
+    '',
+    '## Instructions for the AI',
+    '1. เติมตารางสอนให้ครบตามค่า periods_per_week ของแต่ละวิชาใน dataset.',
+    '2. หลีกเลี่ยงการชนกันของครู, ชั้นเรียน และห้องเรียนในแต่ละคาบ (day_of_week + period_no).',
+    '3. เคารพเงื่อนไขพิเศษในฟิลด์ special_requirements และใช้ห้อง default เมื่อมี.',
+    `4. ตอบกลับเป็นคำสั่ง SQL INSERT เท่านั้น โดยใช้รูปแบบ: INSERT INTO ${context.schedule_table} (semester_id, subject_id, day_of_week, period_no, room_id) VALUES (...);`,
+    '5. ใส่หนึ่ง INSERT ต่อหนึ่งคาบเรียน และใช้ NULL สำหรับ room_id หากไม่มีข้อมูล.',
+    '6. ห้ามส่งคำอธิบายหรือข้อความอื่น นอกจาก SQL statements.',
+    '',
+    '## Dataset (คัดลอกไปวางใน Prompt ได้เลย)',
+    '```json',
+    JSON.stringify(dataset, null, 2),
+    '```',
+    '',
+    '## Output Format Example',
+    `INSERT INTO ${context.schedule_table} (semester_id, subject_id, day_of_week, period_no, room_id) VALUES (${context.semester_id}, 101, 1, 1, NULL);`
+  ];
+
+  return lines.filter(Boolean).join('\n');
+}
+
+function downloadPromptFile(content, year, semesterId) {
+  if (!content) {
+    return false;
+  }
+
+  const filename = `schedule_prompt_${year}_semester-${semesterId}.txt`;
+
+  try {
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const urlFactory = window.URL || window.webkitURL;
+    const url = urlFactory.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.style.display = 'none';
+
+    document.body.appendChild(link);
+
+    requestAnimationFrame(() => {
+      try {
+        link.click();
+      } finally {
+        document.body.removeChild(link);
+        urlFactory.revokeObjectURL(url);
+      }
+    });
+    return true;
+  } catch (error) {
+    console.warn('⚠️ Automatic download failed, falling back to new window.', error);
+    const encoded = encodeURIComponent(content);
+    const fallbackWindow = window.open(`data:text/plain;charset=utf-8,${encoded}`, '_blank');
+    if (!fallbackWindow) {
+      try {
+        navigator.clipboard?.writeText(content);
+        alert('ไม่สามารถดาวน์โหลดไฟล์ได้ ระบบได้คัดลอก Prompt ไว้ในคลิปบอร์ดแล้ว');
+        return false;
+      } catch (_) {
+        alert('ไม่สามารถดาวน์โหลดไฟล์ได้ กรุณาคัดลอก Prompt ด้วยตนเอง:\n\n' + content.substring(0, 5000));
+        return false;
+      }
+    } else {
+      alert('ไม่สามารถดาวน์โหลดไฟล์ได้อัตโนมัติ จึงเปิด Prompt ในแท็บใหม่แทน');
+      return false;
+    }
+  }
+}
+
+function parseNumericArray(arrayLike, fallback) {
+  if (Array.isArray(arrayLike)) {
+    return arrayLike
+      .map(value => Number(value))
+      .filter(value => Number.isFinite(value));
+  }
+
+  if (typeof arrayLike === 'string') {
+    const trimmed = arrayLike.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .map(value => Number(value))
+            .filter(value => Number.isFinite(value));
+        }
+      } catch (_) {
+        // ignore JSON parse error, fall back to comma split
+      }
+    }
+
+    if (trimmed.length > 0) {
+      return trimmed
+        .split(',')
+        .map(value => Number(value.trim()))
+        .filter(value => Number.isFinite(value));
+    }
+  }
+
+  if (fallback != null) {
+    const num = Number(fallback);
+    if (Number.isFinite(num)) {
+      return [num];
+    }
+  }
+
+  return [];
 }
 
 // ------------------------ Period Management ------------------------

@@ -394,6 +394,7 @@ export class SchemaManager {
       "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
       "semester_id INTEGER NOT NULL, " +
       "subject_id INTEGER NOT NULL, " +
+      "class_id INTEGER NOT NULL, " +
       "day_of_week INTEGER NOT NULL CHECK (day_of_week BETWEEN 1 AND 7), " +
       "period_no INTEGER NOT NULL, " +
       "room_id INTEGER, " +
@@ -401,9 +402,10 @@ export class SchemaManager {
       "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
       "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
       "FOREIGN KEY (subject_id) REFERENCES subjects_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (class_id) REFERENCES classes_" + year + "(id) ON DELETE CASCADE, " +
       "FOREIGN KEY (semester_id, period_no) REFERENCES periods_" + year + "(semester_id, period_no) ON DELETE RESTRICT, " +
       "FOREIGN KEY (room_id) REFERENCES rooms_" + year + "(id) ON DELETE SET NULL, " +
-      "UNIQUE (semester_id, day_of_week, period_no, room_id)" +
+      "UNIQUE (semester_id, day_of_week, period_no, room_id, class_id)" +
       ")"
     );
 

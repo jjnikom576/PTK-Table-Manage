@@ -31,7 +31,20 @@ export async function authMiddleware(
       '/'
     ];
 
-    if (publicRoutes.includes(path)) {
+    const publicGetPrefixes = [
+      '/api/schedule/timetable',
+      '/api/schedule/classes',
+      '/api/schedule/teachers',
+      '/api/schedule/rooms',
+      '/api/schedule/subjects',
+      '/api/schedule/schedules'
+    ];
+
+    const isPublicRoute = publicRoutes.includes(path);
+    const isPublicGet = c.req.method === 'GET'
+      && publicGetPrefixes.some(prefix => path.startsWith(prefix));
+
+    if (isPublicRoute || isPublicGet) {
       console.log('AuthMiddleware: Path is public, skipping auth');
       return await next();
     }
@@ -246,6 +259,12 @@ const requestCounts = new Map<string, { count: number; resetTime: number }>();
 
 export function rateLimitMiddleware(maxRequests = 100, windowMs = 60000) {
   return async (c: Context, next: Next) => {
+    const environment = (c.env as Env)?.ENVIRONMENT || (c.env as any)?.NODE_ENV || 'production';
+
+    if (environment.toLowerCase() === 'development' || environment.toLowerCase() === 'local') {
+      return await next();
+    }
+
     const ip = c.req.header('CF-Connecting-IP') || 
                c.req.header('X-Forwarded-For') || 
                c.req.header('X-Real-IP') || 

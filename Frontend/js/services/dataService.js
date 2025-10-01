@@ -7,7 +7,7 @@ import { mockData } from '../data/index.js';
 import * as substitutionsAPI from '../api/substitutions.js';
 import scheduleAPI from '../api/schedule-api.js';
 import coreAPI from '../api/core-api.js';
-import { getThaiDayName, getDayName, generateTimeSlots } from '../utils.js';
+import { getThaiDayName, getDayName, getDisplayPeriods, getLunchSlot } from '../utils.js';
 
 // =============================================================================
 // SERVICE CONFIGURATION & CONTEXT
@@ -338,7 +338,7 @@ export async function loadYearData(year) {
         resolvedSemesterId ? getClasses(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
         resolvedSemesterId ? getRooms(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
         resolvedSemesterId ? getSubjects(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
-        getSchedules(year)
+        resolvedSemesterId ? getSchedules(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] })
       ]);
 
       if (![teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes].every(r => r.ok)) {
@@ -612,18 +612,19 @@ export async function getSubjects(year = null, semesterId = null) {
 /**
  * Get Schedules (FIXED - เพิ่ม year parameter)
  */
-export async function getSchedules(year = null) {
+export async function getSchedules(year = null, semesterId = null) {
   const targetYear = year || currentContext.year;
+  const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
   
-  console.log(`[DataService] getSchedules for year: ${targetYear}`);
+  console.log(`[DataService] getSchedules for year: ${targetYear}${targetSemester ? `, semester: ${targetSemester}` : ''}`);
   
-  const cacheKey = `schedules_${targetYear}`;
+  const cacheKey = targetSemester ? `schedules_${targetYear}_${targetSemester}` : `schedules_${targetYear}`;
   let cached = cache.get(cacheKey);
   if (cached) {
-    console.log(`[DataService] ✅ Schedules cache HIT for year ${targetYear}:`, cached.length);
+    console.log(`[DataService] ✅ Schedules cache HIT for year ${targetYear}${targetSemester ? ` semester ${targetSemester}` : ''}:`, cached.length);
     return { ok: true, data: cached };
   }
   
@@ -640,8 +641,12 @@ export async function getSchedules(year = null) {
       cache.set(cacheKey, schedules);
       return { ok: true, data: schedules };
     } else {
-      const semesterId = currentContext.semesterId || currentContext.semester?.id;
-      const result = await scheduleAPI.getSchedules(targetYear, semesterId || null);
+      if (!targetSemester) {
+        console.warn('[DataService] ⚠️ Missing semester context for schedules in API mode');
+        return { ok: true, data: [] };
+      }
+
+      const result = await scheduleAPI.getSchedules(targetYear, targetSemester);
       if (result.success) {
         const schedules = Array.isArray(result.data) ? result.data : [];
         cache.set(cacheKey, schedules);
@@ -710,8 +715,66 @@ export async function getStudentSchedule(classId) {
     }
     
     // หา schedules ของ class นี้
-    const classSchedules = schedules.filter(s => s.class_id === classInfo.id);
-    
+    const targetClassId = Number(classInfo.id);
+    const normaliseIdList = (value) => {
+      if (Array.isArray(value)) {
+        return value
+          .map(item => Number(item))
+          .filter(Number.isFinite);
+      }
+      if (typeof value === 'string' && value.trim().length > 0) {
+        let source = value.trim();
+        try {
+          const parsed = JSON.parse(source);
+          if (Array.isArray(parsed)) {
+            return parsed
+              .map(item => Number(item))
+              .filter(Number.isFinite);
+          }
+          source = String(parsed);
+        } catch (error) {
+          // ignore, fallback below
+        }
+        return source
+          .split(',')
+          .map(item => Number(item.trim()))
+          .filter(Number.isFinite);
+      }
+      if (value !== null && value !== undefined) {
+        const numeric = Number(value);
+        return Number.isFinite(numeric) ? [numeric] : [];
+      }
+      return [];
+    };
+
+    const classSchedules = schedules.filter(schedule => {
+      const scheduleClassId = Number(schedule.class_id ?? schedule.classId);
+      if (Number.isFinite(scheduleClassId)) {
+        if (Number.isFinite(targetClassId) && scheduleClassId === targetClassId) {
+          return true;
+        }
+        return false;
+      }
+
+      const candidateIds = new Set([
+        ...normaliseIdList(schedule.class_ids),
+        ...normaliseIdList(schedule.classIds)
+      ]);
+      if (Number.isFinite(targetClassId) && candidateIds.has(targetClassId)) {
+        return true;
+      }
+
+      if (schedule.class_name && classInfo.class_name && schedule.class_name === classInfo.class_name) {
+        return true;
+      }
+
+      return false;
+    });
+
+    if (!classSchedules.length) {
+      console.warn('[DataService] No schedules matched class id', classInfo.id, 'from total', schedules.length);
+    }
+
     // สร้างตารางแบบ matrix
     const scheduleMatrix = buildScheduleMatrix(classSchedules, { subjects, teachers, rooms });
     
@@ -752,17 +815,31 @@ function buildScheduleMatrix(schedules, context) {
     const subject = context.subjects.find(s => s.id === schedule.subject_id);
     const teacher = context.teachers.find(t => t.id === subject?.teacher_id);
     const room = context.rooms.find(r => r.id === schedule.room_id);
-    
+
     if (schedule.day_of_week && schedule.period) {
+      const teacherName = teacher?.full_name
+        || teacher?.name
+        || [teacher?.title, teacher?.f_name, teacher?.l_name].filter(Boolean).join(' ')
+        || schedule.teacher_name
+        || '';
+      const roomName = room?.room_name
+        || room?.name
+        || schedule.room_name
+        || '';
+
       matrix[schedule.day_of_week][schedule.period] = {
         schedule,
-        subject: subject || { subject_name: 'ไม่ระบุวิชา' },
-        teacher: teacher || { name: 'ไม่ระบุครู' },
-        room: room || { name: 'ไม่ระบุห้อง' }
+        subject: subject || { subject_name: schedule.subject_name || 'ไม่ระบุวิชา' },
+        teacher: teacher
+          ? { ...teacher, name: teacherName || 'ไม่ระบุครู' }
+          : { name: teacherName || 'ไม่ระบุครู' },
+        room: room
+          ? { ...room, name: roomName || 'ไม่ระบุห้อง' }
+          : { name: roomName || 'ไม่ระบุห้อง' }
       };
     }
   });
-  
+
   return matrix;
 }
 
@@ -1117,8 +1194,15 @@ export async function normalizeSubstitutionForExport({ substitutions, schedules,
 
 // Helper function for time slots
 function getTimeSlot(period) {
-  const timeSlots = generateTimeSlots();
-  return timeSlots[period - 1] || `คาบ ${period}`;
+  const displayPeriods = getDisplayPeriods();
+  const lunchSlot = getLunchSlot();
+  const periodMap = new Map(displayPeriods.map(p => [p.actual, p.label]));
+
+  if (period === lunchSlot.period) {
+    return lunchSlot.time;
+  }
+
+  return periodMap.get(period) || `คาบ ${period}`;
 }
 
 // Export current context

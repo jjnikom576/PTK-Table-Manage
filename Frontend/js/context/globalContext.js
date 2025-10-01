@@ -57,15 +57,20 @@ export async function initGlobalContext() {
     const isAuthenticated = authAPI.isAuthenticated();
     console.log('[GlobalContext] Authentication status:', isAuthenticated);
     await loadContextFromAPI();
-    
-    // If backend returned nothing, fall back to storage
-    if (globalContext.availableYears.length === 0 && globalContext.availableSemesters.length === 0) {
+
+    const hasBackendData = globalContext.availableYears.length > 0 || globalContext.availableSemesters.length > 0;
+
+    if (!hasBackendData) {
+      clearStoredContext();
+      setFallbackContext();
+    } else if (!globalContext.currentYear || !globalContext.currentSemester) {
       const storedContext = loadContextFromStorage();
-      if (storedContext && isContextValid(storedContext)) {
-        Object.assign(globalContext, storedContext);
+      if (storedContext && isStoredContextCompatible(storedContext)) {
+        applyStoredContext(storedContext);
         console.log('[GlobalContext] Loaded context from storage:', storedContext);
-      } else {
-        setFallbackContext();
+      } else if (storedContext) {
+        console.log('[GlobalContext] Stored context is out of date, clearing');
+        clearStoredContext();
       }
     }
     
@@ -453,6 +458,27 @@ export function isContextValid(storedContext) {
     storedContext.currentSemester &&
     typeof storedContext.currentSemester === 'object'
   );
+}
+
+function isStoredContextCompatible(storedContext) {
+  if (!isContextValid(storedContext)) return false;
+
+  const yearExists = globalContext.availableYears.some(year => year.year === storedContext.currentYear);
+  const semesterId = storedContext.currentSemester?.id;
+  const semesterExists = Boolean(semesterId) && globalContext.availableSemesters.some(semester => semester.id === semesterId);
+
+  return yearExists && semesterExists;
+}
+
+function applyStoredContext(storedContext) {
+  globalContext.currentYear = storedContext.currentYear;
+
+  const semesterId = storedContext.currentSemester?.id;
+  if (semesterId) {
+    globalContext.currentSemester = globalContext.availableSemesters.find(semester => semester.id === semesterId) || null;
+  } else {
+    globalContext.currentSemester = null;
+  }
 }
 
 // =============================================================================

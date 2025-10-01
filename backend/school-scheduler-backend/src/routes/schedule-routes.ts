@@ -80,9 +80,6 @@ scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env; Variables: A
   }
 });
 
-// Apply authentication to remaining schedule routes (write/admin operations)
-scheduleRoutes.use('*', requireAdmin);
-
 // ===========================================
 // Teachers Routes
 // ===========================================
@@ -119,7 +116,7 @@ scheduleRoutes.get('/teachers', async (c: Context<{ Bindings: Env; Variables: Ap
 });
 
 // POST /api/schedule/teachers
-scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.post('/teachers', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateTeacherRequest>();
     
@@ -192,7 +189,7 @@ scheduleRoutes.post('/teachers', requireJSON, async (c: Context<{ Bindings: Env;
 });
 
 // PUT /api/schedule/teachers/:id
-scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.put('/teachers/:id', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const teacherId = parseInt(c.req.param('id'));
     const body = await c.req.json<Partial<CreateTeacherRequest>>();
@@ -248,7 +245,7 @@ scheduleRoutes.put('/teachers/:id', requireJSON, async (c: Context<{ Bindings: E
 });
 
 // DELETE /api/schedule/teachers/:id
-scheduleRoutes.delete('/teachers/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.delete('/teachers/:id', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const teacherId = parseInt(c.req.param('id'));
     
@@ -342,7 +339,7 @@ scheduleRoutes.get('/classes', async (c: Context<{ Bindings: Env; Variables: App
 });
 
 // POST /api/schedule/classes
-scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.post('/classes', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateClassRequest>();
     
@@ -440,7 +437,7 @@ scheduleRoutes.post('/classes', requireJSON, async (c: Context<{ Bindings: Env; 
 });
 
 // PUT /api/schedule/classes/:id
-scheduleRoutes.put('/classes/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.put('/classes/:id', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const classId = parseInt(c.req.param('id'));
     if (Number.isNaN(classId)) {
@@ -540,7 +537,7 @@ scheduleRoutes.put('/classes/:id', requireJSON, async (c: Context<{ Bindings: En
 });
 
 // DELETE /api/schedule/classes/:id
-scheduleRoutes.delete('/classes/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.delete('/classes/:id', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const classId = parseInt(c.req.param('id'));
     if (Number.isNaN(classId)) {
@@ -656,7 +653,7 @@ scheduleRoutes.get('/periods', async (c: Context<{ Bindings: Env; Variables: App
   }
 });
 
-scheduleRoutes.post('/periods', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.post('/periods', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreatePeriodRequest>();
 
@@ -750,7 +747,7 @@ scheduleRoutes.post('/periods', requireJSON, async (c: Context<{ Bindings: Env; 
   }
 });
 
-scheduleRoutes.put('/periods/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.put('/periods/:id', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const periodId = parseInt(c.req.param('id'));
     if (Number.isNaN(periodId)) {
@@ -854,7 +851,7 @@ scheduleRoutes.put('/periods/:id', requireJSON, async (c: Context<{ Bindings: En
   }
 });
 
-scheduleRoutes.delete('/periods/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.delete('/periods/:id', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const periodId = parseInt(c.req.param('id'));
     if (Number.isNaN(periodId)) {
@@ -970,7 +967,7 @@ scheduleRoutes.get('/rooms', async (c: Context<{ Bindings: Env; Variables: AppVa
 });
 
 // POST /api/schedule/rooms
-scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.post('/rooms', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateRoomRequest>();
     
@@ -1058,7 +1055,7 @@ scheduleRoutes.post('/rooms', requireJSON, async (c: Context<{ Bindings: Env; Va
 });
 
 // PUT /api/schedule/rooms/:id
-scheduleRoutes.put('/rooms/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.put('/rooms/:id', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const roomId = parseInt(c.req.param('id'));
     if (Number.isNaN(roomId)) {
@@ -1159,7 +1156,7 @@ scheduleRoutes.put('/rooms/:id', requireJSON, async (c: Context<{ Bindings: Env;
 });
 
 // DELETE /api/schedule/rooms/:id
-scheduleRoutes.delete('/rooms/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.delete('/rooms/:id', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const roomId = parseInt(c.req.param('id'));
     if (Number.isNaN(roomId)) {
@@ -1272,7 +1269,7 @@ scheduleRoutes.get('/subjects', async (c: Context<{ Bindings: Env; Variables: Ap
 });
 
 // POST /api/schedule/subjects
-scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.post('/subjects', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateSubjectRequest>();
     
@@ -1384,7 +1381,7 @@ scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env;
 });
 
 // PUT /api/schedule/subjects/:id
-scheduleRoutes.put('/subjects/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.put('/subjects/:id', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const subjectId = parseInt(c.req.param('id'));
     if (isNaN(subjectId)) {
@@ -1552,7 +1549,7 @@ scheduleRoutes.put('/subjects/:id', requireJSON, async (c: Context<{ Bindings: E
 });
 
 // DELETE /api/schedule/subjects/:id
-scheduleRoutes.delete('/subjects/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.delete('/subjects/:id', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const subjectId = parseInt(c.req.param('id'));
     if (isNaN(subjectId)) {
@@ -1659,7 +1656,7 @@ scheduleRoutes.get('/schedules', async (c: Context<{ Bindings: Env; Variables: A
 });
 
 // POST /api/schedule/schedules
-scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.post('/schedules', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const body = await c.req.json<CreateScheduleRequest>();
     
@@ -1758,7 +1755,7 @@ scheduleRoutes.post('/schedules', requireJSON, async (c: Context<{ Bindings: Env
 });
 
 // DELETE /api/schedule/schedules/:id
-scheduleRoutes.delete('/schedules/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.delete('/schedules/:id', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const scheduleId = parseInt(c.req.param('id'));
     
@@ -1905,7 +1902,7 @@ scheduleRoutes.get('/timetable', async (c: Context<{ Bindings: Env; Variables: A
 });
 
 // GET /api/schedule/conflicts (Check for scheduling conflicts)
-scheduleRoutes.get('/conflicts', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+scheduleRoutes.get('/conflicts', requireAdmin, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
   try {
     const dbManager = new DatabaseManager(c.env.DB, c.env);
     

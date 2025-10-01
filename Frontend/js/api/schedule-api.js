@@ -590,7 +590,15 @@ class ScheduleAPI {
    * SCHEDULES API
    */
   async getSchedules(year, semesterId = null) {
-    const cacheKey = semesterId ? `schedules_${year}_${semesterId}` : `schedules_${year}`;
+    if (semesterId == null || semesterId === '') {
+      console.warn(`[ScheduleAPI] getSchedules called without semesterId for year ${year}, returning empty result`);
+      return {
+        success: true,
+        data: []
+      };
+    }
+
+    const cacheKey = `schedules_${year}_${semesterId}`;
     
     if (this.isCacheValid(cacheKey)) {
       return {
@@ -601,9 +609,7 @@ class ScheduleAPI {
 
     try {
       let endpoint = this.getYearEndpoint('schedules', year);
-      if (semesterId) {
-        endpoint += `?semester_id=${semesterId}`;
-      }
+      endpoint += `?semester_id=${encodeURIComponent(semesterId)}`;
 
       const result = await apiManager.get(endpoint);
       

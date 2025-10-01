@@ -117,7 +117,7 @@ export async function createClass(classData, year) {
       class_name: className,
       grade_level: classData.grade_level,
       section: parseInt(classData.section),
-      student_count: classData.student_count || null,
+      // student_count: classData.student_count || null,
       created_at: new Date().toISOString()
     };
     

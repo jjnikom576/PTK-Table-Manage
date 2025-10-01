@@ -1573,6 +1573,7 @@ export class DatabaseManager {
             sch.id,
             sch.semester_id,
             sch.subject_id,
+            sch.class_id,
             sch.day_of_week,
             sch.period_no AS period,
             sch.room_id,
@@ -1580,8 +1581,8 @@ export class DatabaseManager {
             sch.updated_at,
             sub.subject_name,
             sub.subject_code,
+            sub.class_ids,
             sub.teacher_id,
-            sub.class_id,
             t.full_name as teacher_name,
             c.class_name,
             r.room_name,
@@ -1591,7 +1592,7 @@ export class DatabaseManager {
           FROM ${tableName} sch
           JOIN subjects_${year} sub ON sch.subject_id = sub.id
           JOIN teachers_${year} t ON sub.teacher_id = t.id
-          JOIN classes_${year} c ON sub.class_id = c.id
+          JOIN classes_${year} c ON sch.class_id = c.id
           LEFT JOIN rooms_${year} r ON sch.room_id = r.id
           JOIN periods_${year} p ON p.semester_id = sch.semester_id AND p.period_no = sch.period_no AND p.is_active = 1
           WHERE sch.semester_id = ?
@@ -1618,6 +1619,7 @@ export class DatabaseManager {
             sch.id,
             sch.semester_id,
             sch.subject_id,
+            sch.class_id,
             sch.day_of_week,
             sch.period_no AS period,
             sch.room_id,
@@ -1625,8 +1627,8 @@ export class DatabaseManager {
             sch.updated_at,
             sub.subject_name,
             sub.subject_code,
+            sub.class_ids,
             sub.teacher_id,
-            sub.class_id,
             t.full_name as teacher_name,
             c.class_name,
             r.room_name,
@@ -1636,7 +1638,7 @@ export class DatabaseManager {
           FROM ${tableName} sch
           JOIN subjects_${year} sub ON sch.subject_id = sub.id
           JOIN teachers_${year} t ON sub.teacher_id = t.id
-          JOIN classes_${year} c ON sub.class_id = c.id
+          JOIN classes_${year} c ON sch.class_id = c.id
           LEFT JOIN rooms_${year} r ON sch.room_id = r.id
           JOIN periods_${year} p ON p.semester_id = sch.semester_id AND p.period_no = sch.period_no AND p.is_active = 1
           WHERE sch.semester_id = ?

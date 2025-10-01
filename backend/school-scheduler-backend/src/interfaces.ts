@@ -5,6 +5,7 @@ export interface Env {
   SESSION_SECRET?: string;
   ADMIN_DEFAULT_PASSWORD?: string;
   ADMIN_REGISTER_SECRET?: string;
+  ENVIRONMENT?: string;
 }
 
 // ===========================================

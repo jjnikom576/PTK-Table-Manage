@@ -164,6 +164,31 @@ export const generateTimeSlots = () => [
   '15:30 น.\u00A0-\u00A016:20 น.'
 ];
 
+export const getLunchSlot = () => ({
+  period: 5,
+  label: 'พักเที่ยง',
+  time: '12:00 น.\u00A0-\u00A013:00 น.'
+});
+
+export const getDisplayPeriods = () => {
+  const slots = generateTimeSlots();
+
+  const mapping = [
+    { actual: 1, label: slots[0] },
+    { actual: 2, label: slots[1] },
+    { actual: 3, label: slots[2] },
+    { actual: 4, label: slots[3] },
+    { actual: 6, label: slots[4] },
+    { actual: 7, label: slots[5] },
+    { actual: 8, label: slots[6] }
+  ];
+
+  return mapping.map((entry, idx) => ({
+    ...entry,
+    display: idx + 1
+  }));
+};
+
 /**
  * Get Short Day Name
  */

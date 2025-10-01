@@ -7,7 +7,7 @@ import * as dataService from '../services/dataService.js';
 import * as globalContext from '../context/globalContext.js';
 import coreAPI from '../api/core-api.js';
 import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '../utils/export.js';
-import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, generateTimeSlots, isActiveSemester } from '../utils.js';
+import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, getDisplayPeriods, getLunchSlot, isActiveSemester } from '../utils.js';
 
 // =============================================================================
 // EXPORT FUNCTIONS (NEW)
@@ -135,7 +135,8 @@ export async function refreshClassSelector(context = null, preserveSelection = n
   classes.forEach(cls => {
     const option = document.createElement('option');
     option.value = cls.id; // ใช้ id เป็นค่าอ้างอิงหลัก
-    option.textContent = `${cls.class_name} (${cls.student_count || 0} คน)`;
+    // option.textContent = `${cls.class_name} (${cls.student_count || 0} คน)`;
+    option.textContent = `${cls.class_name}`;
     classSelector.appendChild(option);
   });
   
@@ -416,9 +417,7 @@ export async function loadScheduleForContext(classRef, context) {
     const result = await dataService.getStudentSchedule(classId);
     console.log('[StudentSchedule] Schedule load result:', result?.ok ? '✅ Success' : '❌ Failed', result);
     if (result && result.ok && result.data?.matrix) {
-      if (!pageState.currentSchedule) {
-        pageState.currentSchedule = result.data;
-      }
+      pageState.currentSchedule = result.data;
       pageState.selectedClass = classId;
 
       // Render schedule
@@ -519,7 +518,8 @@ export function renderClassSelector(availableClasses, selectedClass) {
     classes.forEach(cls => {
       const option = document.createElement('option');
       option.value = cls.id;
-      option.textContent = `${cls.class_name} (${cls.student_count || 'ไม่ระบุ'} คน)`;
+      // option.textContent = `${cls.class_name} (${cls.student_count || 'ไม่ระบุ'} คน)`;
+      option.textContent = `${cls.class_name}`;
       option.selected = String(cls.id) === String(selectedClass);
       optgroup.appendChild(option);
     });
@@ -560,7 +560,8 @@ export function renderScheduleTable(resultData, context) {
     return;
   }
 
-  const timeSlots = generateTimeSlots();
+  const displayPeriods = getDisplayPeriods();
+  const lunchSlot = getLunchSlot();
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
 
   // Build header: วัน/เวลา | คาบ 1 | คาบ 2 | ...
@@ -568,11 +569,10 @@ export function renderScheduleTable(resultData, context) {
   html += '<table class="schedule-table">';
   html += '<thead><tr>';
   html += '<th class="day-header">วัน/เวลา</th>';
-  timeSlots.forEach((slot, idx) => {
-    const period = idx + 1;
-    html += `<th class="period-header"><div class="period-info"><span class="period-number">คาบ ${period}</span><span class="time-slot">${slot}</span></div></th>`;
-    if (period === 4) {
-      html += `<th class="lunch-header lunch-column"><div class="lunch-info">พักเที่ยง<br><small>12:00 - 13:00</small></div></th>`;
+  displayPeriods.forEach(({ display, actual, label }) => {
+    html += `<th class="period-header"><div class="period-info"><span class="period-number">คาบ ${display}</span><span class="time-slot">${label}</span></div></th>`;
+    if (actual === 4) {
+      html += `<th class="lunch-header lunch-column"><div class="lunch-info">${lunchSlot.label}<br><small>${lunchSlot.time}</small></div></th>`;
     }
   });
   html += '</tr></thead>';
@@ -584,11 +584,11 @@ export function renderScheduleTable(resultData, context) {
     html += `<tr class="day-row" data-day="${day}">`;
     html += `<td class="day-cell">${dayName}</td>`;
 
-    timeSlots.forEach((_, idx) => {
-      const period = idx + 1;
+    displayPeriods.forEach(({ display, actual }) => {
+      const period = actual;
       const cell = matrix[day]?.[period];
       if (cell) {
-        html += `<td class="schedule-cell has-subject" data-day="${day}" data-period="${period}">` +
+        html += `<td class="schedule-cell has-subject" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
                 `<div class="schedule-cell-content">` +
                 `<div class="subject-name">${cell.subject?.subject_name || '-'}</div>` +
                 `<div class="teacher-name">${cell.teacher?.name || ''}</div>` +
@@ -597,7 +597,7 @@ export function renderScheduleTable(resultData, context) {
                 `</td>`;
       } else {
         const emptyText = '-';
-        html += `<td class="schedule-cell empty" data-day="${day}" data-period="${period}">` +
+        html += `<td class="schedule-cell empty" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
                 `<div class="empty-cell">${emptyText}</div>` +
                 `</td>`;
       }
@@ -606,7 +606,7 @@ export function renderScheduleTable(resultData, context) {
       if (period === 4) {
         if (dayIndex === 0) {
           // Only render once with rowspan to merge Mon-Fri
-          html += `<td class="lunch-cell lunch-column" aria-label="พักเที่ยง" rowspan="${days.length}">พักเที่ยง</td>`;
+          html += `<td class="lunch-cell lunch-column" aria-label="${lunchSlot.label} ${lunchSlot.time}" rowspan="${days.length}">${lunchSlot.label}<br><small>${lunchSlot.time}</small></td>`;
         }
         // For other days, no extra cell so the rowspan cell spans over them
       }
@@ -683,7 +683,8 @@ function getScheduleContainer() {
  * Generate Schedule Table
  */
 export function generateScheduleTable(scheduleData, className, context) {
-  const timeSlots = generateTimeSlots();
+  const displayPeriods = getDisplayPeriods();
+  const lunchSlot = getLunchSlot();
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
   
   // Create schedule matrix
@@ -701,14 +702,14 @@ export function generateScheduleTable(scheduleData, className, context) {
         <tbody>
   `;
   
-  timeSlots.forEach((timeSlot, periodIndex) => {
-    const period = periodIndex + 1;
+  displayPeriods.forEach(({ display, actual, label }) => {
+    const period = actual;
     tableHTML += `
-      <tr class="period-row" data-period="${period}">
+      <tr class="period-row" data-period="${period}" data-display-period="${display}">
         <td class="time-cell">
           <div class="period-info">
-            <span class="period-number">คาบ ${period}</span>
-            <span class="time-slot">${timeSlot}</span>
+            <span class="period-number">คาบ ${display}</span>
+            <span class="time-slot">${label}</span>
           </div>
         </td>
     `;
@@ -732,11 +733,11 @@ export function generateScheduleTable(scheduleData, className, context) {
         `;
       }
     });
-    
+
     tableHTML += '</tr>';
     if (period === 4) {
       // Insert lunch row after period 4
-      tableHTML += `<tr class="lunch-row"><td colspan="6">พักเที่ยง 12:00 น. - 13:00 น.</td></tr>`;
+      tableHTML += `<tr class="lunch-row"><td colspan="6">${lunchSlot.label} ${lunchTimeDisplay}</td></tr>`;
     }
   });
   
@@ -820,9 +821,7 @@ async function robustLoadSchedule(classRef, context) {
 
     const result = await dataService.getStudentSchedule(classId);
     if (result?.ok && result.data?.matrix) {
-      if (!pageState.currentSchedule) {
-        pageState.currentSchedule = result.data;
-      }
+      pageState.currentSchedule = result.data;
       pageState.selectedClass = classId;
       renderScheduleHeader(result.data.classInfo?.class_name || String(classId), ctx);
       renderScheduleTable(result.data, ctx);
@@ -858,14 +857,13 @@ export function highlightCurrentPeriod(context) {
   
   // Time periods mapping
   const timePeriods = [
-    { start: 820, end: 910, period: 1 },
-    { start: 910, end: 1000, period: 2 },
-    { start: 1000, end: 1050, period: 3 },
-    { start: 1050, end: 1140, period: 4 },
-    { start: 1300, end: 1350, period: 5 },
-    { start: 1350, end: 1440, period: 6 },
-    { start: 1440, end: 1530, period: 7 },
-    { start: 1530, end: 1620, period: 8 }
+    { start: 820, end: 930, period: 1 },
+    { start: 930, end: 1020, period: 2 },
+    { start: 1020, end: 1110, period: 3 },
+    { start: 1110, end: 1200, period: 4 },
+    { start: 1300, end: 1350, period: 6 },
+    { start: 1350, end: 1440, period: 7 },
+    { start: 1440, end: 1530, period: 8 }
   ];
   
   // Find current period
@@ -1407,66 +1405,61 @@ async function prepareStudentExportData(className, context) {
   if (!pageState.currentSchedule) {
     throw new Error('ไม่มีข้อมูลตารางเรียน');
   }
-  
-  const timeSlots = generateTimeSlots();
+
+  const displayPeriods = getDisplayPeriods();
+  const lunchSlot = getLunchSlot();
+  const lunchKey = 'พักเที่ยง';
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
-  const exportData = [];
   const cleanRoom = (n) => String(n || '').replace(/^ห้อง\s*/, '');
-  
-  // Header information
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `ตารางเรียน - ${className}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
+
+  const periodHeaders = [];
+  displayPeriods.forEach(period => {
+    periodHeaders.push(`คาบ ${period.display}`);
+    if (period.display === 4) {
+      periodHeaders.push(lunchKey);
+    }
   });
-  
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
-  
-  // Empty row
-  exportData.push({
-    'วัน/เวลา': '', 'คาบ 1': '', 'คาบ 2': '', 'คาบ 3': '',
-    'คาบ 4': '', 'คาบ 5': '', 'คาบ 6': '', 'คาบ 7': '', 'คาบ 8': ''
-  });
-  
-  // Table data (insert lunch column between period 4 and 5)
-  days.forEach((day, dayIndex) => {
+  const createEmptyRow = () => {
+    const row = { 'วัน/เวลา': '' };
+    periodHeaders.forEach(header => { row[header] = ''; });
+    return row;
+  };
+
+  const exportData = [];
+
+  const headerRow = createEmptyRow();
+  headerRow['คาบ 3'] = `ตารางเรียน - ${className}`;
+  exportData.push(headerRow);
+
+  const semesterRow = createEmptyRow();
+  semesterRow['คาบ 3'] = `ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}`;
+  exportData.push(semesterRow);
+
+  exportData.push(createEmptyRow());
+
+  days.forEach((dayName, dayIndex) => {
+    const rowData = createEmptyRow();
     const dayNumber = dayIndex + 1;
-    const rowData = { 'วัน/เวลา': day };
-    
-    timeSlots.forEach((timeSlot, periodIndex) => {
-      const period = periodIndex + 1;
-      const cellData = pageState.currentSchedule.matrix[dayNumber]?.[period];
-      
+    rowData['วัน/เวลา'] = dayName;
+
+    displayPeriods.forEach(({ display, actual }) => {
+      const key = `คาบ ${display}`;
+      const cellData = pageState.currentSchedule.matrix[dayNumber]?.[actual];
+
       if (cellData) {
-        rowData[`คาบ ${period}`] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cleanRoom(cellData.room.name)}`;
+        rowData[key] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cleanRoom(cellData.room.name)}`;
       } else {
-        rowData[`คาบ ${period}`] = '-';
+        rowData[key] = '-';
       }
 
-      if (period === 4 && rowData['พักเที่ยง'] === undefined) {
-        rowData['พักเที่ยง'] = '';
+      if (actual === 4 && lunchKey in rowData) {
+        rowData[lunchKey] = '';
       }
     });
-    
+
     exportData.push(rowData);
   });
-  
+
   return exportData;
 }
 
