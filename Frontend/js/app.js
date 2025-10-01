@@ -289,6 +289,26 @@ class SchoolScheduleApp {
   }
 
   /**
+   * Initialize Teacher Schedule Page
+   */
+  async initializeTeacherPage() {
+    try {
+      console.log('👨‍🏫 Initializing teacher schedule page...');
+      
+      // Initialize teacher schedule with context
+      const context = getContext();
+      if (this.modules.teacherSchedule) {
+        await this.modules.teacherSchedule(context);
+      }
+      
+      console.log('✅ Teacher schedule page initialized');
+      
+    } catch (error) {
+      console.error('❌ Error initializing teacher page:', error);
+    }
+  }
+
+  /**
    * Load default page (Student Schedule)
    */
   async loadDefaultPage() {

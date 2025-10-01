@@ -50,12 +50,20 @@ async function showPage(pageId) {
 
       // Initialize page modules when first shown
       try {
+        const gc = await import('./context/globalContext.js');
+        const ctx = gc.getContext ? gc.getContext() : null;
+        
         if (pageId === 'admin') {
           const mod = await import('./pages/admin.js');
-          const gc = await import('./context/globalContext.js');
-          const ctx = gc.getContext ? gc.getContext() : null;
           if (mod && typeof mod.initAdminPage === 'function') {
             await mod.initAdminPage(ctx);
+          }
+        } else if (pageId === 'teacher') {
+          const mod = await import('./pages/teacherSchedule.js');
+          if (mod && typeof mod.initTeacherSchedulePage === 'function') {
+            console.log('[nav] 👨‍🏫 Initializing teacher schedule page...');
+            await mod.initTeacherSchedulePage(ctx);
+            console.log('[nav] ✅ Teacher schedule page initialized');
           }
         }
       } catch (e) {
