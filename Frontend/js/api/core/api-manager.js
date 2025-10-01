@@ -19,6 +19,7 @@ class APIManager {
     
     // Debug mode
     this.debug = this.isDevelopment;
+    this._sessionBroadcastInFlight = false;
     
     if (this.debug) {
       console.log('🔧 APIManager initialized:', {
@@ -90,6 +91,10 @@ class APIManager {
       if (contentType && contentType.includes('application/json')) {
         const data = await response.json();
         
+        if (!response.ok && response.status === 401) {
+          this.handleUnauthorized(response, data);
+        }
+
         if (response.ok) {
           return {
             success: true,
@@ -106,6 +111,9 @@ class APIManager {
       } else {
         // Non-JSON response
         const text = await response.text();
+        if (!response.ok && response.status === 401) {
+          this.handleUnauthorized(response, text);
+        }
         
         if (response.ok) {
           return {
@@ -128,6 +136,39 @@ class APIManager {
         status: response.status,
         detail: error.message
       };
+    }
+  }
+
+  handleUnauthorized(response, body) {
+    try {
+      if (this._sessionBroadcastInFlight) {
+        return;
+      }
+
+      const session = this.getSession();
+      if (!session || !session.token) {
+        return;
+      }
+
+      this._sessionBroadcastInFlight = true;
+
+      if (typeof window !== 'undefined') {
+        const detail = {
+          status: response?.status,
+          url: response?.url,
+          body,
+          timestamp: Date.now()
+        };
+        window.dispatchEvent(new CustomEvent('auth:session-expired', { detail }));
+      }
+
+      // Reset flag shortly after to allow future detections
+      setTimeout(() => {
+        this._sessionBroadcastInFlight = false;
+      }, 100);
+    } catch (error) {
+      this._sessionBroadcastInFlight = false;
+      console.warn('APIManager: Failed to dispatch session expiration event:', error);
     }
   }
 

@@ -218,7 +218,7 @@ class SchoolScheduleApp {
     
     // Initialize data service but keep it in mock mode for now
     // The loadInitialContext() will handle real API calls
-    await initDataService({ mode: 'mock' });
+      await initDataService({ mode: 'api' });
     await initYearService();
     await initGlobalContext();
     

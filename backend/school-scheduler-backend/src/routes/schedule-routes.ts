@@ -1332,17 +1332,41 @@ scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env;
       return c.json({ success: false, message: 'year and semesterId are required' }, 400);
     }
 
+    if (body.class_ids && !Array.isArray(body.class_ids)) {
+      if (typeof body.class_ids === 'string') {
+        try {
+          const parsed = JSON.parse(body.class_ids);
+          if (Array.isArray(parsed)) {
+            body.class_ids = parsed;
+          }
+        } catch (error) {
+          const values = String(body.class_ids)
+            .split(',')
+            .map(item => Number(item.trim()))
+            .filter(value => Number.isFinite(value));
+          body.class_ids = values;
+        }
+      } else {
+        body.class_ids = [Number(body.class_ids)].filter(value => Number.isFinite(value));
+      }
+    }
+
     const result = await dbManager.createSubject(body, resolvedYear);
 
     if (result.success) {
       const user = c.get('user');
       const authManager = new AuthManager(c.env.DB, c.env);
       const tableName = `subjects_${resolvedYear}`;
+      const recordIds = Array.isArray(result.data)
+        ? result.data
+            .map(item => item?.id)
+            .filter((id): id is number => typeof id === 'number')
+        : [];
       await authManager.logActivity(
         user.id!,
         'CREATE_SUBJECT',
         tableName,
-        result.data?.id?.toString(),
+        recordIds.join(',') || undefined,
         null,
         body
       );
@@ -1354,6 +1378,250 @@ scheduleRoutes.post('/subjects', requireJSON, async (c: Context<{ Bindings: Env;
     return c.json({
       success: false,
       message: 'Failed to create subject',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// PUT /api/schedule/subjects/:id
+scheduleRoutes.put('/subjects/:id', requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const subjectId = parseInt(c.req.param('id'));
+    if (isNaN(subjectId)) {
+      return c.json({ success: false, message: 'Invalid subject ID' }, 400);
+    }
+
+    const body = await c.req.json<Partial<CreateSubjectRequest>>();
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+
+    const yearParam = c.req.query('year');
+    const semesterParamRaw = c.req.query('semesterId') || c.req.query('semester_id') || (body.semester_id ? String(body.semester_id) : undefined);
+
+    let resolvedYear: number | undefined;
+    if (yearParam) {
+      const parsedYear = parseInt(yearParam);
+      if (isNaN(parsedYear)) {
+        return c.json({ success: false, message: 'Invalid year' }, 400);
+      }
+      resolvedYear = parsedYear;
+    }
+
+    let resolvedSemester: number | undefined;
+    if (semesterParamRaw) {
+      const parsedSemester = parseInt(semesterParamRaw);
+      if (isNaN(parsedSemester)) {
+        return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      }
+      resolvedSemester = parsedSemester;
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      const contextResult = await dbManager.getGlobalContext();
+      const context = contextResult.data;
+      if (!contextResult.success || !context || !context.semester || !context.academic_year?.year) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+
+      if (!resolvedSemester) {
+        resolvedSemester = context.semester.id!;
+      }
+      if (!resolvedYear) {
+        resolvedYear = context.academic_year.year;
+      }
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      return c.json({ success: false, message: 'year and semesterId are required' }, 400);
+    }
+
+    const updateData: Partial<CreateSubjectRequest> = {};
+
+    if (body.teacher_id !== undefined) {
+      const teacherId = Number(body.teacher_id);
+      if (!Number.isFinite(teacherId)) {
+        return c.json({ success: false, message: 'Invalid teacher_id' }, 400);
+      }
+      updateData.teacher_id = teacherId;
+    }
+
+    if (body.class_id !== undefined) {
+      const classId = Number(body.class_id);
+      if (!Number.isFinite(classId)) {
+        return c.json({ success: false, message: 'Invalid class_id' }, 400);
+      }
+      updateData.class_id = classId;
+    }
+
+    if (body.subject_name !== undefined) {
+      const subjectName = String(body.subject_name).trim();
+      if (!subjectName) {
+        return c.json({ success: false, message: 'Subject name cannot be empty' }, 400);
+      }
+      updateData.subject_name = subjectName;
+    }
+
+    if (body.subject_code !== undefined) {
+      updateData.subject_code = body.subject_code ? String(body.subject_code).trim() : null;
+    }
+
+    if (body.periods_per_week !== undefined) {
+      const periods = Number(body.periods_per_week);
+      if (!Number.isFinite(periods) || periods <= 0 || periods > 20) {
+        return c.json({ success: false, message: 'Periods per week must be between 1 and 20' }, 400);
+      }
+      updateData.periods_per_week = periods;
+    }
+
+    if (body.default_room_id !== undefined) {
+      if (body.default_room_id === null || body.default_room_id === '') {
+        updateData.default_room_id = null;
+      } else {
+        const roomId = Number(body.default_room_id);
+        if (!Number.isFinite(roomId)) {
+          return c.json({ success: false, message: 'Invalid default_room_id' }, 400);
+        }
+        updateData.default_room_id = roomId;
+      }
+    }
+
+    if (body.special_requirements !== undefined) {
+      const requirements = String(body.special_requirements).trim();
+      updateData.special_requirements = requirements ? requirements : null;
+    }
+
+    if (body.class_ids && !Array.isArray(body.class_ids)) {
+      if (typeof body.class_ids === 'string') {
+        try {
+          const parsed = JSON.parse(body.class_ids);
+          if (Array.isArray(parsed)) {
+            body.class_ids = parsed;
+          }
+        } catch (error) {
+          const values = String(body.class_ids)
+            .split(',')
+            .map(item => Number(item.trim()))
+            .filter(value => Number.isFinite(value));
+          body.class_ids = values;
+        }
+      } else {
+        body.class_ids = [Number(body.class_ids)].filter(value => Number.isFinite(value));
+      }
+    }
+
+    if (Array.isArray(body.class_ids)) {
+      updateData.class_ids = body.class_ids
+        .map(value => Number(value))
+        .filter(value => Number.isFinite(value));
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return c.json({ success: false, message: 'No fields provided for update' }, 400);
+    }
+
+    const result = await dbManager.updateSubject(subjectId, resolvedSemester, updateData, resolvedYear);
+
+    if (result.success) {
+      const user = c.get('user');
+      const authManager = new AuthManager(c.env.DB, c.env);
+      const tableName = `subjects_${resolvedYear}`;
+      const recordIds = Array.isArray(result.data)
+        ? result.data
+            .map(item => item?.id)
+            .filter((id): id is number => typeof id === 'number')
+        : [];
+
+      await authManager.logActivity(
+        user.id!,
+        'UPDATE_SUBJECT',
+        tableName,
+        recordIds.length ? recordIds.join(',') : subjectId.toString(),
+        null,
+        updateData
+      );
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Update subject error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to update subject',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// DELETE /api/schedule/subjects/:id
+scheduleRoutes.delete('/subjects/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const subjectId = parseInt(c.req.param('id'));
+    if (isNaN(subjectId)) {
+      return c.json({ success: false, message: 'Invalid subject ID' }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+    const yearParam = c.req.query('year');
+    const semesterParam = c.req.query('semesterId') || c.req.query('semester_id');
+
+    let resolvedYear: number | undefined;
+    if (yearParam) {
+      const parsedYear = parseInt(yearParam);
+      if (isNaN(parsedYear)) {
+        return c.json({ success: false, message: 'Invalid year' }, 400);
+      }
+      resolvedYear = parsedYear;
+    }
+
+    let resolvedSemester: number | undefined;
+    if (semesterParam) {
+      const parsedSemester = parseInt(semesterParam);
+      if (isNaN(parsedSemester)) {
+        return c.json({ success: false, message: 'Invalid semesterId' }, 400);
+      }
+      resolvedSemester = parsedSemester;
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      const contextResult = await dbManager.getGlobalContext();
+      const context = contextResult.data;
+      if (!contextResult.success || !context || !context.semester || !context.academic_year?.year) {
+        return c.json({ success: false, message: 'No active semester found' }, 400);
+      }
+
+      if (!resolvedSemester) {
+        resolvedSemester = context.semester.id!;
+      }
+      if (!resolvedYear) {
+        resolvedYear = context.academic_year.year;
+      }
+    }
+
+    if (!resolvedYear || !resolvedSemester) {
+      return c.json({ success: false, message: 'year and semesterId are required' }, 400);
+    }
+
+    const result = await dbManager.deleteSubject(subjectId, resolvedSemester, resolvedYear);
+
+    if (result.success) {
+      const user = c.get('user');
+      const authManager = new AuthManager(c.env.DB, c.env);
+      const tableName = `subjects_${resolvedYear}`;
+      await authManager.logActivity(
+        user.id!,
+        'DELETE_SUBJECT',
+        tableName,
+        subjectId.toString(),
+        null,
+        null
+      );
+    }
+
+    return c.json(result);
+  } catch (error) {
+    console.error('Delete subject error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to delete subject',
       error: String(error)
     }, 500);
   }

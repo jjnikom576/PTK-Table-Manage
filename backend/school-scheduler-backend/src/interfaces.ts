@@ -92,6 +92,8 @@ export interface Subject {
   semester_id: number;
   teacher_id: number;
   class_id: number;
+  class_ids?: number[];
+  group_key?: string;
   subject_name: string;
   subject_code?: string;
   periods_per_week: number;
@@ -260,7 +262,9 @@ export interface CreatePeriodRequest {
 export interface CreateSubjectRequest {
   semester_id: number;
   teacher_id: number;
-  class_id: number;
+  class_id?: number;
+  class_ids?: number[];
+  group_key?: string;
   subject_name: string;
   subject_code?: string;
   periods_per_week: number;

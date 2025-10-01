@@ -216,6 +216,38 @@ export class SchemaManager {
     for (const index of indexes) {
       await this.db.exec(index);
     }
+
+    await this.ensureSubjectExtendedColumns(year);
+  }
+
+  private async ensureSubjectExtendedColumns(year: number): Promise<void> {
+    const tableName = `subjects_${year}`;
+
+    await this.addColumnIfMissing(tableName, 'class_ids', 'TEXT');
+    await this.addColumnIfMissing(tableName, 'group_key', "TEXT NOT NULL DEFAULT ''");
+
+    try {
+      await this.db.exec(`UPDATE ${tableName} SET group_key = CASE WHEN group_key IS NULL OR group_key = '' THEN 'SUBJ_' || id ELSE group_key END`);
+    } catch (error) {
+      console.warn(`ensureSubjectExtendedColumns::group_key update failed for ${tableName}:`, error);
+    }
+
+    try {
+      await this.db.exec(`UPDATE ${tableName} SET class_ids = CASE WHEN class_ids IS NULL OR class_ids = '' THEN json_array(class_id) ELSE class_ids END`);
+    } catch (error) {
+      console.warn(`ensureSubjectExtendedColumns::class_ids update failed for ${tableName}:`, error);
+    }
+  }
+
+  private async addColumnIfMissing(tableName: string, columnName: string, definition: string): Promise<void> {
+    try {
+      await this.db.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${definition}`);
+    } catch (error) {
+      const message = String(error);
+      if (!message.includes('duplicate column name')) {
+        console.warn(`Failed to add column ${columnName} to ${tableName}:`, error);
+      }
+    }
   }
 
   private async createPeriodsTable(year: number): Promise<void> {
@@ -318,6 +350,8 @@ export class SchemaManager {
       "semester_id INTEGER NOT NULL, " +
       "teacher_id INTEGER NOT NULL, " +
       "class_id INTEGER NOT NULL, " +
+      "class_ids TEXT, " +
+      "group_key TEXT NOT NULL DEFAULT '', " +
       "subject_name TEXT NOT NULL, " +
       "subject_code TEXT, " +
       "periods_per_week INTEGER NOT NULL CHECK (periods_per_week > 0), " +
@@ -338,6 +372,7 @@ export class SchemaManager {
     const indexes = [
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_semester ON ${tableName}(semester_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_teacher ON ${tableName}(teacher_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_group_key ON ${tableName}(group_key)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_class ON ${tableName}(class_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_room ON ${tableName}(default_room_id) WHERE default_room_id IS NOT NULL`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_active ON ${tableName}(semester_id, is_active)`,

@@ -34,10 +34,10 @@
                                                         </div>
                                                         
                                                         <div class="class-controls">
-                                                            <button type="button" id="add-class" class="btn btn--sm btn--primary" disabled>
+                                                            <button type="button" id="subject-add-class" class="btn btn--sm btn--primary" disabled>
                                                                 ➡️
                                                             </button>
-                                                            <button type="button" id="remove-class" class="btn btn--sm btn--danger" disabled>
+                                                            <button type="button" id="subject-remove-class" class="btn btn--sm btn--danger" disabled>
                                                                 ⬅️
                                                             </button>
                                                         </div>
@@ -93,8 +93,11 @@
                                         
                                         <!-- Submit Button -->
                                         <div class="form-actions">
-                                            <button type="submit" class="btn btn--primary">
+                                            <button type="submit" class="btn btn--primary" id="subject-submit-button">
                                                 💾 บันทึก
+                                            </button>
+                                            <button type="button" class="btn btn--outline" id="clear-subject-form">
+                                                🔄 ล้างฟอร์ม
                                             </button>
                                         </div>
                                     </form>
@@ -146,6 +149,7 @@
                                                     <th class="col-classes" data-sortable data-sort-key="class_count">ชั้นเรียน</th>
                                                     <th class="col-periods" data-sortable data-sort-key="periods_per_week">คาบ/สัปดาห์</th>
                                                     <th class="col-room" data-sortable data-sort-key="default_room_name">ห้อง</th>
+                                                    <th class="col-requirements" data-sortable data-sort-key="special_requirements">ความต้องการพิเศษ</th>
                                                     <th class="col-created" data-sortable data-sort-key="created_at">วันที่เพิ่ม</th>
                                                     <th class="col-actions">การดำเนินการ</th>
                                                 </tr>

@@ -25,6 +25,7 @@
 - **Real-time Data**: ข้อมูลอัปเดตแบบ real-time
 - **Caching System**: ระบบ cache อัจฉริยะลด network requests
 - **Export Features**: ส่งออกเป็น CSV, Excel, Google Sheets
+- **Full API Mode**: DataService เรียก backend โดยตรง (mock ใช้เฉพาะ dev fallback)
 
 ### 👥 User Roles & Pages
 1. **Students**: studentSchedule.js - ดูตารางเรียนตามชั้น
@@ -163,10 +164,10 @@ frontend/
    - Capacity management
    - Equipment tracking
 
-4. **Subjects Management** 🔄 (In Development)
-   - Subject-teacher assignments
-   - Grade level associations
-   - Subject group management
+4. **Subjects Management** ✅ (Multi-class + API)
+   - Assign teacher + multiple classes per subject
+   - Default room selection & special requirements
+   - Bulk actions (view/edit/delete) with API persistence
 
 #### 👨‍🎓 Student Schedule (pages/studentSchedule.js)
 **Student-facing schedule viewer**
@@ -376,18 +377,11 @@ await authAPI.logout();
 └── Room Utilization Report
 ```
 
-##### Subjects Management 🔄 (Planned)
-```javascript
-// Planned Structure:
-├── Add Subject Form
-│   ├── Subject Name
-│   ├── Subject Code
-│   ├── Credit Hours
-│   ├── Grade Level Assignment
-│   └── Teacher Assignment
-├── Subjects Data Table
-└── Subject-Teacher Matrix
-```
+##### Subjects Management ✅ (Implemented)
+- ฟอร์มเพิ่มวิชาใช้ dual-list selector ย้ายหลายชั้นเรียน, dropdown ครู, default room และระบุ `periods_per_week` / หมายเหตุพิเศษ (ตรงกับ schema backend)
+- ส่งข้อมูลผ่าน `scheduleAPI.createSubject(year, semesterId)` เพื่อสร้างหลายเรคคอร์ด (หนึ่งชั้นเรียนต่อหนึ่งวิชา) และอินวาลิด cache ให้ admin UI อัปเดตทันที
+- ตารางวิชาเชื่อม API จริง: ค้นหา, แบ่งหน้า, แสดงวันเพิ่ม, ปุ่มดู/แก้ไข/ลบรายวิชา พร้อม bulk delete
+- Modal "ดูข้อมูล" และ "แก้ไข" ดึงข้อมูลตรงจาก state, เรียก `scheduleAPI.updateSubject/deleteSubject` โดยไม่ต้องรีโหลดทั้งหน้า
 
 #### Tab 2: 🤖 Schedule Builder
 **สร้างตารางสอน - AI-Powered Scheduling**
@@ -800,9 +794,9 @@ if (result.success) {
 **📞 Support & Questions**  
 For technical issues or questions, refer to the troubleshooting section above or check the project overview in readmeall.md.
 
-**🎯 Current Status**: Production Ready with Teachers Management Complete  
-**🚀 Next Priority**: Complete Classes, Rooms, and Subjects Management
+**🎯 Current Status**: Production Ready with Teachers / Classes / Rooms / Subjects Management Complete  
+**🚀 Next Priority**: Advance schedule builder & analytics dashboards
 
 ---
-*Last Updated: 2025-01-19*  
+*Last Updated: 2025-09-20*  
 *Frontend Version: 1.0 - Production Ready*

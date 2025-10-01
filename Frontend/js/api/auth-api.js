@@ -8,6 +8,7 @@ import apiManager from './core/api-manager.js';
 class AuthAPI {
   constructor() {
     this.sessionKey = 'admin_session';
+    this._sessionExpiryHandled = false;
   }
 
   /**
@@ -187,6 +188,7 @@ class AuthAPI {
    */
   saveSession(sessionData) {
     try {
+      this._sessionExpiryHandled = false;
       localStorage.setItem(this.sessionKey, JSON.stringify(sessionData));
     } catch (error) {
       console.error('Failed to save session:', error);
@@ -201,6 +203,46 @@ class AuthAPI {
       localStorage.removeItem(this.sessionKey);
     } catch (error) {
       console.error('Failed to clear session:', error);
+    }
+  }
+
+  handleSessionExpired(detail = {}) {
+    if (this._sessionExpiryHandled) {
+      return;
+    }
+
+    this._sessionExpiryHandled = true;
+
+    console.warn('Auth API: Session expired, forcing logout', detail);
+
+    this.clearSession();
+
+    try {
+      sessionStorage.setItem('auth:lastLogoutReason', 'SESSION_EXPIRED');
+      if (detail && typeof detail === 'object') {
+        sessionStorage.setItem('auth:lastLogoutDetail', JSON.stringify(detail));
+        if (detail.message) {
+          sessionStorage.setItem('auth:lastLogoutMessage', detail.message);
+        }
+      }
+    } catch (_) {}
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:logout', {
+        detail: {
+          reason: 'SESSION_EXPIRED',
+          info: detail
+        }
+      }));
+
+      const forceLoginHash = '#login';
+      if (window.location.hash !== forceLoginHash) {
+        window.location.hash = forceLoginHash;
+      }
+
+      setTimeout(() => {
+        window.location.reload();
+      }, 150);
     }
   }
 
@@ -301,6 +343,12 @@ class AuthAPI {
 // Export singleton instance
 const authAPI = new AuthAPI();
 export default authAPI;
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:session-expired', (event) => {
+    authAPI.handleSessionExpired(event?.detail || {});
+  });
+}
 
 // Export individual functions for backward compatibility
 export const login = (username, password) => authAPI.login(username, password);

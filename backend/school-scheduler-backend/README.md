@@ -461,12 +461,15 @@ DELETE /api/schedule/rooms/:id     # Delete room
 
 #### Subjects Management
 ```http
-GET    /api/schedule/subjects      # List subjects
-POST   /api/schedule/subjects      # Create subject
-# Body: { subject_name, subject_code?, subject_group, grade_levels, credit_hours?, teacher_id, class_id, description? }
+GET    /api/schedule/subjects?year={year}&semesterId={id}   # List subjects for semester
+POST   /api/schedule/subjects?year={year}&semesterId={id}   # Create subject per class
+# Body: {
+#   semester_id, teacher_id, class_id,
+#   subject_name, subject_code?, periods_per_week,
+#   default_room_id?, special_requirements?
+# }
 
-PUT    /api/schedule/subjects/:id  # Update subject
-DELETE /api/schedule/subjects/:id  # Delete subject
+# (Update/Delete endpoints planned – frontend currently handles edits client-side and re-syncs via API roadmap)
 ```
 
 #### Schedules Management

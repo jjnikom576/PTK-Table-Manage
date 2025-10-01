@@ -95,7 +95,7 @@ schedules_{YEAR}     -- ตารางเรียน
 - **Teachers**: จัดการข้อมูลครู สาขาวิชา บทบาท
 - **Classes**: จัดการชั้นเรียน (ม.1/1, ม.2/3 etc.)
 - **Rooms**: จัดการห้องเรียน ประเภทห้อง  
-- **Subjects**: จัดการวิชาเรียน ความเชื่อมโยงครู-ชั้น
+- **Subjects**: จัดการวิชาเรียน มอบหมายครู + หลายชั้นเรียน พร้อม default room / คาบต่อสัปดาห์
 - **Schedules**: สร้างตารางเรียน พร้อม conflict detection
 
 #### 🤖 Schedule Builder
@@ -485,10 +485,10 @@ CREATE TABLE schedules_2567 (
 
 ## การพัฒนาต่อไป
 
-### 🔄 Phase 6: Core Completion (Next Phase)
-- [ ] **Classes Management**: เสร็จสิ้น CRUD UI สำหรับชั้นเรียน
-- [ ] **Rooms Management**: เสร็จสิ้น CRUD UI สำหรับห้องเรียน  
-- [ ] **Subjects Management**: เสร็จสิ้น CRUD UI สำหรับวิชาเรียน
+### 🔄 Phase 6: Core Completion (Done)
+- [x] **Classes Management**: CRUD + pagination/search/resize พร้อม cache invalidation
+- [x] **Rooms Management**: CRUD + room type support, bulk actions, modal detail
+- [x] **Subjects Management**: Multi-class assignment, modals (ดู/แก้ไข), bulk delete เชื่อม API จริง
 - [ ] **Data Validation**: เพิ่มการตรวจสอบข้อมูลที่ครบถ้วน
 
 ### 🤖 Phase 7: Advanced Schedule Builder
@@ -496,6 +496,7 @@ CREATE TABLE schedules_2567 (
 - [ ] **Advanced Conflict Detection**: ตรวจสอบความขัดแย้งแบบละเอียด
 - [ ] **Schedule Optimization**: ปรับปรุงตารางให้เหมาะสมที่สุด
 - [ ] **Drag & Drop Interface**: สร้างตารางแบบลากวาง
+- [ ] **Subject Insights**: รายงานโหลดวิชา/ครู เชื่อมกับ analytics dashboard
 
 ### 📊 Phase 8: Analytics & Reports  
 - [ ] **Teacher Workload Analytics**: วิเคราะห์ภาระงานครู
@@ -557,9 +558,9 @@ CREATE TABLE schedules_2567 (
 **📞 Contact & Support**  
 สำหรับ AI Agents: ดูไฟล์นี้เพื่อเข้าใจโปรเจคครบถ้วน แล้วอ่าน README.md ใน frontend/ และ backend/ สำหรับรายละเอียดเพิ่มเติม
 
-**🎯 Current Status**: Ready for Phase 6 - Core Completion  
-**🚀 Next Target**: Complete Classes, Rooms, Subjects Management UI
+**🎯 Current Status**: Ready for Phase 7 - Advanced Schedule Builder  
+**🚀 Next Target**: Manual schedule builder, analytics & conflict detection enhancements
 
 ---
-*Last Updated: 2025-01-19*  
+*Last Updated: 2025-09-20*  
 *Version: 1.0 - Production Ready*

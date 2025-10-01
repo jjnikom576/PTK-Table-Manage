@@ -4,14 +4,9 @@
  */
 
 import { mockData } from '../data/index.js';
-import * as academicYearsAPI from '../api/academicYears.js';
-import * as semestersAPI from '../api/semesters.js';
-import * as teachersAPI from '../api/teachers.js';
-import * as classesAPI from '../api/classes.js';
-import * as roomsAPI from '../api/rooms.js';
-import * as subjectsAPI from '../api/subjects.js';
-import * as schedulesAPI from '../api/schedules.js';
 import * as substitutionsAPI from '../api/substitutions.js';
+import scheduleAPI from '../api/schedule-api.js';
+import coreAPI from '../api/core-api.js';
 import { getThaiDayName, getDayName, generateTimeSlots } from '../utils.js';
 
 // =============================================================================
@@ -232,7 +227,12 @@ export async function loadAcademicYears() {
       result = { ok: true, data: mockData.academicYears };
       console.log('[DataService] Loaded academic years from mock:', mockData.academicYears);
     } else {
-      result = await academicYearsAPI.getAcademicYears();
+      const response = await coreAPI.getAcademicYears();
+      if (response.success) {
+        result = { ok: true, data: response.data };
+      } else {
+        result = { ok: false, error: response.error || 'ไม่สามารถโหลดข้อมูลปีการศึกษาได้' };
+      }
     }
     
     if (result.ok) {
@@ -255,7 +255,10 @@ export async function loadSemesters() {
       result = { ok: true, data: mockData.semesters };
       console.log('[DataService] Loaded semesters from mock:', mockData.semesters);
     } else {
-      result = await semestersAPI.getAllSemesters();
+      const response = await coreAPI.getSemesters();
+      result = response.success
+        ? { ok: true, data: response.data }
+        : { ok: false, error: response.error || 'ไม่สามารถโหลดข้อมูลภาคเรียนได้' };
     }
     return result;
   } catch (error) {
@@ -280,7 +283,13 @@ export async function loadSemestersByYear(yearId) {
       );
       result = { ok: true, data: semesterData };
     } else {
-      result = await semestersAPI.getSemesters(yearId);
+      const response = await coreAPI.getSemesters();
+      if (response.success) {
+        const semesterData = (response.data || []).filter(s => s.academic_year_id === yearId);
+        result = { ok: true, data: semesterData };
+      } else {
+        result = { ok: false, error: response.error || 'ไม่สามารถโหลดข้อมูลภาคเรียนได้' };
+      }
     }
     
     if (result.ok) {
@@ -322,29 +331,31 @@ export async function loadYearData(year) {
       return { ok: true, data: completeData };
       
     } else {
-      const results = await Promise.all([
-        teachersAPI.getTeachers(year),
-        classesAPI.getClasses(year),
-        roomsAPI.getRooms(year), // ใหม่
-        subjectsAPI.getSubjects(year),
-        schedulesAPI.getSchedules(year),
-        substitutionsAPI.getSubstitutions(year)
+      const resolvedSemesterId = currentContext.semesterId || currentContext.semester?.id || null;
+
+      const [teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes] = await Promise.all([
+        getTeachers(year),
+        resolvedSemesterId ? getClasses(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
+        resolvedSemesterId ? getRooms(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
+        resolvedSemesterId ? getSubjects(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
+        getSchedules(year)
       ]);
-      
-      const [teachers, classes, rooms, subjects, schedules, substitutions] = results;
-      
-      if (!results.every(r => r.ok)) {
-        const errors = results.filter(r => !r.ok).map(r => r.error);
-        throw new Error(`Failed to load some data: ${errors.join(', ')}`);
+
+      if (![teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes].every(r => r.ok)) {
+        const errors = [teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes]
+          .filter(r => !r.ok)
+          .map(r => r.error)
+          .join(', ');
+        throw new Error(errors || 'Failed to load year data');
       }
-      
+
       const completeData = {
-        teachers: teachers.data,
-        classes: classes.data,
-        rooms: rooms.data, // ใหม่
-        subjects: subjects.data,
-        schedules: schedules.data,
-        substitutions: substitutions.data,
+        teachers: teachersRes.data || [],
+        classes: classesRes.data || [],
+        rooms: roomsRes.data || [],
+        subjects: subjectsRes.data || [],
+        schedules: schedulesRes.data || [],
+        substitutions: [],
         substitution_schedules: []
       };
       
@@ -427,11 +438,20 @@ export async function getTeachers(year = null) {
       cache.set(cacheKey, teachers);
       return { ok: true, data: teachers };
     } else {
-      const result = await teachersAPI.getTeachers(targetYear);
-      if (result.ok) {
-        cache.set(cacheKey, result.data);
+      const semesterId = currentContext.semesterId || currentContext.semester?.id;
+      if (!semesterId) {
+        console.warn('[DataService] ⚠️ Missing semester context for loading teachers in API mode');
+        return { ok: true, data: [] };
       }
-      return result;
+
+      const result = await scheduleAPI.getTeachers(targetYear, semesterId);
+      if (result.success) {
+        const teachers = Array.isArray(result.data) ? result.data : [];
+        cache.set(cacheKey, teachers);
+        return { ok: true, data: teachers };
+      }
+
+      return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลครูได้' };
     }
   } catch (error) {
     console.error(`[DataService] ❌ Failed to load teachers for year ${targetYear}:`, error);
@@ -475,10 +495,13 @@ export async function getClasses(year = null, semesterId = null) {
       return { ok: true, data: classes };
     } else {
       const result = await scheduleAPI.getClasses(targetYear, targetSemester);
-      if (result.ok) {
-        cache.set(cacheKey, result.data);
+      if (result.success) {
+        const classes = Array.isArray(result.data) ? result.data : [];
+        cache.set(cacheKey, classes);
+        return { ok: true, data: classes };
       }
-      return result;
+
+      return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลชั้นเรียนได้' };
     }
   } catch (error) {
     console.error(`[DataService] ❌ Failed to load classes for year ${targetYear}:`, error);
@@ -522,10 +545,13 @@ export async function getRooms(year = null, semesterId = null) {
       return { ok: true, data: rooms };
     } else {
       const result = await scheduleAPI.getRooms(targetYear, targetSemester);
-      if (result.ok) {
-        cache.set(cacheKey, result.data);
+      if (result.success) {
+        const rooms = Array.isArray(result.data) ? result.data : [];
+        cache.set(cacheKey, rooms);
+        return { ok: true, data: rooms };
       }
-      return result;
+
+      return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลห้องเรียนได้' };
     }
   } catch (error) {
     console.error(`[DataService] ❌ Failed to load rooms for year ${targetYear}:`, error);
@@ -569,10 +595,13 @@ export async function getSubjects(year = null, semesterId = null) {
       return { ok: true, data: subjects };
     } else {
       const result = await scheduleAPI.getSubjects(targetYear, targetSemester);
-      if (result.ok) {
-        cache.set(cacheKey, result.data);
+      if (result.success) {
+        const subjects = Array.isArray(result.data) ? result.data : [];
+        cache.set(cacheKey, subjects);
+        return { ok: true, data: subjects };
       }
-      return result;
+
+      return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลวิชาเรียนได้' };
     }
   } catch (error) {
     console.error(`[DataService] ❌ Failed to load subjects for year ${targetYear}:`, error);
@@ -611,11 +640,15 @@ export async function getSchedules(year = null) {
       cache.set(cacheKey, schedules);
       return { ok: true, data: schedules };
     } else {
-      const result = await schedulesAPI.getSchedules(targetYear);
-      if (result.ok) {
-        cache.set(cacheKey, result.data);
+      const semesterId = currentContext.semesterId || currentContext.semester?.id;
+      const result = await scheduleAPI.getSchedules(targetYear, semesterId || null);
+      if (result.success) {
+        const schedules = Array.isArray(result.data) ? result.data : [];
+        cache.set(cacheKey, schedules);
+        return { ok: true, data: schedules };
       }
-      return result;
+
+      return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลตารางสอนได้' };
     }
   } catch (error) {
     console.error(`[DataService] ❌ Failed to load schedules for year ${targetYear}:`, error);
