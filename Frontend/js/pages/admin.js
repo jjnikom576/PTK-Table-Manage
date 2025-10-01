@@ -2434,7 +2434,9 @@ function openSubjectViewModal(subject) {
     return;
   }
 
-  const teacherName = getTeacherDisplayNameById(subject.teacher_id);
+  const teacherName = getTeacherDisplayNameById(subject.teacher_id)
+    || normalizeTeacherNameString(subject.teacher_name)
+    || (subject.teacher_id != null ? `ครู #${subject.teacher_id}` : 'ไม่ระบุ');
   const classNames = getClassNamesFromIds(subject.class_ids && subject.class_ids.length ? subject.class_ids : [subject.class_id]);
   const classDisplay = classNames.length ? classNames.join(', ') : '-';
   const roomName = subject.room_name || (subject.default_room_id ? getRoomDisplayNameById(subject.default_room_id) : '-');
@@ -2505,7 +2507,9 @@ function renderSubjectsTable() {
   }
 
   tableBody.innerHTML = pageItems.map(subject => {
-    const teacherName = subject.teacher_name || getTeacherDisplayNameById(subject.teacher_id);
+    const teacherName = getTeacherDisplayNameById(subject.teacher_id)
+      || normalizeTeacherNameString(subject.teacher_name)
+      || 'ไม่ระบุครูผู้สอน';
     const classNames = getClassNamesFromIds(subject.class_ids && subject.class_ids.length ? subject.class_ids : [subject.class_id]);
     const classDisplay = classNames.length ? classNames.join(', ') : (subject.class_name || getClassDisplayNameById(subject.class_id) || '-');
     const classTitle = classNames.length ? classNames.join(', ') : classDisplay;
@@ -2690,27 +2694,80 @@ async function deleteSubject(subjectId) {
 function getTeacherDisplayNameById(teacherId) {
   const teacher = adminState.teachers.find(item => Number(item.id) === Number(teacherId));
   if (!teacher) {
-    return `ครู #${teacherId}`;
+    return '';
   }
 
-  return formatTeacherName(teacher) || `ครู #${teacherId}`;
+  return formatTeacherName(teacher) || '';
+}
+
+function normalizeTeacherNameString(name) {
+  if (typeof name !== 'string') return '';
+  const cleaned = name.trim().replace(/\s{2,}/g, ' ');
+  if (!cleaned) return '';
+  const parts = cleaned.split(' ');
+  if (parts.length <= 1) {
+    return cleaned;
+  }
+
+  const [first, second, ...rest] = parts;
+  const normalizedFirst = first.trim();
+  const normalizedSecond = second.trim();
+  const titleCandidates = new Set([
+    'นาย', 'นาง', 'นางสาว', 'ครู', 'คุณ',
+    'ดร.', 'ดร', 'ผศ.', 'รศ.', 'ศ.', 'อาจารย์',
+    'mr', 'mr.', 'mrs', 'mrs.', 'ms', 'ms.', 'dr', 'dr.'
+  ]);
+
+  const firstLower = normalizedFirst.toLowerCase();
+  if (!titleCandidates.has(firstLower)) {
+    return cleaned;
+  }
+
+  const mergedFirst = `${normalizedFirst}${normalizedSecond}`;
+  return [mergedFirst, ...rest].join(' ');
 }
 
 function formatTeacherName(teacher) {
   if (!teacher) return '';
+
   const title = typeof teacher.title === 'string' ? teacher.title.trim() : '';
   const first = typeof teacher.f_name === 'string' ? teacher.f_name.trim() : '';
   const last = typeof teacher.l_name === 'string' ? teacher.l_name.trim() : '';
 
-  let leading = '';
+  const nameParts = [];
+
   if (title && first) {
-    leading = `${title}${first}`;
-  } else if (title || first) {
-    leading = title || first;
+    nameParts.push(`${title}${first}`);
+  } else {
+    if (title) nameParts.push(title);
+    if (first) nameParts.push(first);
   }
 
-  const parts = [leading, last].filter(Boolean);
-  return parts.join(' ').replace(/\s{2,}/g, ' ').trim();
+  if (last) {
+    nameParts.push(last);
+  }
+
+  if (nameParts.length) {
+    return nameParts.join(' ').replace(/\s{2,}/g, ' ').trim();
+  }
+
+  const fullName = typeof teacher.full_name === 'string' ? teacher.full_name.trim() : '';
+  if (fullName) {
+    const normalized = normalizeTeacherNameString(fullName);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  const simpleName = typeof teacher.name === 'string' ? teacher.name.trim() : '';
+  if (simpleName) {
+    const normalized = normalizeTeacherNameString(simpleName);
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return '';
 }
 
 function getClassDisplayNameById(classId) {
