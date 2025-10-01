@@ -822,6 +822,22 @@ function buildScheduleMatrix(schedules, context) {
         || [teacher?.title, teacher?.f_name, teacher?.l_name].filter(Boolean).join(' ')
         || schedule.teacher_name
         || '';
+      const deriveTeacherDisplayName = () => {
+        const baseTitlePatterns = [/^นาย\s+/i, /^นางสาว\s+/i, /^นาง\s+/i, /^ครู\s+/i, /^Teacher\s+/i, /^Mr\.\s+/i, /^Mrs\.\s+/i, /^Ms\.\s+/i];
+        if (teacher?.f_name) {
+          return `ครู${teacher.f_name}`;
+        }
+        if (teacherName) {
+          let cleaned = teacherName.trim();
+          baseTitlePatterns.forEach(pattern => {
+            cleaned = cleaned.replace(pattern, '');
+          });
+          const firstToken = cleaned.split(/\s+/)[0] || cleaned;
+          return `ครู${firstToken}`;
+        }
+        return 'ครูไม่ระบุ';
+      };
+      const teacherDisplayName = deriveTeacherDisplayName();
       const roomName = room?.room_name
         || room?.name
         || schedule.room_name
@@ -831,8 +847,8 @@ function buildScheduleMatrix(schedules, context) {
         schedule,
         subject: subject || { subject_name: schedule.subject_name || 'ไม่ระบุวิชา' },
         teacher: teacher
-          ? { ...teacher, name: teacherName || 'ไม่ระบุครู' }
-          : { name: teacherName || 'ไม่ระบุครู' },
+          ? { ...teacher, name: teacherDisplayName }
+          : { name: teacherDisplayName },
         room: room
           ? { ...room, name: roomName || 'ไม่ระบุห้อง' }
           : { name: roomName || 'ไม่ระบุห้อง' }

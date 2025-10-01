@@ -182,7 +182,7 @@
   background: #fff;
   table-layout: fixed;
   /* Default font sizing for subject/metadata */
-  --subject-font: 14px;
+  --subject-font: 12px;
 }
 .schedule-table thead th {
   background: var(--color-light-dark);
@@ -820,6 +820,40 @@
   display: grid; place-items: center; gap: .25rem; padding: 1rem 0;
 }
 .main-footer p { margin: 0; color: var(--color-dark-lighter); font-size: var(--font-size-sm); }
+
+/* Student schedule font auto-fit overrides */
+#student-schedule-table .schedule-table,
+#teacher-schedule-table .schedule-table {
+  --schedule-meta-font: 12px;
+}
+
+#student-schedule-table .subject-name {
+  font-size: var(--subject-font, 14px) !important;
+  white-space: nowrap;
+}
+
+#teacher-schedule-table .subject-name {
+  font-size: var(--subject-font, 14px) !important;
+  white-space: nowrap;
+  text-align: center;
+}
+
+#student-schedule-table .teacher-name,
+#student-schedule-table .room-info,
+#teacher-schedule-table .teacher-name,
+#teacher-schedule-table .room-info {
+  font-size: var(--schedule-meta-font, 12px) !important;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--color-dark-lighter);
+}
+
+#student-schedule-table .room-info,
+#teacher-schedule-table .room-info {
+  color: var(--color-gray-500);
+}
 
 /* ========== Sticky header on schedule tables (if JS adds .is-sticky) ========== */
 .schedule-table thead th.sticky, .schedule-table thead th.is-sticky {

@@ -626,27 +626,35 @@ export function renderScheduleTable(resultData, context) {
 // Determine a global font size that makes all cells fit, then apply uniformly
 function fitStudentTableFonts(container) {
   const subjects = container.querySelectorAll('.schedule-cell .subject-name');
+  const teachers = container.querySelectorAll('.schedule-cell .teacher-name');
+  const rooms = container.querySelectorAll('.schedule-cell .room-info');
   const contents = container.querySelectorAll('.schedule-cell .schedule-cell-content');
   if (!subjects.length || !contents.length) return;
 
+  const textElements = [...subjects, ...teachers, ...rooms];
+
   // Helper: do all subject names fit in one line at a given font size?
   const subjectsFitAt = (px) => {
+    const metaPx = Math.max(Math.round(px * 0.85), px - 2, 8);
     container.style.setProperty('--subject-font', px + 'px');
+    container.style.setProperty('--schedule-meta-font', metaPx + 'px');
     // Force reflow
     void container.offsetHeight;
     let ok = true;
-    subjects.forEach(el => {
-      // Compare content width vs available width of the subject line
-      const margin = 6; // leave slightly larger safety margin due to added padding
+    textElements.forEach(el => {
+      if (!ok) return;
+      // Compare content width vs available width of the text line
+      const margin = 4; // leave slightly larger safety margin due to padding
       const available = (el.clientWidth || (el.parentElement?.clientWidth || 0)) - margin;
       const needed = el.scrollWidth;
-      if (needed > available) ok = false;
+      if (needed - available > 1) ok = false;
     });
     // Also ensure total content height fits inside the cell height (prevents slight overlaps)
     if (ok) {
       contents.forEach(content => {
+        if (!ok) return;
         const cell = content.closest('td');
-        const maxH = (cell?.clientHeight || 64) - 6; // leave small breathing room
+        const maxH = (cell?.clientHeight || 64) - 4; // leave small breathing room
         if (content.scrollHeight > maxH) ok = false;
       });
     }
@@ -654,7 +662,7 @@ function fitStudentTableFonts(container) {
   };
 
   const maxPx = 18; // upper bound
-  const minPx = 5;  // lower bound (allow smaller to avoid overlap)
+  const minPx = 6;  // lower bound (allow smaller to avoid overlap)
   let chosen = 12;
 
   // Find the largest size between min..max that still fits one-line for all subjects
@@ -665,12 +673,12 @@ function fitStudentTableFonts(container) {
     }
   }
 
-  // Reduce subject font further (8px from chosen) as requested
-  // Force subject font to 14px (only subject)
-  const finalSubject = 14;
+  // Apply final font values after best-fit search
+  const finalSubject = chosen;
   container.style.setProperty('--subject-font', finalSubject + 'px');
   // Ensure other lines use their defaults
   container.style.removeProperty('--teacher-font');
+  container.style.setProperty('--schedule-meta-font', Math.max(Math.round(chosen * 0.85), chosen - 2, 8) + 'px');
   container.style.removeProperty('--room-font');
 }
 
