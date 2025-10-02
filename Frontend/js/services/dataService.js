@@ -128,11 +128,87 @@ export function clearCache() {
  * Clear cache for specific year
  */
 export function clearYearCache(year) {
-  console.log(`[DataService] Clearing cache for year ${year}...`);
-  cache.delete(`byYear.${year}`);
-  cache.delete(`exportCache.${year}`);
-  console.log(`[DataService] ✅ Year ${year} cache cleared`);
+  if (year == null) {
+    console.warn('[DataService] clearYearCache called without year');
+    return;
+  }
+
+  const numericYear = Number(year);
+  const yearKey = Number.isFinite(numericYear) ? String(numericYear) : String(year).trim();
+
+  console.log(`[DataService] Clearing cache for year ${yearKey}...`);
+
+  const prefixes = [
+    `teachers_${yearKey}`,
+    `classes_${yearKey}`,
+    `rooms_${yearKey}`,
+    `subjects_${yearKey}`,
+    `schedules_${yearKey}`,
+    `byYear.${yearKey}`,
+    `exportCache.${yearKey}`,
+    `semesters.${yearKey}`
+  ];
+
+  const keysToRemove = new Set();
+
+  const collectMatches = key => {
+    if (!key) return;
+    if (
+      prefixes.some(prefix =>
+        key === prefix ||
+        key.startsWith(`${prefix}_`) ||
+        key.startsWith(`${prefix}.`)
+      )
+    ) {
+      keysToRemove.add(key);
+    }
+  };
+
+  prefixes.forEach(prefix => keysToRemove.add(prefix));
+
+  Object.keys(cache).forEach(collectMatches);
+  Object.keys(cache.timestamps || {}).forEach(collectMatches);
+
+  let removedCount = 0;
+
+  keysToRemove.forEach(key => {
+    const hadTimestamp = cache.timestamps && Object.prototype.hasOwnProperty.call(cache.timestamps, key);
+    let hadData = false;
+
+    if (key.includes('.')) {
+      const [section, subKey] = key.split('.');
+      if (cache[section] && Object.prototype.hasOwnProperty.call(cache[section], subKey)) {
+        hadData = true;
+      }
+    } else if (Object.prototype.hasOwnProperty.call(cache, key)) {
+      hadData = true;
+    }
+
+    if (hadTimestamp || hadData) {
+      cache.delete(key);
+      removedCount += 1;
+    }
+  });
+
+  if (cache.byYear && Object.prototype.hasOwnProperty.call(cache.byYear, yearKey)) {
+    delete cache.byYear[yearKey];
+    removedCount += 1;
+  }
+
+  if (cache.exportCache && Object.prototype.hasOwnProperty.call(cache.exportCache, yearKey)) {
+    delete cache.exportCache[yearKey];
+    removedCount += 1;
+  }
+
+  if (cache.semesters && Object.prototype.hasOwnProperty.call(cache.semesters, yearKey)) {
+    delete cache.semesters[yearKey];
+    removedCount += 1;
+  }
+
+  console.log(`[DataService] ✅ Year ${yearKey} cache cleared (${removedCount} keys removed)`);
 }
+
+export const clearCacheForYear = clearYearCache;
 
 /**
  * Get cache status
@@ -410,18 +486,23 @@ export async function loadSemesterData(semesterId) {
 /**
  * Get Teachers (FIXED - เพิ่ม function ที่ขาดหาย)
  */
-export async function getTeachers(year = null) {
+export async function getTeachers(year = null, semesterId = null, { forceRefresh = false } = {}) {
   const targetYear = year || currentContext.year;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
-  
-  console.log(`[DataService] getTeachers for year: ${targetYear}`);
-  
-  const cacheKey = `teachers_${targetYear}`;
-  let cached = cache.get(cacheKey);
+
+  const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
+  console.log(`[DataService] getTeachers for year: ${targetYear}${targetSemester ? `, semester: ${targetSemester}` : ''}`);
+  const cacheKey = targetSemester ? `teachers_${targetYear}_${targetSemester}` : `teachers_${targetYear}`;
+
+  if (forceRefresh) {
+    cache.delete(cacheKey);
+  }
+
+  const cached = cache.get(cacheKey);
   if (cached) {
-    console.log(`[DataService] ✅ Teachers cache HIT for year ${targetYear}:`, cached.length);
+    console.log(`[DataService] ✅ Teachers cache HIT for year ${targetYear}${targetSemester ? ` semester ${targetSemester}` : ''}:`, cached.length);
     return { ok: true, data: cached };
   }
   
@@ -438,13 +519,12 @@ export async function getTeachers(year = null) {
       cache.set(cacheKey, teachers);
       return { ok: true, data: teachers };
     } else {
-      const semesterId = currentContext.semesterId || currentContext.semester?.id;
-      if (!semesterId) {
+      if (!targetSemester) {
         console.warn('[DataService] ⚠️ Missing semester context for loading teachers in API mode');
         return { ok: true, data: [] };
       }
 
-      const result = await scheduleAPI.getTeachers(targetYear, semesterId);
+      const result = await scheduleAPI.getTeachers(targetYear, targetSemester);
       if (result.success) {
         const teachers = Array.isArray(result.data) ? result.data : [];
         cache.set(cacheKey, teachers);
@@ -462,9 +542,9 @@ export async function getTeachers(year = null) {
 /**
  * Get Classes (FIXED - เพิ่ม year parameter)
  */
-export async function getClasses(year = null, semesterId = null) {
+export async function getClasses(year = null, semesterId = null, { forceRefresh = false } = {}) {
   const targetYear = year || currentContext.year;
-  const targetSemester = semesterId || currentContext.semester?.id || currentContext.semesterId;
+  const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
@@ -475,9 +555,13 @@ export async function getClasses(year = null, semesterId = null) {
   console.log(`[DataService] getClasses for year: ${targetYear}, semester: ${targetSemester}`);
   
   const cacheKey = `classes_${targetYear}_${targetSemester}`;
-  let cached = cache.get(cacheKey);
+  if (forceRefresh) {
+    cache.delete(cacheKey);
+  }
+
+  const cached = cache.get(cacheKey);
   if (cached) {
-    console.log(`[DataService] ✅ Classes cache HIT for year ${targetYear}:`, cached.length);
+    console.log(`[DataService] ✅ Classes cache HIT for year ${targetYear}, semester ${targetSemester}:`, cached.length);
     return { ok: true, data: cached };
   }
   
@@ -512,9 +596,9 @@ export async function getClasses(year = null, semesterId = null) {
 /**
  * Get Rooms (FIXED - เพิ่ม year parameter)
  */
-export async function getRooms(year = null, semesterId = null) {
+export async function getRooms(year = null, semesterId = null, { forceRefresh = false } = {}) {
   const targetYear = year || currentContext.year;
-  const targetSemester = semesterId || currentContext.semester?.id || currentContext.semesterId;
+  const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
@@ -525,9 +609,13 @@ export async function getRooms(year = null, semesterId = null) {
   console.log(`[DataService] getRooms for year: ${targetYear}, semester: ${targetSemester}`);
   
   const cacheKey = `rooms_${targetYear}_${targetSemester}`;
-  let cached = cache.get(cacheKey);
+  if (forceRefresh) {
+    cache.delete(cacheKey);
+  }
+
+  const cached = cache.get(cacheKey);
   if (cached) {
-    console.log(`[DataService] ✅ Rooms cache HIT for year ${targetYear}:`, cached.length);
+    console.log(`[DataService] ✅ Rooms cache HIT for year ${targetYear}, semester ${targetSemester}:`, cached.length);
     return { ok: true, data: cached };
   }
   
@@ -562,9 +650,9 @@ export async function getRooms(year = null, semesterId = null) {
 /**
  * Get Subjects (FIXED - เพิ่ม year parameter)
  */
-export async function getSubjects(year = null, semesterId = null) {
+export async function getSubjects(year = null, semesterId = null, { forceRefresh = false } = {}) {
   const targetYear = year || currentContext.year;
-  const targetSemester = semesterId || currentContext.semester?.id || currentContext.semesterId;
+  const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
   if (!targetYear) {
     return { ok: false, error: 'No year specified' };
   }
@@ -575,9 +663,13 @@ export async function getSubjects(year = null, semesterId = null) {
   console.log(`[DataService] getSubjects for year: ${targetYear}, semester: ${targetSemester}`);
   
   const cacheKey = `subjects_${targetYear}_${targetSemester}`;
-  let cached = cache.get(cacheKey);
+  if (forceRefresh) {
+    cache.delete(cacheKey);
+  }
+
+  const cached = cache.get(cacheKey);
   if (cached) {
-    console.log(`[DataService] ✅ Subjects cache HIT for year ${targetYear}:`, cached.length);
+    console.log(`[DataService] ✅ Subjects cache HIT for year ${targetYear}, semester ${targetSemester}:`, cached.length);
     return { ok: true, data: cached };
   }
   
@@ -612,7 +704,7 @@ export async function getSubjects(year = null, semesterId = null) {
 /**
  * Get Schedules (FIXED - เพิ่ม year parameter)
  */
-export async function getSchedules(year = null, semesterId = null) {
+export async function getSchedules(year = null, semesterId = null, { forceRefresh = false } = {}) {
   const targetYear = year || currentContext.year;
   const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
   if (!targetYear) {
@@ -622,7 +714,11 @@ export async function getSchedules(year = null, semesterId = null) {
   console.log(`[DataService] getSchedules for year: ${targetYear}${targetSemester ? `, semester: ${targetSemester}` : ''}`);
   
   const cacheKey = targetSemester ? `schedules_${targetYear}_${targetSemester}` : `schedules_${targetYear}`;
-  let cached = cache.get(cacheKey);
+  if (forceRefresh) {
+    cache.delete(cacheKey);
+  }
+
+  const cached = cache.get(cacheKey);
   if (cached) {
     console.log(`[DataService] ✅ Schedules cache HIT for year ${targetYear}${targetSemester ? ` semester ${targetSemester}` : ''}:`, cached.length);
     return { ok: true, data: cached };

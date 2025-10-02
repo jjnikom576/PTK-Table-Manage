@@ -7,28 +7,28 @@
 async function initAcademicManagement() {
   try {
     console.log('[Admin] Initializing Academic Management...');
-    
+
     // 1. Load current context from backend
     await loadAdminContext();
-    
+
     // 2. Load academic years
     await loadAcademicYears();
-    
+
     // 3. Load semesters (global)
     await loadSemesters();
-    
+
     // 4. Populate UI
     populateCurrentSemesterTab();
     populateAcademicYearsList();
     populateSemestersList();
     populateAcademicYearsTable();
     populateSemestersTable();
-    
+
     // 5. Bind academic management events
     bindAcademicManagementEvents();
-    
+
     console.log('[Admin] Academic Management initialized successfully');
-    
+
   } catch (error) {
     console.error('[Admin] Error initializing Academic Management:', error);
     adminState.error = error.message;
@@ -45,8 +45,8 @@ function buildSubjectGroups(subjectRows = []) {
 
     const classIds = Array.isArray(subject.class_ids) && subject.class_ids.length > 0
       ? subject.class_ids
-          .map(value => Number(value))
-          .filter(value => Number.isFinite(value))
+        .map(value => Number(value))
+        .filter(value => Number.isFinite(value))
       : (subject.class_id != null ? [Number(subject.class_id)] : []);
 
     let existingGroup = groups.get(groupKey);
@@ -123,11 +123,11 @@ function getClassNamesFromIds(classIds = []) {
 async function loadAdminContext() {
   try {
     const result = await coreAPI.getGlobalContext();
-    
+
     if (result.success && result.data) {
       adminState.activeYear = result.data.currentYear;
       adminState.activeSemester = result.data.currentSemester;
-      
+
       console.log('[Admin] Loaded context:', {
         activeYear: adminState.activeYear,
         activeSemester: adminState.activeSemester
@@ -144,7 +144,7 @@ async function loadAdminContext() {
 async function loadAcademicYears() {
   try {
     const result = await coreAPI.getAcademicYears(false); // force fresh fetch after login/admin ops
-    
+
     if (result.success && result.data) {
       adminState.academicYears = result.data;
       console.log('[Admin] Loaded academic years:', result.data.length, 'years');
@@ -164,7 +164,7 @@ async function loadAcademicYears() {
 async function loadSemesters() {
   try {
     const result = await coreAPI.getSemesters(false); // force fresh fetch after login/admin ops
-    
+
     if (result.success && result.data) {
       adminState.semesters = result.data;
       console.log('[Admin] Loaded semesters:', result.data.length, 'semesters');
@@ -185,17 +185,17 @@ function populateCurrentSemesterTab() {
   // Update current selection display
   const yearDisplay = document.getElementById('current-year-display');
   const semesterDisplay = document.getElementById('current-semester-display');
-  
+
   if (yearDisplay) {
-    yearDisplay.textContent = adminState.activeYear ? 
+    yearDisplay.textContent = adminState.activeYear ?
       `ปีการศึกษา ${adminState.activeYear}` : 'ยังไม่ได้เลือก';
   }
-  
+
   if (semesterDisplay) {
-    semesterDisplay.textContent = adminState.activeSemester ? 
+    semesterDisplay.textContent = adminState.activeSemester ?
       (adminState.activeSemester.name || adminState.activeSemester.semester_name) : 'ยังไม่ได้เลือก';
   }
-  
+
   console.log('[Admin] Updated current semester tab display');
 }
 
@@ -205,12 +205,12 @@ function populateCurrentSemesterTab() {
 function populateAcademicYearsList() {
   const container = document.getElementById('academic-years-list');
   if (!container) return;
-  
+
   if (adminState.academicYears.length === 0) {
     container.innerHTML = '<p class="no-data">ยังไม่มีปีการศึกษา - กรุณาเพิ่มในแท็บ "เพิ่มปีการศึกษา"</p>';
     return;
   }
-  
+
   const yearsHTML = adminState.academicYears.map(year => {
     const isActive = year.year === adminState.activeYear;
     return `
@@ -221,11 +221,11 @@ function populateAcademicYearsList() {
       </div>
     `;
   }).join('');
-  
+
   container.innerHTML = yearsHTML;
   // Enable click-to-toggle on the whole item
   enableSelectionItemToggle('academic-years-list');
-  
+
   console.log('[Admin] Populated academic years list');
 }
 
@@ -235,7 +235,7 @@ function populateAcademicYearsList() {
 function populateSemestersList() {
   const container = document.getElementById('semesters-list');
   if (!container) return;
-  
+
   if (adminState.semestersLoading && !adminState.semestersLoaded) {
     container.innerHTML = `<p class="no-data">กำลังโหลด...</p>`;
     return;
@@ -244,11 +244,11 @@ function populateSemestersList() {
     container.innerHTML = `<p class="no-data">ยังไม่มีภาคเรียน - กรุณาเพิ่มในแท็บ "เพิ่มภาคเรียน"</p>`;
     return;
   }
-  
+
   const semestersHTML = adminState.semesters.map(semester => {
     const isActive = semester.id === adminState.activeSemester?.id;
     const semesterName = semester.name || semester.semester_name;
-    
+
     return `
       <div class="selection-item ${isActive ? 'active' : ''}" data-semester-id="${semester.id}">
         <input type="radio" name="semester" value="${semester.id}" ${isActive ? 'checked' : ''} id="semester-${semester.id}">
@@ -257,11 +257,11 @@ function populateSemestersList() {
       </div>
     `;
   }).join('');
-  
+
   container.innerHTML = semestersHTML;
   // Enable click-to-toggle on the whole item
   enableSelectionItemToggle('semesters-list');
-  
+
   console.log('[Admin] Populated semesters list');
 }
 
@@ -299,25 +299,25 @@ function bindAcademicManagementEvents() {
   if (form) {
     form.addEventListener('submit', handleCurrentSemesterFormSubmit);
   }
-  
+
   // Year selection change
   const yearsList = document.getElementById('academic-years-list');
   if (yearsList) {
     yearsList.addEventListener('change', handleYearSelectionChange);
   }
-  
+
   // NEW: Academic year form submission
   const academicYearForm = document.getElementById('academic-year-form');
   if (academicYearForm) {
     academicYearForm.addEventListener('submit', handleAcademicYearFormSubmit);
   }
-  
+
   // NEW: Semester form submission
   const semesterForm = document.getElementById('semester-form');
   if (semesterForm) {
     semesterForm.addEventListener('submit', handleSemesterFormSubmit);
   }
-  
+
   console.log('[Admin] Academic management events bound');
 }
 
@@ -328,10 +328,10 @@ async function handleYearSelectionChange(event) {
   if (event.target.name === 'academic-year') {
     const selectedYearId = parseInt(event.target.value);
     const selectedYear = adminState.academicYears.find(y => y.id === selectedYearId);
-    
+
     if (selectedYear) {
       console.log('[Admin] Year selection changed to:', selectedYear.year);
-      
+
       // Semesters เป็น global static table แล้ว โหลดมาแล้วไม่ต้องดึง API ซ้ำ
       if (!Array.isArray(adminState.semesters) || adminState.semesters.length === 0) {
         await loadSemesters();
@@ -340,7 +340,7 @@ async function handleYearSelectionChange(event) {
       }
 
       populateSemestersList();
-      
+
       // Update hidden field
       const hiddenField = document.getElementById('selected-academic-year');
       if (hiddenField) {
@@ -355,11 +355,11 @@ async function handleYearSelectionChange(event) {
  */
 async function handleCurrentSemesterFormSubmit(event) {
   event.preventDefault();
-  
+
   const formData = new FormData(event.target);
   const academicYearId = formData.get('academic-year');
   const semesterId = formData.get('semester');
-  
+
   // Validate both selections
   if (!academicYearId) {
     alert('กรุณาเลือกปีการศึกษา');
@@ -374,7 +374,7 @@ async function handleCurrentSemesterFormSubmit(event) {
     alert('ปีการศึกษาที่เลือกไม่ถูกต้อง');
     return;
   }
-  
+
   const submitBtn = event.target.querySelector('[type="submit"]');
   const originalText = submitBtn ? submitBtn.textContent : '';
 
@@ -383,40 +383,40 @@ async function handleCurrentSemesterFormSubmit(event) {
       submitBtn.textContent = 'กำลังบันทึก...';
       submitBtn.disabled = true;
     }
-    
+
     // Call APIs to set active context (year then semester)
     const yearResult = await coreAPI.setActiveAcademicYear(selectedYear.year);
     const semesterResult = await coreAPI.setActiveSemester(parseInt(String(semesterId)));
-    
+
     if (yearResult.success && semesterResult.success) {
       // Update admin state
       adminState.activeYear = selectedYear.year;
       adminState.activeSemester = adminState.semesters.find(s => s.id === parseInt(String(semesterId)));
-      
+
       // Refresh global context
       await refreshContextFromBackend();
-      
+
       // Update UI
       populateCurrentSemesterTab();
       populateAcademicYearsList();
       populateSemestersList();
-      
+
       alert('บันทึกการตั้งค่าเรียบร้อย!');
-      
+
       console.log('[Admin] Active context updated:', {
         year: adminState.activeYear,
         semester: adminState.activeSemester
       });
-      
+
     } else {
       const error = !yearResult.success ? yearResult.error : semesterResult.error;
       throw new Error(error || 'ไม่สามารถบันทึกการตั้งค่าได้');
     }
-    
+
   } catch (error) {
     console.error('[Admin] Error saving current semester:', error);
     alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    
+
   } finally {
     if (submitBtn) {
       submitBtn.textContent = originalText || 'บันทึก';
@@ -430,60 +430,60 @@ async function handleCurrentSemesterFormSubmit(event) {
  */
 async function handleAcademicYearFormSubmit(event) {
   event.preventDefault();
-  
+
   const formData = new FormData(event.target);
   const year = parseInt(formData.get('year'));
-  
+
   if (!year || year < 2500 || year > 2600) {
     alert('กรุณาระบุปีการศึกษาที่ถูกต้อง (2500-2600)');
     return;
   }
-  
+
   // Check if year already exists
   const existingYear = adminState.academicYears.find(y => y.year === year);
   if (existingYear) {
     alert(`ปีการศึกษา ${year} มีอยู่แล้ว`);
     return;
   }
-  
+
   // Get submit button
   const submitBtn = event.target.querySelector('[type="submit"]');
   const originalText = submitBtn.textContent;
-  
+
   try {
     // Set loading state
     submitBtn.textContent = 'กำลังบันทึก...';
     submitBtn.disabled = true;
-    
+
     console.log('[Admin] Creating academic year:', year);
-    
+
     // Call API to create academic year
     const result = await coreAPI.createAcademicYear(year);
-    
+
     if (result.success) {
       // Refresh academic years data
       await loadAcademicYears();
-      
+
       // Update UI
       populateAcademicYearsList();
       populateAcademicYearsTable();
-      
+
       // Clear form
       event.target.reset();
-      
+
       alert(`เพิ่มปีการศึกษา ${year} เรียบร้อย!`);
-      
+
       console.log('[Admin] Academic year created successfully:', result.data);
-      
+
     } else {
       console.error('[Admin] Failed to create academic year:', result.error);
       alert(`เกิดข้อผิดพลาด: ${result.error || 'ไม่สามารถเพิ่มปีการศึกษาได้'}`);
     }
-    
+
   } catch (error) {
     console.error('[Admin] Error creating academic year:', error);
     alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    
+
   } finally {
     // Reset button
     submitBtn.textContent = originalText;
@@ -496,51 +496,51 @@ async function handleAcademicYearFormSubmit(event) {
  */
 async function handleSemesterFormSubmit(event) {
   event.preventDefault();
-  
+
   const formData = new FormData(event.target);
   const semesterName = formData.get('semester_name')?.trim();
-  
+
   if (!semesterName) {
     alert('กรุณาระบุชื่อภาคเรียน');
     return;
   }
   // ไม่ต้องเลือกหมายเลขภาคเรียนแล้ว ใช้ชื่อ + id เท่านั้น
-  
+
   try {
     // Set loading state
     const submitBtn = event.target.querySelector('[type="submit"]');
     var originalText = submitBtn ? submitBtn.textContent : '';
     submitBtn.textContent = 'กำลังบันทึก...';
     submitBtn.disabled = true;
-    
+
     // Call API to create semester (global)
     const result = await coreAPI.createSemester({
       semester_name: semesterName
     });
-    
+
     if (result.success) {
       // Refresh semesters (global)
       await loadSemesters();
-      
+
       // Update UI
       populateSemestersList();
       populateSemestersTable();
-      
+
       // Clear form
       event.target.reset();
-      
+
       alert(`เพิ่มภาคเรียน "${semesterName}" เรียบร้อย!`);
-      
+
       console.log('[Admin] Semester created:', result.data);
-      
+
     } else {
       throw new Error(result.error || 'ไม่สามารถเพิ่มภาคเรียนได้');
     }
-    
+
   } catch (error) {
     console.error('[Admin] Error creating semester:', error);
     alert(`เกิดข้อผิดพลาด: ${error.message}`);
-    
+
   } finally {
     // Reset button
     const submitBtn = event.target.querySelector('[type="submit"]');
@@ -557,12 +557,12 @@ async function handleSemesterFormSubmit(event) {
 function populateAcademicYearsTable() {
   const tableBody = document.getElementById('academic-years-table-body');
   if (!tableBody) return;
-  
+
   if (adminState.academicYears.length === 0) {
     tableBody.innerHTML = '<tr><td colspan="5" class="no-data">ยังไม่มีข้อมูลปีการศึกษา</td></tr>';
     return;
   }
-  
+
   const rowsHTML = adminState.academicYears.map((year, index) => {
     const isActive = year.year === adminState.activeYear;
     return `
@@ -580,9 +580,9 @@ function populateAcademicYearsTable() {
       </tr>
     `;
   }).join('');
-  
+
   tableBody.innerHTML = rowsHTML;
-  
+
   console.log('[Admin] Populated academic years table');
 }
 
@@ -592,16 +592,16 @@ function populateAcademicYearsTable() {
 function populateSemestersTable() {
   const tableBody = document.getElementById('semesters-table-body');
   if (!tableBody) return;
-  
+
   if (adminState.semesters.length === 0) {
     tableBody.innerHTML = `<tr><td colspan="5" class="no-data">ยังไม่มีภาคเรียน</td></tr>`;
     return;
   }
-  
+
   const rowsHTML = adminState.semesters.map((semester, index) => {
     const isActive = semester.id === adminState.activeSemester?.id;
     const semesterName = semester.name || semester.semester_name;
-    
+
     return `
       <tr ${isActive ? 'class="active-row"' : ''}>
         <td><input type="checkbox" class="row-select" data-id="${semester.id}"></td>
@@ -617,14 +617,14 @@ function populateSemestersTable() {
       </tr>
     `;
   }).join('');
-  
+
   tableBody.innerHTML = rowsHTML;
-  
+
   console.log('[Admin] Populated semesters table');
 }
 
 // Expose deleteSemester handler for inline onclick
-window.deleteSemester = async function(semesterId, semesterName) {
+window.deleteSemester = async function (semesterId, semesterName) {
   try {
     if (!semesterId) return;
     const confirmed = confirm(`ยืนยันการลบภาคเรียน \"${semesterName}\" ?`);
@@ -644,7 +644,7 @@ window.deleteSemester = async function(semesterId, semesterName) {
     populateSemestersList();
     populateSemestersTable();
     // Refresh global context from backend (to sync any changes)
-    try { await refreshContextFromBackend(); } catch (e) {}
+    try { await refreshContextFromBackend(); } catch (e) { }
     alert('ลบภาคเรียนเรียบร้อย');
   } catch (error) {
     console.error('[Admin] Error deleting semester:', error);
@@ -669,7 +669,7 @@ let adminState = {
   initialized: false,
   templatesLoaded: false,
   templates: null,
-  
+
   // Data Management
   teachers: [],
   classes: [],
@@ -729,7 +729,7 @@ function getFullName(teacher) {
 function getRoleDisplayName(role) {
   const roleMap = {
     'teacher': 'ครู',
-    'head_teacher': 'หัวหน้าครู', 
+    'head_teacher': 'หัวหน้าครู',
     'admin': 'ผู้ดูแลระบบ',
     'super_admin': 'ผู้ดูแลระบบสูงสุด'
   };
@@ -740,19 +740,19 @@ export async function initAdminPage(context = null) {
   const section = document.getElementById('page-admin');
   if (section) { section.classList.remove('hidden'); section.style.display = 'block'; }
 
-  try { ensureUserActionsInSubnav(); } catch (e) {}
+  try { ensureUserActionsInSubnav(); } catch (e) { }
 
   adminState.context = normalizeContext(context) || getContext();
-  
+
   // Check authentication first
   if (authAPI.isAuthenticated()) {
     // User is logged in - show admin sections and load data
     showAdminSections();
     updateUsernameHeader();
-    
+
     // Load templates and initialize management
     await loadAdminTemplates();
-    
+
     // NEW: Load academic year management data
     await initAcademicManagement();
     await initTeacherManagement();
@@ -767,14 +767,14 @@ export async function initAdminPage(context = null) {
     // Load templates for when they log in later
     await loadAdminTemplates();
   }
-  
+
   // Bind navigation and auth events
   bindAuthForm();
   adjustAuthInputWidth();
   bindLogout();
   bindDataSubNavigation();
   bindMainAdminNavigation();
-  
+
   adminState.initialized = true;
 }
 
@@ -790,11 +790,11 @@ export async function updateAdminUIForContext(context) {
   adminState.context = normalizeContext(context) || adminState.context;
 }
 
-export async function showTeacherManagement() {}
-export async function showClassManagement() {}
-export async function showRoomManagement() {}
-export async function showSubjectManagement() {}
-export async function showScheduleManagement() {}
+export async function showTeacherManagement() { }
+export async function showClassManagement() { }
+export async function showRoomManagement() { }
+export async function showSubjectManagement() { }
+export async function showScheduleManagement() { }
 
 // ------------------------ Authentication ------------------------
 
@@ -807,13 +807,13 @@ function bindAuthForm() {
     const p = (document.getElementById('admin-password')?.value || '');
     const btn = form.querySelector('button[type="submit"]');
     if (btn) { btn.disabled = true; btn.textContent = 'กำลังเข้าสู่ระบบ...'; }
-    
+
     try {
       const result = await authAPI.login(u, p);
       if (result.success) {
-        showAdminSections(); 
+        showAdminSections();
         updateUsernameHeader();
-        
+
         // Load academic year/semester data every time after login
         await initAcademicManagement();
         // Initialize teacher management after successful login
@@ -822,7 +822,7 @@ function bindAuthForm() {
         await initRoomManagement();
         await initSubjectManagement();
         await initPeriodManagement();
-        
+
         if (result.isDemoMode || result.isOfflineMode) {
           console.log('✅', result.message);
         }
@@ -833,7 +833,7 @@ function bindAuthForm() {
       console.error('Login error:', error);
       alert('เกิดข้อผิดพลาดในการเข้าสู่ระบบ');
     }
-    
+
     if (btn) { btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ'; }
   });
 }
@@ -862,11 +862,11 @@ function showAuthOnly() {
     updateUsernameHeader();
     return;
   }
-  
+
   const auth = document.getElementById('admin-auth-check');
   const sections = document.querySelectorAll('#page-admin .admin-section');
   const page = document.getElementById('page-admin');
-  
+
   if (auth) auth.classList.remove('hidden');
   sections.forEach(s => s.classList.add('hidden'));
   const headerBtn = document.querySelector('#page-admin .btn-logout-admin');
@@ -895,27 +895,27 @@ function updateUsernameHeader() {
     const displayName = authAPI.getUserDisplayName();
     const el = document.getElementById('admin-username-display');
     if (el) el.textContent = 'ผู้ใช้: ' + displayName;
-  } catch (e) {}
+  } catch (e) { }
 }
 
 // ------------------------ Template Loading ------------------------
 
 async function loadAdminTemplates() {
   if (adminState.templatesLoaded) return;
-  
+
   try {
     const templates = await templateLoader.loadMultiple([
       'forms/admin/add-teacher',
-      'forms/admin/add-class', 
+      'forms/admin/add-class',
       'forms/admin/add-room',
       'forms/admin/add-subject',
       'forms/admin/add-period',
       'forms/admin/add-academic-year'
     ]);
-    
+
     // Store templates for later use instead of inserting all at once
     adminState.templates = templates;
-    
+
     const adminFormsGrid = document.querySelector('#admin-data .admin-forms-grid');
     if (adminFormsGrid) {
       // Only show teacher template by default (first tab)
@@ -936,18 +936,18 @@ async function loadAdminTemplates() {
           ${templates['forms/admin/add-period']}
         </div>
       `;
-      
+
       // Store templates for later use when switching tabs
       window.adminTemplates = templates;
     }
-    
+
     const academicManagementContent = document.querySelector('#academic-management-content');
     if (academicManagementContent) {
       const parser = new DOMParser();
       const templateHtml = templates['forms/admin/add-academic-year'];
       const doc = parser.parseFromString(templateHtml, 'text/html');
       const templateElement = doc.body.firstElementChild;
-      
+
       academicManagementContent.innerHTML = '';
       if (templateElement) {
         academicManagementContent.appendChild(templateElement);
@@ -955,10 +955,10 @@ async function loadAdminTemplates() {
         academicManagementContent.innerHTML = templateHtml;
       }
     }
-      
+
     console.log('✅ Admin templates loaded successfully');
     adminState.templatesLoaded = true;
-    
+
   } catch (error) {
     console.error('❌ Error loading admin templates:', error);
   }
@@ -968,26 +968,26 @@ async function loadAdminTemplates() {
 
 async function initTeacherManagement() {
   console.log('🔧 Initializing teacher management...');
-  
+
   await new Promise(resolve => setTimeout(resolve, 200));
-  
+
   const container = document.querySelector('.teacher-management-container');
   const tableBody = document.getElementById('teachers-table-body');
-  
+
   if (!container || !tableBody) {
     console.error('❌ Teacher management elements not found!');
     return;
   }
-  
+
   await loadTeachersData();
-  
+
   bindTeacherFormEvents();
   bindTeacherTableEvents();
   bindTeacherSearchEvents();
   bindTeacherPaginationEvents();
-  
+
   renderTeachersTable();
-  
+
   console.log('✅ Teacher management initialized successfully');
 }
 
@@ -995,18 +995,18 @@ async function loadTeachersData() {
   try {
     adminState.loading = true;
     adminState.error = null;
-    
+
     const context = adminState.context || getContext();
     const year = context?.year || 2567;
-    
+
     console.log(`📊 Loading teachers for year ${year}...`);
     const semesterId = context?.semester?.id || context?.semesterId;
     const result = await scheduleAPI.getTeachers(year, semesterId);
-    
+
     if (result.success) {
       adminState.teachers = result.data || [];
       console.log(`✅ Loaded ${adminState.teachers.length} teachers for year ${year}`);
-      
+
       // Debug: แสดงข้อมูล teacher ที่โหลดมา
       console.log('🔍 Teachers data loaded:', adminState.teachers);
       adminState.teachers.forEach(t => {
@@ -1043,11 +1043,11 @@ async function addNewTeacher(teacherData) {
   try {
     const context = adminState.context || getContext();
     const year = context?.year || 2567;
-    
+
     console.log('📝 Creating new teacher...', teacherData);
     const semesterId = context?.semester?.id || context?.semesterId;
     const result = await scheduleAPI.createTeacher(year, semesterId, teacherData);
-    
+
     if (result.success) {
       console.log('✅ Teacher created successfully:', result.data);
       showTeachersSuccess('เพิ่มครูใหม่เรียบร้อยแล้ว');
@@ -1066,10 +1066,10 @@ async function updateTeacher(id, teacherData) {
   try {
     const context = adminState.context || getContext();
     const year = context?.year || 2567;
-    
+
     console.log('📝 Updating teacher...', id, teacherData);
     const result = await scheduleAPI.updateTeacher(year, id, teacherData);
-    
+
     if (result.success) {
       console.log('✅ Teacher updated successfully');
       showTeachersSuccess('อัปเดตข้อมูลครูเรียบร้อยแล้ว');
@@ -1088,14 +1088,14 @@ async function deleteTeacher(id, confirm = true) {
   if (confirm && !window.confirm('ต้องการลบครูคนนี้หรือไม่?')) {
     return;
   }
-  
+
   try {
     const context = adminState.context || getContext();
     const year = context?.year || 2567;
-    
+
     console.log('🗑️ Deleting teacher...', id);
     const result = await scheduleAPI.deleteTeacher(year, id);
-    
+
     if (result.success) {
       console.log('✅ Teacher deleted successfully');
       showTeachersSuccess('ลบครูเรียบร้อยแล้ว');
@@ -1117,7 +1117,7 @@ function bindTeacherFormEvents() {
   if (teacherForm) {
     teacherForm.addEventListener('submit', handleTeacherSubmit);
   }
-  
+
   const clearButton = document.getElementById('clear-teacher-form');
   if (clearButton) {
     clearButton.addEventListener('click', clearTeacherForm);
@@ -1127,17 +1127,17 @@ function bindTeacherFormEvents() {
 async function handleTeacherSubmit(e) {
   e.preventDefault();
   const formData = new FormData(e.target);
-  
+
   // Debug: แสดงข้อมูลที่อ่านจาก form
   console.log('📝 Form Data Debug:');
   for (let [key, value] of formData.entries()) {
     console.log(`  ${key}: "${value}"`);
   }
-  
+
   // Debug: ดูค่าใน input elements โดยตรง
   const titleInput = document.getElementById('teacher-title-input');
   console.log('📝 Direct title input value:', titleInput ? titleInput.value : 'NOT_FOUND');
-  
+
   const teacherData = {
     title: formData.get('title'),
     f_name: formData.get('f_name'),
@@ -1147,16 +1147,16 @@ async function handleTeacherSubmit(e) {
     subject_group: formData.get('subject_group'),
     role: formData.get('role')
   };
-  
+
   console.log('📝 Teacher Data Object:', teacherData); // Debug log
-  
+
   if (adminState.editingTeacher) {
     await updateTeacher(adminState.editingTeacher.id, teacherData);
     adminState.editingTeacher = null;
   } else {
     await addNewTeacher(teacherData);
   }
-  
+
   clearTeacherForm();
   renderTeachersTable();
 }
@@ -1166,7 +1166,7 @@ function clearTeacherForm() {
   if (form) {
     form.reset();
     adminState.editingTeacher = null;
-    
+
     const title = form.closest('.admin-form-section').querySelector('h3');
     if (title) {
       title.textContent = '📝 เพิ่มครูใหม่';
@@ -3071,7 +3071,14 @@ function buildSchedulePromptDataset(year, semesterId, semesterName) {
       schedule_table: scheduleTableName,
       subject_table: `subjects_${year}`,
       day_of_week_definition: '1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday, 7=Sunday',
-      required_insert_columns: ['semester_id', 'subject_id', 'day_of_week', 'period_no', 'room_id'],
+      "required_insert_columns": [
+        "semester_id",
+        "subject_id",
+        "class_id",
+        "day_of_week",
+        "period_no",
+        "room_id"
+      ],
       constraints: [
         'Each subject must be scheduled exactly periods_per_week times within the week.',
         'A teacher cannot teach more than one subject in the same day_of_week & period_no slot.',
@@ -3113,12 +3120,50 @@ function buildSchedulePromptText(dataset) {
     `- Day of Week Mapping: ${context.day_of_week_definition}`,
     '',
     '## Instructions for the AI',
-    '1. เติมตารางสอนให้ครบตามค่า periods_per_week ของแต่ละวิชาใน dataset.',
-    '2. หลีกเลี่ยงการชนกันของครู, ชั้นเรียน และห้องเรียนในแต่ละคาบ (day_of_week + period_no).',
-    '3. เคารพเงื่อนไขพิเศษในฟิลด์ special_requirements และใช้ห้อง default เมื่อมี.',
-    `4. ตอบกลับเป็นคำสั่ง SQL INSERT เท่านั้น โดยใช้รูปแบบ: INSERT INTO ${context.schedule_table} (semester_id, subject_id, day_of_week, period_no, room_id) VALUES (...);`,
-    '5. ใส่หนึ่ง INSERT ต่อหนึ่งคาบเรียน และใช้ NULL สำหรับ room_id หากไม่มีข้อมูล.',
-    '6. ห้ามส่งคำอธิบายหรือข้อความอื่น นอกจาก SQL statements.',
+    '1. Constraint หลัก:',
+    '   - ห้ามครู 1 คน สอนเกิน 1 ชั้นเรียนในเวลาเดียวกัน (teacher conflict)',
+    '   - ห้ามห้องเรียน 1 ห้อง ถูกใช้เกิน 1 ชั้นเรียนในเวลาเดียวกัน (room conflict)',
+    '   - ห้ามชั้นเรียน 1 ห้อง มีมากกว่า 1 วิชาในเวลาเดียวกัน (class conflict)',
+    '   - ยกเว้น: “ลูกเสือ ม.ต้น (SCOUT_MS)” และ “กิจกรรมพัฒนาผู้เรียน ม.ปลาย (DEV_HS)” ที่อนุญาตให้เรียนรวม/ซ้อนกันได้ตามกติกาด้านล่าง',
+    '',
+    '2. เติมตารางสอนให้ครบตามค่า periods_per_week ของแต่ละวิชาใน dataset',
+    '',
+    '3. กติกาพิเศษสำหรับกิจกรรม:',
+    '   - กิจกรรมพัฒนาผู้เรียน ม.ปลาย (DEV_HS):',
+    '     • 1 ครูต่อ 1 ห้องเรียน ม.ปลาย (9 ห้อง: ม.4/1–ม.6/3)',
+    '     • ต้องจัดลง “วันพุธ คาบสุดท้าย” เท่านั้น',
+    '     • ใช้ห้องประจำชั้น (HR) ของห้องนั้นเสมอ',
+    '   - ลูกเสือ ม.ต้น (SCOUT_MS):',
+    '     • ม.1 ทั้งหมดเรียนพร้อมกัน, ม.2 ทั้งหมดเรียนพร้อมกัน, ม.3 ทั้งหมดเรียนพร้อมกัน',
+    '     • แต่ละระดับชั้นต้องจัดที่ “วันพุธ คาบสุดท้าย”',
+    '     • อนุญาตให้มี “ครูหลายคน” สอนพร้อมกันในเวลาเดียวกัน',
+    '     • แถวหลักของลูกเสือใช้ “สนามลูกเสือ” (room_id=32)',
+    '     • แถวเสริมของครูเพิ่ม ให้ใช้ room_id = NULL (เพื่อเลี่ยง UNIQUE)',
+    '',
+    '4. เคารพเงื่อนไขในฟิลด์ special_requirements และใช้ default_room_id หากมี',
+    '',
+    '5. ห้องเรียน:',
+    '   - ถ้า room_id = NULL (ในวิชาปกติ) ให้จัดลงห้องประจำชั้น (HR) ของ class_id นั้น ๆ',
+    '   - ถ้าไม่พบ HR จริง ให้คง room_id = NULL',
+    '',
+    '6. วัน–เวลา:',
+    '   - ใช้เฉพาะวันจันทร์–พฤหัส (day_of_week ∈ {1,2,3,4})',
+    '   - วันศุกร์ (day_of_week=5) = Playday ห้ามมีคาบเรียน',
+    '   - ห้ามมีเรียนวันเสาร์ (6) และอาทิตย์ (7)',
+    '   - ห้ามใช้คาบที่เป็นพัก/กลางวัน (period_name มีคำว่า “พัก/กลางวัน/Lunch/Break”)',
+    '   - ต้องใช้เฉพาะ period_no ที่อยู่ใน periods ของ dataset',
+    '',
+    '7. ตรวจสอบซ้ำ:',
+    '   - ห้ามซ้ำ (class_id, day_of_week, period_no)',
+    '   - ห้ามซ้ำ (room_id, day_of_week, period_no) ยกเว้นลูกเสือ/กิจกรรม',
+    '   - ครู 1 คน ห้ามซ้ำ (teacher_id, day_of_week, period_no) ยกเว้นลูกเสือ',
+    '',
+    '8. Summary Schema Rule:',
+    '   - 1 ห้องเรียน (room_id) ในเวลาหนึ่ง สอนได้แค่ 1 ชั้นเรียน (ยกเว้นลูกเสือ/กิจกรรมตามข้อ 3)',
+    '',
+    '9. ถ้า periods_per_week ของ “กิจกรรม” มากกว่า 1 ให้ใช้แค่ 1 คาบ (Wed-last)',
+    '',
+    '10. ถ้าวิชาต่างกันแต่เป็นชั้นเดียวกัน ต้องใช้ห้องต่างกันหรือเวลาต่างกัน',
     '',
     '## Dataset (คัดลอกไปวางใน Prompt ได้เลย)',
     '```json',
@@ -3126,11 +3171,16 @@ function buildSchedulePromptText(dataset) {
     '```',
     '',
     '## Output Format Example',
-    `INSERT INTO ${context.schedule_table} (semester_id, subject_id, day_of_week, period_no, room_id) VALUES (${context.semester_id}, 101, 1, 1, NULL);`
+    '11. Output: ต้องตอบกลับเป็น SQL คำสั่ง INSERT เท่านั้น',
+    `   INSERT INTO ${context.schedule_table} (semester_id, subject_id, class_id, day_of_week, period_no, room_id)`,
+    `   VALUES (${context.semester_id}, 366, 11, 1, 1, 11), (${context.semester_id}, 168, 17, 1, 2, 17), ...;`,
+    '   - 1 แถวต่อ 1 คาบเรียน',
+    ''
   ];
 
   return lines.filter(Boolean).join('\n');
 }
+
 
 function downloadPromptFile(content, year, semesterId) {
   if (!content) {
@@ -4002,11 +4052,11 @@ function adjustAuthInputWidth() {
   try {
     const form = document.querySelector('#page-admin .auth-form');
     if (!form) return;
-    
+
     form.style.margin = '0 auto';
     form.style.textAlign = 'center';
     form.style.maxWidth = '350px';
-    
+
     const formElement = form.querySelector('form');
     if (formElement) {
       formElement.style.display = 'flex';
@@ -4014,7 +4064,7 @@ function adjustAuthInputWidth() {
       formElement.style.alignItems = 'center';
       formElement.style.gap = '0.75rem';
     }
-    
+
     const labels = form.querySelectorAll('label');
     labels.forEach((label) => {
       const input = label.nextElementSibling;
@@ -4024,23 +4074,23 @@ function adjustAuthInputWidth() {
         wrapper.style.alignItems = 'center';
         wrapper.style.gap = '0.5rem';
         wrapper.style.justifyContent = 'center';
-        
+
         label.parentNode.insertBefore(wrapper, label);
         wrapper.appendChild(label);
         wrapper.appendChild(input);
-        
+
         input.style.padding = '0.4rem 0.55rem';
         input.style.border = '1px solid #ccc';
         input.style.borderRadius = '6px';
       }
     });
-    
+
     const button = form.querySelector('button[type="submit"]');
     if (button) {
       button.style.margin = '0.5rem auto 0';
       button.style.padding = '0.55rem 1.5rem';
     }
-  } catch (e) {}
+  } catch (e) { }
 }
 
 /**
@@ -4057,32 +4107,32 @@ function bindTeacherTableEvents() {
   if (tableBody) {
     tableBody.addEventListener('click', handleTableAction);
   }
-  
+
   const tableHeader = document.getElementById('teachers-table')?.querySelector('thead');
   if (tableHeader) {
     tableHeader.addEventListener('click', handleColumnSort);
   }
-  
+
   const selectAllCheckbox = document.getElementById('select-all-teachers');
   if (selectAllCheckbox) {
     selectAllCheckbox.addEventListener('change', handleSelectAll);
   }
-  
+
   const deleteSelectedBtn = document.getElementById('delete-selected-teachers');
   if (deleteSelectedBtn) {
     deleteSelectedBtn.addEventListener('click', handleDeleteSelected);
   }
-  
+
   const exportBtn = document.getElementById('export-teachers');
   if (exportBtn) {
     exportBtn.addEventListener('click', handleExportTeachers);
   }
-  
+
   const shortcutsBtn = document.getElementById('show-shortcuts');
   if (shortcutsBtn) {
     shortcutsBtn.addEventListener('click', showShortcutsModal);
   }
-  
+
   initResizableColumns();
   initKeyboardNavigation();
 }
@@ -4092,12 +4142,12 @@ function bindTeacherSearchEvents() {
   if (searchInput) {
     searchInput.addEventListener('input', handleSearch);
   }
-  
+
   const refreshBtn = document.getElementById('refresh-teachers');
   if (refreshBtn) {
     refreshBtn.addEventListener('click', handleRefresh);
   }
-  
+
   const itemsPerPageSelect = document.getElementById('teachers-per-page');
   if (itemsPerPageSelect) {
     itemsPerPageSelect.addEventListener('change', handleItemsPerPageChange);
@@ -4107,11 +4157,11 @@ function bindTeacherSearchEvents() {
 function bindTeacherPaginationEvents() {
   const prevBtn = document.getElementById('prev-page');
   const nextBtn = document.getElementById('next-page');
-  
+
   if (prevBtn) {
     prevBtn.addEventListener('click', () => changePage(adminState.currentPage - 1));
   }
-  
+
   if (nextBtn) {
     nextBtn.addEventListener('click', () => changePage(adminState.currentPage + 1));
   }
@@ -4122,9 +4172,9 @@ function bindTeacherPaginationEvents() {
 function handleTableAction(e) {
   const action = e.target.dataset.action;
   const teacherId = parseInt(e.target.dataset.teacherId);
-  
+
   if (!action || !teacherId) return;
-  
+
   switch (action) {
     case 'edit':
       editTeacher(teacherId);
@@ -4149,7 +4199,7 @@ function handleSelectAll(e) {
 async function handleDeleteSelected() {
   const selectedIds = getSelectedTeacherIds();
   if (selectedIds.length === 0) return;
-  
+
   if (confirm(`ต้องการลบครู ${selectedIds.length} คนที่เลือกหรือไม่?`)) {
     for (const id of selectedIds) {
       await deleteTeacher(id, false);
@@ -4190,17 +4240,17 @@ function handleItemsPerPageChange(e) {
 function handleColumnSort(e) {
   const th = e.target.closest('th');
   if (!th || !th.dataset.sortable) return;
-  
+
   const column = th.dataset.column;
   const columnName = th.textContent.trim();
-  
+
   if (adminState.sortColumn === column) {
     adminState.sortDirection = adminState.sortDirection === 'asc' ? 'desc' : 'asc';
   } else {
     adminState.sortColumn = column;
     adminState.sortDirection = 'asc';
   }
-  
+
   showSortingFeedback(columnName, adminState.sortDirection);
   updateSortIndicators();
   renderTeachersTable();
@@ -4211,14 +4261,14 @@ function handleColumnSort(e) {
 function editTeacher(id) {
   const teacher = adminState.teachers.find(t => t.id === id);
   if (!teacher) return;
-  
+
   console.log('🔍 Editing teacher:', teacher); // Debug log
-  
+
   // Set title input (using corrected ID)
   const titleInput = document.getElementById('teacher-title-input');
   console.log('📝 Title input element:', titleInput); // Debug log
   console.log('📝 Teacher title value:', teacher.title); // Debug log
-  
+
   if (titleInput) {
     titleInput.value = teacher.title || '';
     console.log('📝 Set title input value to:', titleInput.value); // Debug log
@@ -4231,18 +4281,18 @@ function editTeacher(id) {
   document.getElementById('teacher-email').value = teacher.email || '';
   document.getElementById('teacher-phone').value = teacher.phone || '';
   document.getElementById('teacher-subject-group').value = teacher.subject_group || '';
-  
+
   const roleRadio = document.querySelector(`input[name="role"][value="${teacher.role}"]`);
   if (roleRadio) {
     roleRadio.checked = true;
   }
-  
+
   adminState.editingTeacher = teacher;
-  
+
   const firstName = teacher.f_name || 'ไม่ระบุ';
   const lastName = teacher.l_name || 'ไม่ระบุ';
   const fullName = `${firstName} ${lastName}`;
-  
+
   const title = document.querySelector('.admin-form-section h3');
   if (title) {
     title.textContent = `✏️ แก้ไขครู`;
@@ -4252,11 +4302,11 @@ function editTeacher(id) {
 function viewTeacher(id) {
   const teacher = adminState.teachers.find(t => t.id === id);
   if (!teacher) return;
-  
+
   const firstName = teacher.f_name || 'ไม่ระบุ';
   const lastName = teacher.l_name || 'ไม่ระบุ';
   const fullName = `${teacher.title ? teacher.title + ' ' : ''}${firstName} ${lastName}`;
-  
+
   alert(`รายละเอียดครู:\n\nชื่อ: ${fullName}\nอีเมล: ${teacher.email || 'ไม่ระบุ'}\nเบอร์โทร: ${teacher.phone || 'ไม่ระบุ'}\nสาขาวิชา: ${teacher.subject_group}\nบทบาท: ${getRoleDisplayName(teacher.role)}`);
 }
 
@@ -4264,17 +4314,17 @@ function viewTeacher(id) {
 
 function renderTeachersTable() {
   console.log('🎨 Rendering teachers table with', adminState.teachers.length, 'teachers');
-  
+
   const tableBody = document.getElementById('teachers-table-body');
   if (!tableBody) {
     console.error('❌ Teachers table body not found!');
     return;
   }
-  
+
   // Filter teachers
   let filteredTeachers = adminState.teachers.filter(teacher => {
     if (!adminState.searchTerm) return true;
-    
+
     const searchableText = [
       teacher.title,
       teacher.f_name,
@@ -4283,10 +4333,10 @@ function renderTeachersTable() {
       teacher.phone,
       teacher.subject_group
     ].join(' ').toLowerCase();
-    
+
     return searchableText.includes(adminState.searchTerm);
   });
-  
+
   // Sort filtered teachers
   filteredTeachers.sort((a, b) => {
     let aValue = a[adminState.sortColumn];
@@ -4298,28 +4348,28 @@ function renderTeachersTable() {
       aValue = ad;
       bValue = bd;
     }
-    
+
     if (aValue == null && bValue == null) return 0;
     if (aValue == null) return 1;
     if (bValue == null) return -1;
-    
+
     const aStr = String(aValue).toLowerCase();
     const bStr = String(bValue).toLowerCase();
-    
+
     let comparison = 0;
     if (aStr < bStr) comparison = -1;
     else if (aStr > bStr) comparison = 1;
-    
+
     return adminState.sortDirection === 'desc' ? -comparison : comparison;
   });
-  
+
   // Pagination
   const totalItems = filteredTeachers.length;
   const totalPages = Math.ceil(totalItems / adminState.itemsPerPage);
   const startIndex = (adminState.currentPage - 1) * adminState.itemsPerPage;
   const endIndex = startIndex + adminState.itemsPerPage;
   const paginatedTeachers = filteredTeachers.slice(startIndex, endIndex);
-  
+
   // Render table rows
   if (paginatedTeachers.length === 0) {
     tableBody.innerHTML = `
@@ -4335,10 +4385,10 @@ function renderTeachersTable() {
       const lastName = teacher.l_name || 'ไม่ระบุ';
       const displayName = `${teacher.title ? teacher.title : ''}${firstName} ${lastName}`;
       const fullName = `${firstName} ${lastName}`;
-      
+
       // Debug: แสดงข้อมูลที่กำลัง render
       console.log(`🎨 Rendering teacher ${teacher.id}: title="${teacher.title}", displayName="${displayName}"`);
-      
+
       return `
         <tr class="teacher-row" data-teacher-id="${teacher.id}">
           <td style="padding: 0.75rem; text-align: center;">
@@ -4360,11 +4410,11 @@ function renderTeachersTable() {
       `;
     }).join('');
   }
-  
+
   updatePaginationInfo(adminState.currentPage, totalPages, totalItems);
   updateBulkActionButtons();
   updateSortIndicators();
-  
+
   console.log('✅ Table rendered successfully');
 }
 
@@ -4374,15 +4424,15 @@ function updatePaginationInfo(currentPage, totalPages, totalItems) {
   const pageInfo = document.querySelector('.page-info');
   const prevBtn = document.getElementById('prev-page');
   const nextBtn = document.getElementById('next-page');
-  
+
   if (pageInfo) {
     pageInfo.textContent = `หน้า ${currentPage} จาก ${totalPages} (${totalItems} รายการ)`;
   }
-  
+
   if (prevBtn) {
     prevBtn.disabled = currentPage <= 1;
   }
-  
+
   if (nextBtn) {
     nextBtn.disabled = currentPage >= totalPages;
   }
@@ -4392,14 +4442,14 @@ function updateBulkActionButtons() {
   const selectedIds = getSelectedTeacherIds();
   const deleteBtn = document.getElementById('delete-selected-teachers');
   const copyBtn = document.getElementById('copy-selected-teachers');
-  
+
   const hasSelection = selectedIds.length > 0;
-  
+
   if (deleteBtn) {
     deleteBtn.disabled = !hasSelection;
     deleteBtn.style.opacity = hasSelection ? '1' : '0.5';
   }
-  
+
   if (copyBtn) {
     copyBtn.disabled = !hasSelection;
     copyBtn.style.opacity = hasSelection ? '1' : '0.5';
@@ -4410,7 +4460,7 @@ function updateSortIndicators() {
   document.querySelectorAll('#teachers-table th[data-sortable]').forEach(th => {
     th.classList.remove('sort-asc', 'sort-desc');
   });
-  
+
   const currentSortTh = document.querySelector(`#teachers-table th[data-column="${adminState.sortColumn}"]`);
   if (currentSortTh) {
     currentSortTh.classList.add(adminState.sortDirection === 'asc' ? 'sort-asc' : 'sort-desc');
@@ -4420,7 +4470,7 @@ function updateSortIndicators() {
 function showSortingFeedback(columnName, direction) {
   const directionText = direction === 'asc' ? 'น้อยไปมาก' : 'มากไปน้อย';
   const message = `🔄 จัดเรียงข้อมูลตาม ${columnName} (${directionText})`;
-  
+
   let feedback = document.getElementById('sort-feedback');
   if (!feedback) {
     feedback = document.createElement('div');
@@ -4431,10 +4481,10 @@ function showSortingFeedback(columnName, direction) {
       container.insertBefore(feedback, document.querySelector('.table-container'));
     }
   }
-  
+
   feedback.textContent = message;
   feedback.style.display = 'block';
-  
+
   setTimeout(() => {
     if (feedback) {
       feedback.style.display = 'none';
@@ -4453,9 +4503,9 @@ function changePage(newPage) {
     const searchableText = [teacher.title, teacher.f_name, teacher.l_name, teacher.email, teacher.phone, teacher.subject_group].join(' ').toLowerCase();
     return searchableText.includes(adminState.searchTerm);
   }).length;
-  
+
   const totalPages = Math.ceil(totalItems / adminState.itemsPerPage);
-  
+
   if (newPage >= 1 && newPage <= totalPages) {
     adminState.currentPage = newPage;
     renderTeachersTable();
@@ -4466,42 +4516,42 @@ function changePage(newPage) {
 
 function bindMainAdminNavigation() {
   const mainNavTabs = document.querySelectorAll('#page-admin .sub-nav-tabs .sub-nav-tab:not([data-bound])');
-  
+
   if (mainNavTabs.length === 0) {
     console.log('ℹ️ Main admin navigation already bound or no tabs found');
     return;
   }
-  
+
   mainNavTabs.forEach(tab => {
     tab.setAttribute('data-bound', 'true');
-    
+
     tab.addEventListener('click', (e) => {
       e.preventDefault();
-      
+
       const targetId = tab.getAttribute('data-target');
       console.log('🎯 Admin tab clicked:', targetId);
-      
+
       const allMainTabs = document.querySelectorAll('#page-admin .sub-nav-tabs .sub-nav-tab');
       allMainTabs.forEach(t => {
         t.classList.remove('active');
         t.setAttribute('aria-selected', 'false');
       });
-      
+
       tab.classList.add('active');
       tab.setAttribute('aria-selected', 'true');
-      
+
       const adminSubPages = document.querySelectorAll('#page-admin .sub-page');
       adminSubPages.forEach(page => {
         page.classList.add('hidden');
         page.style.display = 'none';
       });
-      
+
       const targetPage = document.getElementById(targetId);
       if (targetPage) {
         targetPage.classList.remove('hidden');
         targetPage.style.display = 'block';
         console.log('✅ Showing admin section:', targetId);
-        
+
         if (targetId === 'admin-year') {
           initAcademicYearNavigation();
         }
@@ -4510,32 +4560,32 @@ function bindMainAdminNavigation() {
       }
     });
   });
-  
+
   console.log('✅ Main admin navigation bound to', mainNavTabs.length, 'tabs');
 }
 
 function bindDataSubNavigation() {
   const dataSubNavTabs = document.querySelectorAll('.data-sub-nav-tab');
-  
+
   console.log('🔧 Binding data sub navigation, found', dataSubNavTabs.length, 'tabs');
-  
+
   dataSubNavTabs.forEach(tab => {
     tab.addEventListener('click', (e) => {
       e.preventDefault();
-      
+
       const targetId = tab.getAttribute('data-target');
       console.log('📋 Data sub-tab clicked:', targetId);
-      
+
       // Remove active from all tabs
       dataSubNavTabs.forEach(t => {
         t.classList.remove('active');
         t.setAttribute('aria-selected', 'false');
       });
-      
+
       // Add active to clicked tab
       tab.classList.add('active');
       tab.setAttribute('aria-selected', 'true');
-      
+
       // Hide all data sub-pages
       const dataSubPages = document.querySelectorAll('#admin-data .data-sub-page');
       console.log('📋 Found', dataSubPages.length, 'data sub-pages');
@@ -4543,19 +4593,19 @@ function bindDataSubNavigation() {
         page.classList.add('hidden');
         page.classList.remove('active');
       });
-      
+
       // Show target page
       const targetPage = document.getElementById(targetId);
       if (targetPage) {
         targetPage.classList.remove('hidden');
         targetPage.classList.add('active');
-        
+
         // Reload template content to ensure it shows properly
         if (window.adminTemplates) {
           let templateKey = null;
-          
+
           // Map targetId to correct template key
-          switch(targetId) {
+          switch (targetId) {
             case 'add-teacher':
               templateKey = 'forms/admin/add-teacher';
               break;
@@ -4572,17 +4622,17 @@ function bindDataSubNavigation() {
               templateKey = 'forms/admin/add-period';
               break;
           }
-          
+
           if (templateKey && window.adminTemplates[templateKey]) {
             console.log('🔄 Reloading template:', templateKey);
-            
+
             // Parse template and extract inner content
             const parser = new DOMParser();
             const doc = parser.parseFromString(window.adminTemplates[templateKey], 'text/html');
             const templateDiv = doc.querySelector(`#${targetId}`);
-            
+
             console.log('🔍 Template parsed. Found div:', !!templateDiv);
-            
+
             if (templateDiv) {
               // Get the innerHTML of the template (without the outer div)
               targetPage.innerHTML = templateDiv.innerHTML;
@@ -4592,7 +4642,7 @@ function bindDataSubNavigation() {
               targetPage.innerHTML = window.adminTemplates[templateKey];
               console.log('⚠️ Fallback: using template as-is');
             }
-            
+
             // Re-bind events for specific forms
             setTimeout(async () => {
               try {
@@ -4615,14 +4665,14 @@ function bindDataSubNavigation() {
             console.warn('⚠️ Template not found:', templateKey, 'Available:', Object.keys(window.adminTemplates || {}));
           }
         }
-        
+
         console.log('✅ Showing data sub-page:', targetId);
       } else {
         console.error('❌ Target data sub-page not found:', targetId);
       }
     });
   });
-  
+
   // Initialize first tab as active
   const activeTab = document.querySelector('.data-sub-nav-tab.active');
   if (!activeTab && dataSubNavTabs.length > 0) {
@@ -4633,15 +4683,15 @@ function bindDataSubNavigation() {
 
 function initAcademicYearNavigation() {
   console.log('📅 Initializing academic year navigation...');
-  
+
   const subNavItems = document.querySelectorAll('#admin-year .sub-nav-item:not([data-bound])');
-  
+
   if (subNavItems.length === 0) {
     console.log('ℹ️ Academic year sub-navigation already bound or no items found');
-    
+
     const container = document.querySelector('#admin-year');
     const academicMgmtDiv = document.querySelector('#admin-year #academic-management');
-    
+
     if (container && academicMgmtDiv) {
       if (academicMgmtDiv.classList.contains('hidden')) {
         academicMgmtDiv.classList.remove('hidden');
@@ -4649,17 +4699,17 @@ function initAcademicYearNavigation() {
         console.log('✅ Removed hidden class from academic-management div');
       }
     }
-    
+
     const retrySubNavItems = document.querySelectorAll('#admin-year .sub-nav-item:not([data-bound])');
     if (retrySubNavItems.length > 0) {
       console.log('🔄 Found sub-nav items after removing hidden class:', retrySubNavItems.length);
       bindAcademicSubNavItems(retrySubNavItems);
       return;
     }
-    
+
     return;
   }
-  
+
   bindAcademicSubNavItems(subNavItems);
   console.log('✅ Academic year navigation initialized with', subNavItems.length, 'sub-tabs');
 }
@@ -4667,24 +4717,24 @@ function initAcademicYearNavigation() {
 function bindAcademicSubNavItems(subNavItems) {
   subNavItems.forEach(item => {
     item.setAttribute('data-bound', 'true');
-    
+
     item.addEventListener('click', (e) => {
       e.preventDefault();
-      
+
       const targetSubTab = item.getAttribute('data-sub-tab');
       console.log('📅 Academic sub-tab clicked:', targetSubTab);
-      
+
       const allSubNavItems = document.querySelectorAll('#admin-year .sub-nav-item');
       allSubNavItems.forEach(i => i.classList.remove('active'));
-      
+
       item.classList.add('active');
-      
+
       const allSubTabContent = document.querySelectorAll('#admin-year .sub-tab-content');
       allSubTabContent.forEach(content => {
         content.classList.add('hidden');
         content.classList.remove('active');
       });
-      
+
       const targetContent = document.getElementById(targetSubTab);
       if (targetContent) {
         targetContent.classList.remove('hidden');
@@ -4695,7 +4745,7 @@ function bindAcademicSubNavItems(subNavItems) {
       }
     });
   });
-  
+
   if (subNavItems.length > 0) {
     subNavItems[0].click();
   }
@@ -4709,12 +4759,12 @@ function initKeyboardNavigation() {
 
 function handleTableKeyboardNavigation(e) {
   const activeElement = document.activeElement;
-  const isTableContext = activeElement.closest('.teacher-data-grid') || 
-                        activeElement.closest('.data-table') ||
-                        activeElement.id === 'teacher-search';
-  
+  const isTableContext = activeElement.closest('.teacher-data-grid') ||
+    activeElement.closest('.data-table') ||
+    activeElement.id === 'teacher-search';
+
   if (!isTableContext) return;
-  
+
   switch (e.key) {
     case 'F3':
     case '/':
@@ -4835,24 +4885,24 @@ function showShortcutsModal() {
       </div>
     </div>
   `;
-  
+
   const existingModal = document.getElementById('shortcuts-modal');
   if (existingModal) {
     existingModal.remove();
   }
-  
+
   document.body.insertAdjacentHTML('beforeend', modalHtml);
-  
+
   document.querySelectorAll('.shortcuts-close').forEach(btn => {
     btn.addEventListener('click', closeShortcutsModal);
   });
-  
+
   document.getElementById('shortcuts-modal').addEventListener('click', (e) => {
     if (e.target.id === 'shortcuts-modal') {
       closeShortcutsModal();
     }
   });
-  
+
   document.addEventListener('keydown', function escapeHandler(e) {
     if (e.key === 'Escape') {
       closeShortcutsModal();
@@ -4873,78 +4923,78 @@ function closeShortcutsModal() {
 function initResizableColumns() {
   const table = document.getElementById('teachers-table');
   if (!table) return;
-  
+
   const headers = table.querySelectorAll('th');
   let isResizing = false;
   let currentHeader = null;
   let startX = 0;
   let startWidth = 0;
-  
+
   headers.forEach((header, index) => {
     if (index === headers.length - 1) return;
-    
+
     header.addEventListener('mousedown', (e) => {
       const rect = header.getBoundingClientRect();
       const isResizeArea = e.clientX >= rect.right - 5;
-      
+
       if (isResizeArea) {
         e.preventDefault();
         isResizing = true;
         currentHeader = header;
         startX = e.clientX;
         startWidth = header.offsetWidth;
-        
+
         header.classList.add('resizing');
         document.body.style.cursor = 'col-resize';
         document.body.style.userSelect = 'none';
-        
+
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
       }
     });
-    
+
     header.addEventListener('mousemove', (e) => {
       if (isResizing) return;
-      
+
       const rect = header.getBoundingClientRect();
       const isResizeArea = e.clientX >= rect.right - 5;
-      
+
       header.style.cursor = isResizeArea ? 'col-resize' : 'default';
     });
-    
+
     header.addEventListener('mouseleave', () => {
       if (!isResizing) {
         header.style.cursor = 'default';
       }
     });
   });
-  
+
   function handleMouseMove(e) {
     if (!isResizing || !currentHeader) return;
-    
+
     const diff = e.clientX - startX;
     const newWidth = Math.max(50, startWidth + diff);
-    
+
     currentHeader.style.width = newWidth + 'px';
   }
-  
+
   function handleMouseUp() {
     if (isResizing) {
       isResizing = false;
-      
+
       if (currentHeader) {
         currentHeader.classList.remove('resizing');
         currentHeader = null;
       }
-      
+
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      
+
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     }
   }
-  
+
   console.log('✅ Resizable columns initialized');
 }
 
@@ -4970,18 +5020,18 @@ if (typeof module !== 'undefined' && module.exports) {
 /**
  * Delete Academic Year - Global function for onclick
  */
-window.deleteAcademicYear = async function(yearId, year) {
+window.deleteAcademicYear = async function (yearId, year) {
   try {
     if (!yearId) return;
-    
+
     // Import required modules dynamically
     const { default: coreAPI } = await import('../api/core-api.js');
     const { refreshContextFromBackend } = await import('../context/globalContext.js');
-    
+
     // Check if it's the active year (rough check)
     const confirmed = confirm(`ยืนยันการลบปีการศึกษา ${year} ?`);
     if (!confirmed) return;
-    
+
     // Show loading state
     const button = event?.target;
     const originalText = button ? button.textContent : '';
@@ -4989,23 +5039,23 @@ window.deleteAcademicYear = async function(yearId, year) {
       button.textContent = 'กำลังลบ...';
       button.disabled = true;
     }
-    
+
     try {
       const result = await coreAPI.deleteAcademicYear(parseInt(yearId));
-      
+
       if (!result.success) {
         alert(result.error || 'ลบปีการศึกษาไม่สำเร็จ');
         return;
       }
-      
+
       // Refresh global context from backend (to sync any changes)
-      try { await refreshContextFromBackend(); } catch (e) {}
-      
+      try { await refreshContextFromBackend(); } catch (e) { }
+
       alert(`ลบปีการศึกษา ${year} เรียบร้อยแล้ว!`);
-      
+
       // Reload page to refresh all data
       window.location.reload();
-      
+
     } finally {
       // Reset button
       if (button) {
@@ -5013,7 +5063,7 @@ window.deleteAcademicYear = async function(yearId, year) {
         button.disabled = false;
       }
     }
-    
+
   } catch (error) {
     console.error('[Admin] Error deleting academic year:', error);
     alert('เกิดข้อผิดพลาดในการลบปีการศึกษา: ' + error.message);
@@ -5023,7 +5073,7 @@ window.deleteAcademicYear = async function(yearId, year) {
 /**
  * Edit Academic Year - Global function for onclick (placeholder)
  */
-window.editAcademicYear = async function(yearId) {
+window.editAcademicYear = async function (yearId) {
   alert('คุณสมบัติแก้ไขยังไม่ได้ถูกพัฒนา ใช้ลบแล้วเพิ่มใหม่แทน');
   console.log('[Admin] Edit academic year:', yearId);
 };
@@ -5031,7 +5081,7 @@ window.editAcademicYear = async function(yearId) {
 /**
  * Edit Semester - Global function for onclick (placeholder)
  */
-window.editSemester = async function(semesterId) {
+window.editSemester = async function (semesterId) {
   alert('คุณสมบัติแก้ไขภาคเรียนยังไม่ได้ถูกพัฒนา ใช้ลบแล้วเพิ่มใหม่แทน');
   console.log('[Admin] Edit semester:', semesterId);
 };

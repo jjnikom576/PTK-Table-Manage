@@ -131,7 +131,6 @@ export async function updatePageForContext(newContext) {
 /**
  * Refresh Page (NEW - สำหรับ app.js)
  */
-import coreAPI from '../api/core-api.js';
 
 export async function refreshPage(newContext = null) {
   console.log('[TeacherSchedule] Refreshing page with context:', newContext);
@@ -227,21 +226,32 @@ async function loadTeachersData(context) {
     setLoading(true);
     
     // ⭐ FIX: ใช้ year จาก context ให้ถูกต้อง
-    const targetYear = context.currentYear || context.year;
+    const resolvedContext = context || globalContext.getContext() || {};
+    const targetYear = resolvedContext.currentYear || resolvedContext.year;
     console.log(`[TeacherSchedule] Loading data for year: ${targetYear}`);
     
     if (!targetYear) {
       throw new Error('ไม่ได้ระบุปีการศึกษา');
     }
 
-    // ⭐ FIX: ส่ง year parameter ให้ทุก API call
-    const semesterId = context.currentSemester?.id || context.semesterId;
+    // ⭐ FIX: ส่ง year/semester parameter ให้ทุก API call และบังคับรีเฟรช
+    const semesterId =
+      resolvedContext.currentSemester?.id ||
+      resolvedContext.semesterId ||
+      globalContext.getContext()?.currentSemester?.id ||
+      null;
+
+    if (!semesterId) {
+      throw new Error('ไม่ได้ระบุภาคเรียน');
+    }
+
+    const requestOptions = { forceRefresh: true };
     const [teachersResult, schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
-      dataService.getTeachers(targetYear),
-      dataService.getSchedules(targetYear),
-      dataService.getSubjects(targetYear, semesterId),
-      dataService.getClasses(targetYear, semesterId),
-      dataService.getRooms(targetYear, semesterId)
+      dataService.getTeachers(targetYear, semesterId, requestOptions),
+      dataService.getSchedules(targetYear, semesterId, requestOptions),
+      dataService.getSubjects(targetYear, semesterId, requestOptions),
+      dataService.getClasses(targetYear, semesterId, requestOptions),
+      dataService.getRooms(targetYear, semesterId, requestOptions)
     ]);
 
     // ตรวจสอบผลลัพธ์
@@ -275,7 +285,7 @@ async function loadTeachersData(context) {
       subjects: subjectsResult.data,
       classes: classesResult.data || [],
       rooms: roomsResult.data || [],
-      semesterId: (context.currentSemester && context.currentSemester.id) || null
+      semesterId
     });
 
   } catch (error) {
@@ -711,22 +721,29 @@ function renderScheduleTableSection(scheduleData, teacher, context) {
         </td>
     `;
 
-    // คาบเป็นคอลัมน์ (แสดงครบ 8 คาบ)
+    // คาบเป็นคอลัมน์ (แสดงครบ 7 คาบ)
     timeSlots.forEach((timeSlot, periodIndex) => {
       const period = periodIndex + 1;
-      const cellData = scheduleData.matrix[dayNumber]?.[period];
+      const cellDataArray = scheduleData.matrix[dayNumber]?.[period] || []; // ⭐ FIX: อ่านเป็น Array
 
-      if (cellData) {
-        // ⭐ FIX ข้อ 2: ใช้ subject_code แทน subject_name
-        const subjectCode = cellData.subject.subject_code || '';
-        const className = cellData.class.class_name || cellData.class.name || '';
-        const roomName = String(cellData.room.name || cellData.room.room_name || "").replace(/^ห้อง\s*/i, "");
+      if (cellDataArray.length > 0) {
+        // ⭐ FIX: แสดงทุกห้องในคาบเดียวกัน
+        const classRooms = cellDataArray.map(cell => {
+          const subjectCode = cell.subject.subject_code || '';
+          const className = cell.class.class_name || cell.class.name || '';
+          return className;
+        }).join(', ');
+        
+        // ใช้ข้อมูลของห้องแรกเป็นตัวแทน (subject_code, room_name)
+        const firstCell = cellDataArray[0];
+        const subjectCode = firstCell.subject.subject_code || '';
+        const roomName = String(firstCell.room.name || firstCell.room.room_name || "").replace(/^ห้อง\s*/i, "");
         
         tableHTML += `
           <td class="schedule-cell has-subject" data-day="${dayNumber}" data-period="${period}">
             <div class="subject-info">
               <div class="subject-code">${subjectCode}</div>
-              <div class="class-name">${className}</div>
+              <div class="class-name">${classRooms}</div>
               <div class="room-name">${roomName}</div>
             </div>
           </td>
@@ -852,10 +869,14 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
  */
 async function getTeacherScheduleData(teacherId, context) {
   try {
+    console.log('\n' + '='.repeat(80));
+    console.log(`🔍 [getTeacherScheduleData] START - Teacher ID: ${teacherId}`);
+    console.log('='.repeat(80));
     console.log(`[TeacherSchedule] Getting schedule data for teacher ${teacherId} with context:`, context);
     
     // ⭐ FIX: ใช้ year จาก context ที่ถูกต้อง
-    const targetYear = context.currentYear || context.year;
+    const resolvedContext = context || {};
+    const targetYear = resolvedContext.currentYear || resolvedContext.year;
     if (!targetYear) {
       throw new Error('ไม่ได้ระบุปีการศึกษา');
     }
@@ -869,12 +890,22 @@ async function getTeacherScheduleData(teacherId, context) {
     }
     
     // ⭐ FIX: ส่ง year parameter ให้ทุก API call
-    const semesterId = context.currentSemester?.id || context.semesterId;
+    const semesterId =
+      resolvedContext.currentSemester?.id ||
+      resolvedContext.semesterId ||
+      globalContext.getContext()?.currentSemester?.id ||
+      null;
+
+    if (!semesterId) {
+      throw new Error('ไม่ได้ระบุภาคเรียน');
+    }
+
+    const requestOptions = { forceRefresh: true };
     const [schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
-      dataService.getSchedules(targetYear),
-      dataService.getSubjects(targetYear, semesterId),
-      dataService.getClasses(targetYear, semesterId),
-      dataService.getRooms(targetYear, semesterId)
+      dataService.getSchedules(targetYear, semesterId, requestOptions),
+      dataService.getSubjects(targetYear, semesterId, requestOptions),
+      dataService.getClasses(targetYear, semesterId, requestOptions),
+      dataService.getRooms(targetYear, semesterId, requestOptions)
     ]);
     
     // ตรวจสอบผลลัพธ์
@@ -899,8 +930,14 @@ async function getTeacherScheduleData(teacherId, context) {
       rooms: rooms.length
     });
 
+    // ⭐ DEBUG: Show sample schedules
+    console.log(`\n📊 Sample Schedules (first 3):`);
+    schedules.slice(0, 3).forEach(s => {
+      console.log(`  - Schedule ID ${s.id}: subject_id=${s.subject_id}, class_id=${s.class_id}, day=${s.day_of_week}, period=${s.period_no || s.period}`);
+    });
+
     // ⭐ DEBUG: ดู raw schedules data
-    console.log(`[TeacherSchedule] 🔍 Raw schedules for year ${targetYear}:`, schedules.length, 'entries');
+    console.log(`\n[TeacherSchedule] 🔍 Raw schedules for year ${targetYear}:`, schedules.length, 'entries');
     console.log('[TeacherSchedule] 🔍 First 3 schedules:', schedules.slice(0, 3));
     
     // ⭐ FIX: กรองข้อมูลตามปีด้วย class ของปีนี้ (mock บางส่วนใช้ semester_id ข้ามปี)
@@ -908,36 +945,101 @@ async function getTeacherScheduleData(teacherId, context) {
     const subjectsInYear = subjects.filter(s => classIdsOfYear.has(s.class_id));
     const schedulesInYear = schedules.filter(s => classIdsOfYear.has(s.class_id));
 
-    console.log(`[TeacherSchedule] 🔍 After class filter: ${schedulesInYear.length} schedules`);
+    console.log(`\n[TeacherSchedule] 🔍 After class filter:`, {
+      classes_in_year: classIdsOfYear.size,
+      subjects_in_year: subjectsInYear.length,
+      schedules_in_year: schedulesInYear.length
+    });
 
     // ⭐ FIX ข้อ 1 & 3: Filter teacher subjects first, THEN get schedules
     const teacherSubjects = subjectsInYear.filter(s => s.teacher_id === teacherId);
     const subjectIds = new Set(teacherSubjects.map(s => s.id));
     
-    console.log(`[TeacherSchedule] 🔍 Teacher ${teacherId} teaches ${teacherSubjects.length} subjects:`, 
-      teacherSubjects.map(s => `${s.subject_name} (id=${s.id})`));
+    console.log(`\n👨‍🏫 Teacher ${teacherId} Subjects:`, {
+      count: teacherSubjects.length,
+      subject_ids: Array.from(subjectIds)
+    });
+    console.log('📚 Subject Details:');
+    teacherSubjects.forEach(s => {
+      const cls = classes.find(c => c.id === s.class_id);
+      console.log(`  - Subject ID ${s.id}: ${s.subject_name} (${s.subject_code || 'no-code'}) @ ${cls?.class_name || 'N/A'}`);
+    });
 
     // Filter schedules by subject IDs (เฉพาะวิชาที่ครูสอน)
     const teacherSchedules = schedulesInYear.filter(s => subjectIds.has(s.subject_id));
     
-    console.log(`[TeacherSchedule] 🔍 Found ${teacherSchedules.length} schedule entries for teacher ${teacherId}`);
-    console.log('[TeacherSchedule] 🔍 Teacher schedules period distribution:', 
-      teacherSchedules.map(s => `Day${s.day_of_week}P${s.period_no || s.period}`).join(', '));
+    console.log(`\n🎯 Teacher ${teacherId} Schedules (filtered by subject_id):`, {
+      total_count: teacherSchedules.length,
+      expected_count: 32,
+      match: teacherSchedules.length === 32 ? '✅ MATCH!' : '❌ MISMATCH!'
+    });
+
+    // ⭐ DEBUG: Show ALL teacher schedules in detail
+    console.log(`\n📋 DETAILED Schedule List for Teacher ${teacherId}:`);
+    teacherSchedules.forEach((s, idx) => {
+      const subject = subjects.find(sub => sub.id === s.subject_id);
+      const cls = classes.find(c => c.id === s.class_id);
+      const room = rooms.find(r => r.id === s.room_id);
+      console.log(`  ${idx + 1}. Day ${s.day_of_week} Period ${s.period_no || s.period}: ${subject?.subject_code || 'N/A'} @ ${cls?.class_name || 'N/A'} (Room: ${room?.room_name || room?.name || 'N/A'})`);
+    });
+
+    // ⭐ DEBUG: Group by Day-Period
+    const groupedByDayPeriod = {};
+    teacherSchedules.forEach(s => {
+      const key = `Day${s.day_of_week}-P${s.period_no || s.period}`;
+      if (!groupedByDayPeriod[key]) {
+        groupedByDayPeriod[key] = [];
+      }
+      const cls = classes.find(c => c.id === s.class_id);
+      groupedByDayPeriod[key].push(cls?.class_name || 'N/A');
+    });
+
+    console.log(`\n📅 Schedules Grouped by Day-Period:`);
+    Object.entries(groupedByDayPeriod).sort().forEach(([key, items]) => {
+      console.log(`  ${key}: ${items.join(', ')}`);
+    });
+
+    // ⭐ DEBUG: Count by Day
+    const countByDay = [0, 0, 0, 0, 0, 0, 0, 0];
+    teacherSchedules.forEach(s => {
+      if (s.day_of_week >= 1 && s.day_of_week <= 7) {
+        countByDay[s.day_of_week]++;
+      }
+    });
+
+    console.log(`\n📊 Schedules Count by Day:`);
+    console.log(`  จันทร์(1): ${countByDay[1]} (Expected: 8) ${countByDay[1] === 8 ? '✅' : '❌'}`);
+    console.log(`  อังคาร(2): ${countByDay[2]} (Expected: 9) ${countByDay[2] === 9 ? '✅' : '❌'}`);
+    console.log(`  พุธ(3): ${countByDay[3]} (Expected: 8) ${countByDay[3] === 8 ? '✅' : '❌'}`);
+    console.log(`  พฤหัสบดี(4): ${countByDay[4]} (Expected: 7) ${countByDay[4] === 7 ? '✅' : '❌'}`);
+    console.log(`  ศุกร์(5): ${countByDay[5]}`);
+    console.log(`  เสาร์(6): ${countByDay[6]}`);
+    console.log(`  อาทิตย์(7): ${countByDay[7]}`);
 
     // Build schedule matrix
-    // ⭐ FIX ข้อ 1: สร้าง matrix จาก teacherSchedules ตรง ๆ (ไม่ใช้ cache)
+    console.log(`\n🔨 Building Matrix...`);
     const matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
 
-    // ⭐ FIX: คำนวณ totalPeriods จาก unique (day, period) เท่านั้น
+    // ⭐ DEBUG: Verify Matrix
+    console.log(`\n🔍 Matrix Verification:`);
+    for (let day = 1; day <= 5; day++) {
+      const dayName = ['', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'][day];
+      const periodsWithData = [];
+      for (let period = 1; period <= 8; period++) {
+        if (matrix[day] && matrix[day][period]) {
+          const cell = matrix[day][period];
+          periodsWithData.push(`P${period}(${cell.class?.class_name || 'N/A'})`);
+        }
+      }
+      console.log(`  ${dayName}: ${periodsWithData.length > 0 ? periodsWithData.join(', ') : 'No data'}`);
+    }
+
+    // ⭐ FIX 2025-10-02: นับจำนวน schedule entries จริง ไม่ใช่ unique time slots
+    // เพราะต้องการนับคาบสอนจริงทั้งหมด รวมถึงกรณีที่ครูสอนหลายห้องในคาบเดียวกัน
     const validPeriods = teacherSchedules.filter(s => {
       const periodNo = s.period_no || s.period;
       return periodNo >= 1 && periodNo <= 8;
     });
-    
-    // นับ unique time slots แทนนับทุก schedule
-    const uniqueTimeSlots = new Set(
-      validPeriods.map(s => `${s.day_of_week}-${s.period_no || s.period}`)
-    );
     
     const result = {
       subjects: teacherSubjects,
@@ -945,7 +1047,7 @@ async function getTeacherScheduleData(teacherId, context) {
       matrix,
       classes,
       rooms,
-      totalPeriods: uniqueTimeSlots.size // ใช้ unique count
+      totalPeriods: validPeriods.length // ใช้จำนวน entries จริง
     };
     
     console.log(`[TeacherSchedule] ✅ Schedule data prepared for teacher ${teacherId}:`, {
@@ -964,6 +1066,7 @@ async function getTeacherScheduleData(teacherId, context) {
 
 /**
  * Build Teacher Schedule Matrix
+ * ⭐ FIX 2025-10-02: Matrix เก็บเป็น Array เพื่อรองรับหลายห้องในคาบเดียวกัน
  */
 function buildTeacherScheduleMatrix(schedules, context) {
   const matrix = {};
@@ -971,10 +1074,11 @@ function buildTeacherScheduleMatrix(schedules, context) {
   // ⭐ FIX: Initialize matrix for 7 display periods
   // Display: 1,2,3,4 (เช้า 4 คาบ) → [5 = พักเที่ยง] → 5,6,7 (บ่าย 3 คาบ)
   // API period values: 1,2,3,4, [skip 5], 6,7,8
+  // เปลี่ยนจาก null เป็น [] เพื่อเก็บหลายห้อง
   for (let day = 1; day <= 5; day++) {
     matrix[day] = {};
     for (let period = 1; period <= 7; period++) {
-      matrix[day][period] = null;
+      matrix[day][period] = []; // ⭐ เปลี่ยนจาก null เป็น []
     }
   }
 
@@ -1006,12 +1110,13 @@ function buildTeacherScheduleMatrix(schedules, context) {
     // apiPeriod === 5 → skip (พักเที่ยง)
     
     if (displayPeriod !== null && displayPeriod >= 1 && displayPeriod <= 7) {
-      matrix[schedule.day_of_week][displayPeriod] = {
+      // ⭐ FIX: PUSH เข้า Array แทนการเขียนทับ
+      matrix[schedule.day_of_week][displayPeriod].push({
         schedule,
         subject: subject || { subject_name: 'ไม่ระบุวิชา', subject_code: '' },
         class: classInfo || { class_name: 'ไม่ระบุห้อง' },
         room: room || { name: 'ไม่ระบุห้อง' }
-      };
+      });
       
       console.log(`[buildTeacherScheduleMatrix] ✅ Mapped API period ${apiPeriod} → display ${displayPeriod} for Day ${schedule.day_of_week}`);
     }
@@ -1736,4 +1841,3 @@ function showExportError(message) {
 export function getPageState() {
   return { ...pageState };
 }
-
