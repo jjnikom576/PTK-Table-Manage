@@ -354,6 +354,7 @@ export class SchemaManager {
       "group_key TEXT NOT NULL DEFAULT '', " +
       "subject_name TEXT NOT NULL, " +
       "subject_code TEXT, " +
+      "subject_type TEXT NOT NULL DEFAULT 'พื้นฐาน' CHECK (subject_type IN ('พื้นฐาน', 'เพิ่มเติม', 'พัฒนาผู้เรียน')), " +
       "periods_per_week INTEGER NOT NULL CHECK (periods_per_week > 0), " +
       "default_room_id INTEGER, " +
       "special_requirements TEXT, " +
@@ -368,12 +369,16 @@ export class SchemaManager {
       ")"
     );
 
+    // Ensure 'subject_type' column exists for previously created tables
+    await this.addColumnIfMissing(tableName, 'subject_type', "TEXT NOT NULL DEFAULT 'พื้นฐาน' CHECK (subject_type IN ('พื้นฐาน', 'เพิ่มเติม', 'พัฒนาผู้เรียน'))");
+
     // Create indexes
     const indexes = [
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_semester ON ${tableName}(semester_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_teacher ON ${tableName}(teacher_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_group_key ON ${tableName}(group_key)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_class ON ${tableName}(class_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_subject_type ON ${tableName}(subject_type)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_room ON ${tableName}(default_room_id) WHERE default_room_id IS NOT NULL`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_active ON ${tableName}(semester_id, is_active)`,
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_${tableName}_unique ON ${tableName}(semester_id, teacher_id, class_id, subject_name)`,

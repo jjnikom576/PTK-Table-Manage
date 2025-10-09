@@ -1281,6 +1281,17 @@ scheduleRoutes.post('/subjects', requireAdmin, requireJSON, async (c: Context<{ 
       }, 400);
     }
 
+    // Validate subject_type if provided
+    if (body.subject_type) {
+      const validTypes: Array<CreateSubjectRequest['subject_type']> = ['พื้นฐาน', 'เพิ่มเติม', 'พัฒนาผู้เรียน'];
+      if (!validTypes.includes(body.subject_type)) {
+        return c.json({
+          success: false,
+          message: 'Subject type must be one of: พื้นฐาน, เพิ่มเติม, พัฒนาผู้เรียน'
+        }, 400);
+      }
+    }
+
     // Validate periods per week
     if (body.periods_per_week <= 0 || body.periods_per_week > 20) {
       return c.json({
@@ -1484,6 +1495,17 @@ scheduleRoutes.put('/subjects/:id', requireAdmin, requireJSON, async (c: Context
     if (body.special_requirements !== undefined) {
       const requirements = String(body.special_requirements).trim();
       updateData.special_requirements = requirements ? requirements : null;
+    }
+
+    if (body.subject_type !== undefined) {
+      const validTypes: Array<CreateSubjectRequest['subject_type']> = ['พื้นฐาน', 'เพิ่มเติม', 'พัฒนาผู้เรียน'];
+      if (body.subject_type && !validTypes.includes(body.subject_type)) {
+        return c.json({
+          success: false,
+          message: 'Subject type must be one of: พื้นฐาน, เพิ่มเติม, พัฒนาผู้เรียน'
+        }, 400);
+      }
+      updateData.subject_type = body.subject_type;
     }
 
     if (body.class_ids && !Array.isArray(body.class_ids)) {

@@ -97,6 +97,7 @@ export interface Subject {
   group_key?: string;
   subject_name: string;
   subject_code?: string;
+  subject_type: 'พื้นฐาน' | 'เพิ่มเติม' | 'พัฒนาผู้เรียน';
   periods_per_week: number;
   default_room_id?: number;
   special_requirements?: string;
@@ -268,6 +269,7 @@ export interface CreateSubjectRequest {
   group_key?: string;
   subject_name: string;
   subject_code?: string;
+  subject_type?: 'พื้นฐาน' | 'เพิ่มเติม' | 'พัฒนาผู้เรียน';
   periods_per_week: number;
   default_room_id?: number;
   special_requirements?: string;
