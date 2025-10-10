@@ -150,44 +150,119 @@ export const getAcademicWeek = (date, semesterData) => {
   return Math.ceil(daysDiff / 7);
 };
 
-/**
- * Generate Time Slots
- */
-export const generateTimeSlots = () => [
-  '08:40 น.\u00A0-\u00A009:30 น.',
-  '09:30 น.\u00A0-\u00A010:20 น.',
-  '10:20 น.\u00A0-\u00A011:10 น.',
-  '11:10 น.\u00A0-\u00A012:00 น.',
-  '13:00 น.\u00A0-\u00A013:50 น.',
-  '13:50 น.\u00A0-\u00A014:40 น.',
-  '14:40 น.\u00A0-\u00A015:30 น.',
-  '15:30 น.\u00A0-\u00A016:20 น.'
+const NBSP = '\u00A0';
+const DEFAULT_PERIODS = [
+  { period_no: 1, period_name: 'คาบที่ 1', start_time: '08:00', end_time: '08:50' },
+  { period_no: 2, period_name: 'คาบที่ 2', start_time: '08:50', end_time: '09:40' },
+  { period_no: 3, period_name: 'คาบที่ 3', start_time: '09:40', end_time: '10:30' },
+  { period_no: 4, period_name: 'คาบที่ 4', start_time: '10:30', end_time: '11:20' },
+  { period_no: 5, period_name: 'พักเที่ยง', start_time: '11:20', end_time: '12:20', is_break: true },
+  { period_no: 6, period_name: 'คาบที่ 5', start_time: '12:20', end_time: '13:10' },
+  { period_no: 7, period_name: 'คาบที่ 6', start_time: '13:10', end_time: '14:00' },
+  { period_no: 8, period_name: 'คาบที่ 7', start_time: '14:00', end_time: '14:50' },
+  { period_no: 9, period_name: 'คาบที่ 8', start_time: '14:50', end_time: '15:40' }
 ];
+const BREAK_KEYWORDS = ['พัก', 'break', 'lunch', 'เบรก', 'หยุด'];
 
-export const getLunchSlot = () => ({
-  period: 5,
-  label: 'พักเที่ยง',
-  time: '12:00 น.\u00A0-\u00A013:00 น.'
-});
-
-export const getDisplayPeriods = () => {
-  const slots = generateTimeSlots();
-
-  const mapping = [
-    { actual: 1, label: slots[0] },
-    { actual: 2, label: slots[1] },
-    { actual: 3, label: slots[2] },
-    { actual: 4, label: slots[3] },
-    { actual: 6, label: slots[4] },
-    { actual: 7, label: slots[5] },
-    { actual: 8, label: slots[6] }
-  ];
-
-  return mapping.map((entry, idx) => ({
-    ...entry,
-    display: idx + 1
-  }));
+const normalisePeriod = (period) => {
+  if (!period) return null;
+  const rawNumber = period.period_no ?? period.periodNo ?? period.id ?? period.number;
+  const periodNo = Number(rawNumber);
+  if (!Number.isFinite(periodNo)) return null;
+  return {
+    ...period,
+    period_no: periodNo,
+    period_name: period.period_name ?? period.name ?? '',
+    start_time: period.start_time ?? period.startTime ?? '',
+    end_time: period.end_time ?? period.endTime ?? '',
+    is_break: typeof period.is_break === 'boolean' ? period.is_break : (period.isBreak === true ? true : undefined),
+    period_type: period.period_type ?? period.type ?? ''
+  };
 };
+
+export const ensurePeriodsList = (periods = []) => {
+  if (Array.isArray(periods) && periods.length) {
+    return periods
+      .map(normalisePeriod)
+      .filter(Boolean)
+      .sort((a, b) => a.period_no - b.period_no);
+  }
+  return DEFAULT_PERIODS.map(p => ({ ...p }));
+};
+
+export const isBreakPeriod = (period) => {
+  if (!period) return false;
+  if (typeof period.is_break === 'boolean') return period.is_break;
+  const type = String(period.period_type ?? period.type ?? '').toLowerCase();
+  if (type && BREAK_KEYWORDS.some(keyword => type.includes(keyword))) return true;
+  const name = String(period.period_name ?? period.name ?? '').toLowerCase();
+  return BREAK_KEYWORDS.some(keyword => name.includes(keyword));
+};
+
+const formatTimeComponent = (raw) => {
+  if (!raw) return '';
+  const timeString = String(raw).trim();
+  const match = timeString.match(/^(\d{1,2}):?(\d{2})/);
+  if (!match) return timeString;
+  const [, hour, minute] = match;
+  return `${hour.padStart(2, '0')}:${minute}`;
+};
+
+export const formatPeriodTimeRange = (period, { includeThaiSuffix = true } = {}) => {
+  if (!period) return '';
+  const start = formatTimeComponent(period.start_time);
+  const end = formatTimeComponent(period.end_time);
+  if (!start || !end) return '';
+  const suffix = includeThaiSuffix ? ' น.' : '';
+  return `${start}${suffix}${NBSP}-${NBSP}${end}${suffix}`;
+};
+
+export const extractTeachingPeriods = (periods = []) =>
+  ensurePeriodsList(periods).filter(period => !isBreakPeriod(period));
+
+export const buildPeriodDisplaySequence = (periods = []) =>
+  ensurePeriodsList(periods).map(period => ({
+    type: isBreakPeriod(period) ? 'break' : 'teaching',
+    period
+  }));
+
+export const toDisplayPeriods = (periods = []) =>
+  extractTeachingPeriods(periods).map((period, idx) => ({
+    period,
+    actual: period.period_no,
+    display: idx + 1,
+    label: formatPeriodTimeRange(period)
+  }));
+
+/**
+ * Generate Time Slots (fallback using default periods)
+ */
+export const generateTimeSlots = () =>
+  extractTeachingPeriods(DEFAULT_PERIODS).map(period => formatPeriodTimeRange(period));
+
+export const getLunchSlot = () => {
+  const lunch = ensurePeriodsList(DEFAULT_PERIODS).find(isBreakPeriod);
+  if (!lunch) {
+    return {
+      period: 5,
+      label: 'พักเที่ยง',
+      time: '12:00 น.\u00A0-\u00A013:00 น.'
+    };
+  }
+  return {
+    period: lunch.period_no,
+    label: lunch.period_name || 'พักเที่ยง',
+    time: formatPeriodTimeRange(lunch)
+  };
+};
+
+export const getDisplayPeriods = () =>
+  toDisplayPeriods(DEFAULT_PERIODS).map(({ period, actual, display, label }) => ({
+    actual,
+    display,
+    label,
+    period
+  }));
 
 /**
  * Get Short Day Name

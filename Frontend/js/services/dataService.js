@@ -7,7 +7,15 @@ import { mockData } from '../data/index.js';
 import * as substitutionsAPI from '../api/substitutions.js';
 import scheduleAPI from '../api/schedule-api.js';
 import coreAPI from '../api/core-api.js';
-import { getThaiDayName, getDayName, getDisplayPeriods, getLunchSlot } from '../utils.js';
+import {
+  getThaiDayName,
+  getDayName,
+  getDisplayPeriods,
+  getLunchSlot,
+  ensurePeriodsList,
+  extractTeachingPeriods,
+  formatPeriodTimeRange
+} from '../utils.js';
 
 // =============================================================================
 // SERVICE CONFIGURATION & CONTEXT
@@ -46,6 +54,9 @@ let currentContext = {
   semester: null,
   academicYear: null
 };
+
+let lastLoadedPeriods = [];
+let lastPeriodsContext = { year: null, semesterId: null };
 
 // Cache Strategy
 const cache = {
@@ -393,6 +404,10 @@ export async function loadYearData(year) {
         throw new Error(`No data available for year ${year}`);
       }
       
+      const periods = ensurePeriodsList(yearData.periods || []);
+      lastLoadedPeriods = periods;
+      lastPeriodsContext = { year, semesterId: currentContext.semesterId || currentContext.semester?.id || null };
+
       const completeData = {
         teachers: yearData.teachers || [],
         classes: yearData.classes || [],
@@ -400,7 +415,8 @@ export async function loadYearData(year) {
         subjects: yearData.subjects || [],
         schedules: yearData.schedules || [],
         substitutions: yearData.substitutions || [],
-        substitution_schedules: yearData.substitution_schedules || []
+        substitution_schedules: yearData.substitution_schedules || [],
+        periods
       };
       
       cache.set(cacheKey, completeData);
@@ -409,21 +425,26 @@ export async function loadYearData(year) {
     } else {
       const resolvedSemesterId = currentContext.semesterId || currentContext.semester?.id || null;
 
-      const [teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes] = await Promise.all([
+      const [teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes, periodsRes] = await Promise.all([
         getTeachers(year),
         resolvedSemesterId ? getClasses(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
         resolvedSemesterId ? getRooms(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
         resolvedSemesterId ? getSubjects(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
-        resolvedSemesterId ? getSchedules(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] })
+        resolvedSemesterId ? getSchedules(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: [] }),
+        resolvedSemesterId ? getPeriods(year, resolvedSemesterId) : Promise.resolve({ ok: true, data: ensurePeriodsList() })
       ]);
 
-      if (![teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes].every(r => r.ok)) {
-        const errors = [teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes]
+      if (![teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes, periodsRes].every(r => r.ok)) {
+        const errors = [teachersRes, classesRes, roomsRes, subjectsRes, schedulesRes, periodsRes]
           .filter(r => !r.ok)
           .map(r => r.error)
           .join(', ');
         throw new Error(errors || 'Failed to load year data');
       }
+
+      const normalizedPeriods = ensurePeriodsList(periodsRes.data || []);
+      lastLoadedPeriods = normalizedPeriods;
+      lastPeriodsContext = { year, semesterId: resolvedSemesterId };
 
       const completeData = {
         teachers: teachersRes.data || [],
@@ -432,7 +453,8 @@ export async function loadYearData(year) {
         subjects: subjectsRes.data || [],
         schedules: schedulesRes.data || [],
         substitutions: [],
-        substitution_schedules: []
+        substitution_schedules: [],
+        periods: normalizedPeriods
       };
       
       cache.set(cacheKey, completeData);
@@ -757,6 +779,58 @@ export async function getSchedules(year = null, semesterId = null, { forceRefres
   }
 }
 
+/**
+ * Get Periods (time slots) for current context
+ */
+export async function getPeriods(year = null, semesterId = null, { forceRefresh = false } = {}) {
+  const targetYear = year || currentContext.year;
+  const targetSemester = semesterId ?? currentContext.semester?.id ?? currentContext.semesterId ?? null;
+
+  if (!targetYear) {
+    return { ok: false, error: 'No year specified' };
+  }
+  if (!targetSemester) {
+    return { ok: false, error: 'No semester specified' };
+  }
+
+  const cacheKey = `periods_${targetYear}_${targetSemester}`;
+  if (forceRefresh) {
+    cache.delete(cacheKey);
+  }
+
+  const cached = cache.get(cacheKey);
+  if (cached) {
+    const normalized = ensurePeriodsList(cached);
+    lastLoadedPeriods = normalized;
+    lastPeriodsContext = { year: targetYear, semesterId: targetSemester };
+    return { ok: true, data: normalized };
+  }
+
+  try {
+    if (serviceConfig.mode === 'mock') {
+      const normalized = ensurePeriodsList();
+      cache.set(cacheKey, normalized);
+      lastLoadedPeriods = normalized;
+      lastPeriodsContext = { year: targetYear, semesterId: targetSemester };
+      return { ok: true, data: normalized };
+    }
+
+    const result = await scheduleAPI.getPeriods(targetYear, targetSemester);
+    if (result.success) {
+      const normalized = ensurePeriodsList(result.data);
+      cache.set(cacheKey, normalized);
+      lastLoadedPeriods = normalized;
+      lastPeriodsContext = { year: targetYear, semesterId: targetSemester };
+      return { ok: true, data: normalized };
+    }
+
+    return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลคาบเรียนได้' };
+  } catch (error) {
+    console.error(`[DataService] ❌ Failed to load periods for year ${targetYear}:`, error);
+    return { ok: false, error: error.message };
+  }
+}
+
 // =============================================================================
 // STUDENT SCHEDULE FUNCTIONS  
 // =============================================================================
@@ -779,7 +853,17 @@ export async function getStudentSchedule(classId) {
       throw new Error('Failed to load year data');
     }
     
-    const { schedules, subjects, teachers, classes, rooms } = yearData.data;
+    const {
+      schedules,
+      subjects,
+      teachers,
+      classes,
+      rooms,
+      periods: rawPeriods
+    } = yearData.data;
+    const normalizedPeriods = ensurePeriodsList(rawPeriods || []);
+    lastLoadedPeriods = normalizedPeriods;
+    lastPeriodsContext = { year: targetYear, semesterId: currentContext.semesterId || currentContext.semester?.id || null };
     console.log('[DataService] Available classes:', classes.map(c => c.class_name));
     
     // ⭐ FIX: รองรับทั้ง numeric ID และ string ID
@@ -872,7 +956,10 @@ export async function getStudentSchedule(classId) {
     }
 
     // สร้างตารางแบบ matrix
-    const scheduleMatrix = buildScheduleMatrix(classSchedules, { subjects, teachers, rooms });
+    const {
+      matrix: scheduleMatrix,
+      teachingPeriods: teachingPeriodEntries
+    } = buildScheduleMatrix(classSchedules, { subjects, teachers, rooms }, normalizedPeriods);
     
     return {
       ok: true,
@@ -882,7 +969,9 @@ export async function getStudentSchedule(classId) {
         matrix: scheduleMatrix,
         subjects,
         teachers,
-        rooms
+        rooms,
+        periods: normalizedPeriods,
+        teachingPeriods: teachingPeriodEntries
       }
     };
     
@@ -893,66 +982,89 @@ export async function getStudentSchedule(classId) {
 }
 
 /**
- * Build Schedule Matrix (5 days x 8 periods)
+ * Build Schedule Matrix (5 days) using provided periods
  */
-function buildScheduleMatrix(schedules, context) {
+function buildScheduleMatrix(schedules, context, periods = []) {
+  const teachingPeriodEntries = extractTeachingPeriods(periods);
+  const fallbackTeaching = extractTeachingPeriods();
+  const periodNumbers = (teachingPeriodEntries.length ? teachingPeriodEntries : fallbackTeaching)
+    .map(period => period.period_no);
+
   const matrix = {};
-  
-  // สร้าง matrix ว่าง
-  for (let day = 1; day <= 5; day++) {
+  const days = [1, 2, 3, 4, 5];
+
+  days.forEach(day => {
     matrix[day] = {};
-    for (let period = 1; period <= 8; period++) {
-      matrix[day][period] = null;
-    }
-  }
-  
-  // ใส่ข้อมูล schedule
+    periodNumbers.forEach(periodNo => {
+      matrix[day][periodNo] = null;
+    });
+  });
+
   schedules.forEach(schedule => {
+    const day = Number(schedule.day_of_week ?? schedule.day);
+    const periodNo = Number(schedule.period_no ?? schedule.period);
+    if (!day || !periodNo) {
+      return;
+    }
+
+    if (!matrix[day]) {
+      matrix[day] = {};
+      periodNumbers.forEach(p => {
+        matrix[day][p] = null;
+      });
+    } else if (!Object.prototype.hasOwnProperty.call(matrix[day], periodNo)) {
+      matrix[day][periodNo] = null;
+    }
+
     const subject = context.subjects.find(s => s.id === schedule.subject_id);
     const teacher = context.teachers.find(t => t.id === subject?.teacher_id);
     const room = context.rooms.find(r => r.id === schedule.room_id);
 
-    if (schedule.day_of_week && schedule.period) {
-      const teacherName = teacher?.full_name
-        || teacher?.name
-        || [teacher?.title, teacher?.f_name, teacher?.l_name].filter(Boolean).join(' ')
-        || schedule.teacher_name
-        || '';
-      const deriveTeacherDisplayName = () => {
-        const baseTitlePatterns = [/^นาย\s+/i, /^นางสาว\s+/i, /^นาง\s+/i, /^ครู\s+/i, /^Teacher\s+/i, /^Mr\.\s+/i, /^Mrs\.\s+/i, /^Ms\.\s+/i];
-        if (teacher?.f_name) {
-          return `ครู${teacher.f_name}`;
-        }
-        if (teacherName) {
-          let cleaned = teacherName.trim();
-          baseTitlePatterns.forEach(pattern => {
-            cleaned = cleaned.replace(pattern, '');
-          });
-          const firstToken = cleaned.split(/\s+/)[0] || cleaned;
-          return `ครู${firstToken}`;
-        }
-        return 'ครูไม่ระบุ';
-      };
-      const teacherDisplayName = deriveTeacherDisplayName();
-      const roomName = room?.room_name
-        || room?.name
-        || schedule.room_name
-        || '';
+    const teacherName = teacher?.full_name
+      || teacher?.name
+      || [teacher?.title, teacher?.f_name, teacher?.l_name].filter(Boolean).join(' ')
+      || schedule.teacher_name
+      || '';
 
-      matrix[schedule.day_of_week][schedule.period] = {
-        schedule,
-        subject: subject || { subject_name: schedule.subject_name || 'ไม่ระบุวิชา' },
-        teacher: teacher
-          ? { ...teacher, name: teacherDisplayName }
-          : { name: teacherDisplayName },
-        room: room
-          ? { ...room, name: roomName || 'ไม่ระบุห้อง' }
-          : { name: roomName || 'ไม่ระบุห้อง' }
-      };
-    }
+    const deriveTeacherDisplayName = () => {
+      const baseTitlePatterns = [/^นาย\s+/i, /^นางสาว\s+/i, /^นาง\s+/i, /^ครู\s+/i, /^Teacher\s+/i, /^Mr\.\s+/i, /^Mrs\.\s+/i, /^Ms\.\s+/i];
+      if (teacher?.f_name) {
+        return `ครู${teacher.f_name}`;
+      }
+      if (teacherName) {
+        let cleaned = teacherName.trim();
+        baseTitlePatterns.forEach(pattern => {
+          cleaned = cleaned.replace(pattern, '');
+        });
+        const firstToken = cleaned.split(/\s+/)[0] || cleaned;
+        return `ครู${firstToken}`;
+      }
+      return 'ครูไม่ระบุ';
+    };
+
+    const teacherDisplayName = deriveTeacherDisplayName();
+    const roomName = room?.room_name
+      || room?.name
+      || schedule.room_name
+      || '';
+
+    matrix[day][periodNo] = {
+      schedule,
+      subject: subject || { subject_name: schedule.subject_name || 'ไม่ระบุวิชา' },
+      teacher: teacher
+        ? { ...teacher, name: teacherDisplayName }
+        : { name: teacherDisplayName },
+      room: room
+        ? { ...room, name: roomName || 'ไม่ระบุห้อง' }
+        : { name: roomName || 'ไม่ระบุห้อง' }
+    };
   });
 
-  return matrix;
+  return {
+    matrix,
+    teachingPeriods: teachingPeriodEntries.length ? teachingPeriodEntries : fallbackTeaching,
+    periodNumbers
+  };
 }
 
 // =============================================================================
@@ -1306,6 +1418,15 @@ export async function normalizeSubstitutionForExport({ substitutions, schedules,
 
 // Helper function for time slots
 function getTimeSlot(period) {
+  const normalized = ensurePeriodsList(lastLoadedPeriods.length ? lastLoadedPeriods : []);
+  const matched = normalized.find(item => item.period_no === period);
+  if (matched) {
+    const range = formatPeriodTimeRange(matched);
+    if (range) {
+      return range;
+    }
+  }
+
   const displayPeriods = getDisplayPeriods();
   const lunchSlot = getLunchSlot();
   const periodMap = new Map(displayPeriods.map(p => [p.actual, p.label]));

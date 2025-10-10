@@ -6,7 +6,17 @@
 import * as dataService from '../services/dataService.js';
 import * as globalContext from '../context/globalContext.js';
 import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '../utils/export.js';
-import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, generateTimeSlots, isActiveSemester } from '../utils.js';
+import {
+  formatRoomName,
+  getRoomTypeBadgeClass,
+  getThaiDayName,
+  ensurePeriodsList,
+  buildPeriodDisplaySequence,
+  extractTeachingPeriods,
+  formatPeriodTimeRange,
+  generateTimeSlots,
+  isActiveSemester
+} from '../utils.js';
 
 // =============================================================================
 // HELPER FUNCTIONS
@@ -246,12 +256,20 @@ async function loadTeachersData(context) {
     }
 
     const requestOptions = { forceRefresh: true };
-    const [teachersResult, schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
+    const [
+      teachersResult,
+      schedulesResult,
+      subjectsResult,
+      classesResult,
+      roomsResult,
+      periodsResult
+    ] = await Promise.all([
       dataService.getTeachers(targetYear, semesterId, requestOptions),
       dataService.getSchedules(targetYear, semesterId, requestOptions),
       dataService.getSubjects(targetYear, semesterId, requestOptions),
       dataService.getClasses(targetYear, semesterId, requestOptions),
-      dataService.getRooms(targetYear, semesterId, requestOptions)
+      dataService.getRooms(targetYear, semesterId, requestOptions),
+      dataService.getPeriods(targetYear, semesterId, requestOptions)
     ]);
 
     // ตรวจสอบผลลัพธ์
@@ -268,6 +286,11 @@ async function loadTeachersData(context) {
       throw new Error('ไม่สามารถโหลดข้อมูลวิชาได้: ' + subjectsResult.error);
     }
 
+    if (!periodsResult.ok) {
+      console.error('[TeacherSchedule] Periods load failed:', periodsResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลคาบเรียนได้: ' + periodsResult.error);
+    }
+
     pageState.teachers = teachersResult.data;
 
     console.log(`[TeacherSchedule] ✅ Successfully loaded data for year ${targetYear}:`, {
@@ -275,7 +298,8 @@ async function loadTeachersData(context) {
       schedules: schedulesResult.data.length,
       subjects: subjectsResult.data.length,
       classes: classesResult.data?.length || 0,
-      rooms: roomsResult.data?.length || 0
+      rooms: roomsResult.data?.length || 0,
+      periods: periodsResult.data?.length || 0
     });
 
     // ⭐ FIX: คิดภาระงานเฉพาะภาคเรียนปัจจุบันเท่านั้น
@@ -285,6 +309,7 @@ async function loadTeachersData(context) {
       subjects: subjectsResult.data,
       classes: classesResult.data || [],
       rooms: roomsResult.data || [],
+      periods: periodsResult.data || [],
       semesterId
     });
 
@@ -656,7 +681,7 @@ function renderTeacherInfoSection(teacher, scheduleData, context) {
         </div>` : ''}
         <div class="detail-item" style="text-align: center;">
           <span class="label">ภาคเรียน:</span>
-          <span class="value">ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}</span>
+          <span class="value">ภาคเรียนที่ ${context.currentSemester?.selected || 1} ปีการศึกษา ${context.currentYear}</span>
         </div>
       </div>
     </div>
@@ -901,11 +926,18 @@ async function getTeacherScheduleData(teacherId, context) {
     }
 
     const requestOptions = { forceRefresh: true };
-    const [schedulesResult, subjectsResult, classesResult, roomsResult] = await Promise.all([
+    const [
+      schedulesResult,
+      subjectsResult,
+      classesResult,
+      roomsResult,
+      periodsResult
+    ] = await Promise.all([
       dataService.getSchedules(targetYear, semesterId, requestOptions),
       dataService.getSubjects(targetYear, semesterId, requestOptions),
       dataService.getClasses(targetYear, semesterId, requestOptions),
-      dataService.getRooms(targetYear, semesterId, requestOptions)
+      dataService.getRooms(targetYear, semesterId, requestOptions),
+      dataService.getPeriods(targetYear, semesterId, requestOptions)
     ]);
     
     // ตรวจสอบผลลัพธ์
@@ -918,16 +950,24 @@ async function getTeacherScheduleData(teacherId, context) {
       throw new Error('ไม่สามารถโหลดข้อมูลวิชาได้: ' + subjectsResult.error);
     }
 
+    if (!periodsResult.ok) {
+      console.error('[TeacherSchedule] Periods load failed:', periodsResult.error);
+      throw new Error('ไม่สามารถโหลดข้อมูลคาบเรียนได้: ' + periodsResult.error);
+    }
+
     const schedules = schedulesResult.data || [];
     const subjects = subjectsResult.data || [];
     const classes = classesResult.data || [];
     const rooms = roomsResult.data || [];
+    const periods = periodsResult.data || [];
+    const normalizedPeriods = ensurePeriodsList(periods);
 
     console.log(`[TeacherSchedule] ✅ Data loaded successfully:`, {
       schedules: schedules.length,
       subjects: subjects.length,
       classes: classes.length,
-      rooms: rooms.length
+      rooms: rooms.length,
+      periods: periods.length
     });
 
     // ⭐ DEBUG: Show sample schedules
@@ -1018,7 +1058,13 @@ async function getTeacherScheduleData(teacherId, context) {
 
     // Build schedule matrix
     console.log(`\n🔨 Building Matrix...`);
-    const matrix = buildTeacherScheduleMatrix(teacherSchedules, { subjects, classes, rooms });
+    const matrixData = buildTeacherScheduleMatrix(
+      teacherSchedules,
+      { subjects, classes, rooms },
+      normalizedPeriods
+    );
+    const { matrix, periods: resolvedPeriods, teachingPeriods, teachingPeriodNumbers, periodSequence } = matrixData;
+    const teachingSet = new Set(teachingPeriodNumbers);
 
     // ⭐ DEBUG: Verify Matrix
     console.log(`\n🔍 Matrix Verification:`);
@@ -1068,7 +1114,7 @@ async function getTeacherScheduleData(teacherId, context) {
  * Build Teacher Schedule Matrix
  * ⭐ FIX 2025-10-02: Matrix เก็บเป็น Array เพื่อรองรับหลายห้องในคาบเดียวกัน
  */
-function buildTeacherScheduleMatrix(schedules, context) {
+function buildTeacherScheduleMatrixLegacy(schedules, context, periods = []) {
   const matrix = {};
 
   // ⭐ FIX: Initialize matrix for 7 display periods
@@ -1617,7 +1663,7 @@ async function prepareTeacherExportData(teacherId, context) {
     'วัน/เวลา': '',
     'คาบ 1': '',
     'คาบ 2': '',
-    'คาบ 3': `ภาคเรียน: ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}`,
+    'คาบ 3': `ภาคเรียน: ภาคเรียนที่ ${context.currentSemester?.selected || 1} ปีการศึกษา ${context.currentYear}`,
     'คาบ 4': '',
     'คาบ 5': '',
     'คาบ 6': '',
@@ -1835,6 +1881,345 @@ function showExportError(message) {
 
   // FIX: แสดง popup แจ้งเตือน
   alert(message);
+}
+
+const __originalGetTeacherScheduleData = getTeacherScheduleData;
+getTeacherScheduleData = async function (teacherId, context) {
+  let resolvedContext = context || (globalContext.getContext ? globalContext.getContext() : null) || {};
+  if (!resolvedContext.currentYear && !resolvedContext.year) {
+    const fallbackContext = globalContext.getContext ? globalContext.getContext() : null;
+    if (fallbackContext) {
+      resolvedContext = fallbackContext;
+    }
+  }
+
+  let data = null;
+  let originalError = null;
+
+  if (typeof __originalGetTeacherScheduleData === 'function') {
+    try {
+      data = await __originalGetTeacherScheduleData(teacherId, context);
+    } catch (error) {
+      originalError = error;
+      console.warn('[TeacherSchedule] Original getTeacherScheduleData failed, using dynamic fallback:', error);
+    }
+  }
+
+  if (!data || typeof data !== 'object') {
+    try {
+      data = await fetchTeacherScheduleDataDynamic(teacherId, resolvedContext);
+    } catch (fallbackError) {
+      if (originalError) {
+        console.error('[TeacherSchedule] Original loader error:', originalError);
+      }
+      throw fallbackError;
+    }
+  }
+
+  let periods = Array.isArray(data.periods) ? data.periods : [];
+
+  if (!periods.length) {
+    try {
+      const targetYear = resolvedContext.currentYear || resolvedContext.year;
+      const semesterId = resolvedContext.currentSemester?.id || resolvedContext.semesterId || resolvedContext.semester?.id;
+      if (targetYear && semesterId) {
+        const periodResponse = await dataService.getPeriods(targetYear, semesterId);
+        if (periodResponse.ok) {
+          periods = periodResponse.data || [];
+        }
+      }
+    } catch (error) {
+      console.warn('[TeacherSchedule] Unable to load periods for dynamic schedule rendering:', error);
+    }
+  }
+
+  const matrixData = buildTeacherScheduleMatrixDynamic(
+    data.schedules || [],
+    { subjects: data.subjects || [], classes: data.classes || [], rooms: data.rooms || [] },
+    periods
+  );
+
+  data.matrix = matrixData.matrix;
+  data.periods = matrixData.periods;
+  data.teachingPeriods = matrixData.teachingPeriods;
+  data.teachingPeriodNumbers = matrixData.teachingPeriodNumbers;
+  data.periodSequence = matrixData.periodSequence;
+
+  const teachingSet = new Set(matrixData.teachingPeriodNumbers);
+  data.totalPeriods = (data.schedules || []).filter(item => teachingSet.has(Number(item.period_no || item.period))).length;
+
+  return data;
+};
+
+const __originalRenderTeacherScheduleTableSection = renderScheduleTableSection;
+renderScheduleTableSection = function (scheduleData, teacher, context) {
+  const tableContainer = document.getElementById('teacher-schedule-table');
+  if (!tableContainer) {
+    return;
+  }
+
+  if (scheduleData && Array.isArray(scheduleData.periodSequence) && scheduleData.periodSequence.length > 0) {
+    tableContainer.innerHTML = renderDynamicTeacherScheduleTable(scheduleData, teacher);
+    return;
+  }
+
+  __originalRenderTeacherScheduleTableSection(scheduleData, teacher, context);
+};
+
+const __originalRenderScheduleTable = renderScheduleTable;
+renderScheduleTable = function (scheduleData, teacher, context) {
+  if (scheduleData && Array.isArray(scheduleData.periodSequence) && scheduleData.periodSequence.length > 0) {
+    const tableContainer = document.getElementById('teacher-schedule-table');
+    if (tableContainer) {
+      tableContainer.innerHTML = renderDynamicTeacherScheduleTable(scheduleData, teacher);
+    }
+    return;
+  }
+
+  __originalRenderScheduleTable(scheduleData, teacher, context);
+};
+
+function buildTeacherScheduleMatrixDynamic(schedules = [], context = {}, periods = []) {
+  const normalizedPeriods = ensurePeriodsList(Array.isArray(periods) ? periods : []);
+  const basePeriods = normalizedPeriods.length ? normalizedPeriods : ensurePeriodsList();
+  const teachingPeriods = extractTeachingPeriods(basePeriods);
+  const teachingPeriodNumbers = teachingPeriods.map(period => period.period_no);
+  const fallbackPeriodNumbers = teachingPeriodNumbers.length
+    ? teachingPeriodNumbers
+    : Array.from({ length: 8 }, (_, index) => index + 1);
+
+  const matrix = {};
+  const dayNumbers = [1, 2, 3, 4, 5];
+
+  dayNumbers.forEach(day => {
+    matrix[day] = {};
+    fallbackPeriodNumbers.forEach(periodNo => {
+      matrix[day][periodNo] = [];
+    });
+  });
+
+  schedules.forEach(schedule => {
+    const day = Number(schedule?.day_of_week ?? schedule?.day);
+    const periodNo = Number(schedule?.period_no ?? schedule?.period);
+    if (!day || !periodNo) {
+      return;
+    }
+
+    if (!matrix[day]) {
+      matrix[day] = {};
+      fallbackPeriodNumbers.forEach(p => {
+        matrix[day][p] = [];
+      });
+    }
+
+    if (!Array.isArray(matrix[day][periodNo])) {
+      matrix[day][periodNo] = [];
+    }
+
+    const subject = (context.subjects || []).find(s => s.id === schedule.subject_id);
+    const classInfo = (context.classes || []).find(c => c.id === schedule.class_id);
+    const room = (context.rooms || []).find(r => r.id === schedule.room_id);
+
+    matrix[day][periodNo].push({
+      schedule,
+      subject: subject || { subject_name: schedule.subject_name || 'Unknown Subject', subject_code: schedule.subject_code || '' },
+      class: classInfo || { class_name: schedule.class_name || 'Unknown Class' },
+      room: room || { name: schedule.room_name || 'Unknown Room' }
+    });
+  });
+
+  return {
+    matrix,
+    periods: basePeriods,
+    teachingPeriods,
+    teachingPeriodNumbers: fallbackPeriodNumbers,
+    periodSequence: buildPeriodDisplaySequence(basePeriods)
+  };
+}
+
+function renderDynamicTeacherScheduleTable(scheduleData, teacher) {
+  const periods = ensurePeriodsList(scheduleData.periods || []);
+  const periodSequence = scheduleData.periodSequence || buildPeriodDisplaySequence(periods);
+  const teachingPeriods = scheduleData.teachingPeriods || extractTeachingPeriods(periods);
+  const teachingPeriodNumbers = scheduleData.teachingPeriodNumbers || teachingPeriods.map(period => period.period_no);
+  const teachingIndexMap = new Map();
+  teachingPeriods.forEach((period, index) => {
+    teachingIndexMap.set(period.period_no, index + 1);
+  });
+
+  const days = [
+    { number: 1, label: 'วันจันทร์' },
+    { number: 2, label: 'วันอังคาร' },
+    { number: 3, label: 'วันพุธ' },
+    { number: 4, label: 'วันพฤหัสบดี' },
+    { number: 5, label: 'วันศุกร์' }
+  ];
+
+  if (!periodSequence.length || !teachingPeriodNumbers.length) {
+    return '<div class="schedule-table-card"><div class="table-responsive"><p class="no-schedule">ไม่มีข้อมูลตารางสอน</p></div></div>';
+  }
+
+  const headerCells = periodSequence.map(entry => {
+    if (entry.type === 'break') {
+      const label = entry.period.period_name || 'พัก';
+      const timeRange = formatPeriodTimeRange(entry.period) || '';
+      return `<th class="lunch-header lunch-column"><div class="lunch-info">${label}<br><small>${timeRange}</small></div></th>`;
+    }
+
+    const displayIndex = teachingIndexMap.get(entry.period.period_no) || entry.period.period_no;
+    const timeRange = formatPeriodTimeRange(entry.period) || entry.period.period_name || '';
+    return `<th class="period-header">
+        <div class="period-info">
+          <div class="period-number">คาบ ${displayIndex}</div>
+          <div class="time-slot">${timeRange}</div>
+        </div>
+      </th>`;
+  }).join('');
+
+  const rows = days.map((day, dayIndex) => {
+    let rowHTML = `<tr class="day-row" data-day="${day.number}">
+      <td class="day-cell">
+        <div class="day-name">${day.label}</div>
+      </td>`;
+
+    periodSequence.forEach(entry => {
+      if (entry.type === 'break') {
+        if (dayIndex === 0) {
+          const label = entry.period.period_name || 'พัก';
+          const timeRange = formatPeriodTimeRange(entry.period) || '';
+          rowHTML += `<td class="lunch-cell lunch-column" aria-label="${label}" rowspan="${days.length}">
+              ${label}${timeRange ? `<br><small>${timeRange}</small>` : ''}
+            </td>`;
+        }
+        return;
+      }
+
+      const periodNo = entry.period.period_no;
+      const cellArrayRaw = scheduleData.matrix?.[day.number]?.[periodNo];
+      const cellArray = Array.isArray(cellArrayRaw) ? cellArrayRaw : (cellArrayRaw ? [cellArrayRaw] : []);
+
+      if (cellArray.length > 0) {
+        const subjectCodes = Array.from(new Set(cellArray.map(item => item.subject?.subject_code).filter(Boolean)));
+        const classNames = Array.from(new Set(cellArray.map(item => item.class?.class_name || item.class?.name).filter(Boolean)));
+        const roomNames = Array.from(new Set(cellArray.map(item => item.room?.room_name || item.room?.name).filter(Boolean)));
+
+        rowHTML += `<td class="schedule-cell has-subject" data-day="${day.number}" data-period="${periodNo}">
+            <div class="subject-info">
+              <div class="subject-code">${subjectCodes.join(', ') || '-'}</div>
+              <div class="class-name">${classNames.join(', ') || '-'}</div>
+              <div class="room-name">${roomNames.join(', ') || '-'}</div>
+            </div>
+          </td>`;
+      } else {
+        rowHTML += `<td class="schedule-cell empty" data-day="${day.number}" data-period="${periodNo}">
+            <div class="empty-period">-</div>
+          </td>`;
+      }
+    });
+
+    rowHTML += '</tr>';
+    return rowHTML;
+  }).join('');
+
+  const teacherTitle = teacher?.name ? `<h4>ตารางสอน ${teacher.name}</h4>` : '';
+
+  return `
+    <div class="schedule-table-card">
+      <div class="table-responsive">
+        ${teacherTitle}
+        <table class="schedule-table teacher-schedule">
+          <thead>
+            <tr>
+              <th class="day-header">วัน/เวลา</th>
+              ${headerCells}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+function buildTeacherScheduleMatrix(schedules, context, periods = []) {
+  return buildTeacherScheduleMatrixDynamic(schedules, context, periods);
+}
+
+async function fetchTeacherScheduleDataDynamic(teacherId, resolvedContext) {
+  const targetYear = resolvedContext.currentYear || resolvedContext.year;
+  const semesterId =
+    resolvedContext.currentSemester?.id ||
+    resolvedContext.semesterId ||
+    resolvedContext.semester?.id ||
+    null;
+
+  if (!targetYear || !semesterId) {
+    throw new Error('ไม่พบปีการศึกษาหรือภาคเรียนสำหรับตารางสอน');
+  }
+
+  const requestOptions = { forceRefresh: true };
+  const [
+    schedulesRes,
+    subjectsRes,
+    classesRes,
+    roomsRes,
+    periodsRes
+  ] = await Promise.all([
+    dataService.getSchedules(targetYear, semesterId, requestOptions),
+    dataService.getSubjects(targetYear, semesterId, requestOptions),
+    dataService.getClasses(targetYear, semesterId, requestOptions),
+    dataService.getRooms(targetYear, semesterId, requestOptions),
+    dataService.getPeriods(targetYear, semesterId, requestOptions)
+  ]);
+
+  const responses = [
+    { name: 'schedules', res: schedulesRes },
+    { name: 'subjects', res: subjectsRes },
+    { name: 'classes', res: classesRes },
+    { name: 'rooms', res: roomsRes },
+    { name: 'periods', res: periodsRes }
+  ];
+
+  const failed = responses.find(item => !item.res?.ok);
+  if (failed) {
+    throw new Error(`ไม่สามารถโหลดข้อมูล ${failed.name} ได้: ${failed.res?.error || 'unknown error'}`);
+  }
+
+  const schedules = schedulesRes.data || [];
+  const subjects = subjectsRes.data || [];
+  const classes = classesRes.data || [];
+  const rooms = roomsRes.data || [];
+  const periods = periodsRes.data || [];
+
+  const teacherSubjects = subjects.filter(subject => subject.teacher_id === teacherId);
+  const subjectIdSet = new Set(teacherSubjects.map(subject => subject.id));
+  const teacherSchedules = schedules.filter(schedule => subjectIdSet.has(schedule.subject_id));
+
+  const matrixData = buildTeacherScheduleMatrixDynamic(
+    teacherSchedules,
+    { subjects, classes, rooms },
+    periods
+  );
+
+  const teachingSet = new Set(matrixData.teachingPeriodNumbers);
+  const totalPeriods = teacherSchedules.filter(schedule =>
+    teachingSet.has(Number(schedule.period_no || schedule.period))
+  ).length;
+
+  return {
+    subjects: teacherSubjects,
+    schedules: teacherSchedules,
+    matrix: matrixData.matrix,
+    classes,
+    rooms,
+    totalPeriods,
+    periods: matrixData.periods,
+    teachingPeriods: matrixData.teachingPeriods,
+    teachingPeriodNumbers: matrixData.teachingPeriodNumbers,
+    periodSequence: matrixData.periodSequence
+  };
 }
 
 // Export page state for debugging
