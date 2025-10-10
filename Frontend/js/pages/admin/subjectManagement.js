@@ -41,6 +41,7 @@ export function buildSubjectGroups(subjectRows = []) {
         teacher_name: subject.teacher_name,
         subject_name: subject.subject_name,
         subject_code: subject.subject_code,
+        subject_type: subject.subject_type || 'พื้นฐาน',
         periods_per_week: subject.periods_per_week,
         default_room_id: subject.default_room_id,
         room_name: subject.room_name,
@@ -76,6 +77,7 @@ export function buildSubjectGroups(subjectRows = []) {
 
     existingGroup.teacher_name = subject.teacher_name || existingGroup.teacher_name;
     existingGroup.room_name = subject.room_name || existingGroup.room_name;
+    existingGroup.subject_type = subject.subject_type || existingGroup.subject_type || 'พื้นฐาน';
   });
 
   return Array.from(groups.values()).map(group => {
@@ -156,7 +158,10 @@ export async function loadSubjectsData() {
     const result = await scheduleAPI.getSubjects(year, semesterId);
 
     if (result.success && Array.isArray(result.data)) {
-      adminState.subjectsRaw = result.data.map(subject => ({ ...subject }));
+      adminState.subjectsRaw = result.data.map(subject => ({
+        ...subject,
+        subject_type: subject.subject_type || 'พื้นฐาน'
+      }));
       const groupedSubjects = buildSubjectGroups(adminState.subjectsRaw)
         .sort((a, b) => {
           const teacherCompare = getTeacherDisplayNameById(a.teacher_id).localeCompare(getTeacherDisplayNameById(b.teacher_id), 'th');
@@ -577,6 +582,7 @@ function readSubjectFormData(formData) {
   return {
     subject_name: (formData.get('subject_name') || '').toString().trim(),
     subject_code: subjectCode,
+    subject_type: (formData.get('subject_type') || 'พื้นฐาน').toString().trim() || 'พื้นฐาน',
     teacher_id: Number(formData.get('teacher_id')) || null,
     default_room_id: Number(formData.get('default_room_id')) || null,
     periods_per_week: Number(formData.get('periods_per_week')) || null,
@@ -703,6 +709,7 @@ function openSubjectViewModal(subject) {
 
   modal.querySelector('[data-field="subject-name"]').textContent = subject.subject_name || '-';
   modal.querySelector('[data-field="subject-code"]').textContent = subject.subject_code || '-';
+  modal.querySelector('[data-field="subject-type"]').textContent = subject.subject_type || 'พื้นฐาน';
   modal.querySelector('[data-field="teacher"]').textContent = teacherName;
   modal.querySelector('[data-field="periods"]').textContent = subject.periods_per_week ?? '-';
   modal.querySelector('[data-field="room"]').textContent = subject.room_name || getRoomDisplayNameById(subject.default_room_id) || '-';
@@ -766,6 +773,15 @@ function populateSubjectForm(subject) {
   form.querySelector('#subject-name')?.setAttribute('value', subject.subject_name || '');
   form.querySelector('#subject-code')?.setAttribute('value', subject.subject_code || '');
   form.querySelector('#subject-teacher')?.setAttribute('value', subject.teacher_id || '');
+
+  const typeSelect = form.querySelector('#subject-type');
+  if (typeSelect) {
+    typeSelect.value = subject.subject_type || 'พื้นฐาน';
+  }
+  const editTypeSelect = document.getElementById('edit-subject-type');
+  if (editTypeSelect) {
+    editTypeSelect.value = subject.subject_type || 'พื้นฐาน';
+  }
   form.querySelector('#subject-room')?.setAttribute('value', subject.default_room_id || '');
   form.querySelector('#subject-periods')?.setAttribute('value', subject.periods_per_week ?? '');
   const requirementsInput = form.querySelector('#subject-requirements');
@@ -792,6 +808,15 @@ function clearSubjectForm(options = {}) {
   const submitButton = form.querySelector('button[type="submit"]');
   if (submitButton) {
     submitButton.disabled = false;
+  }
+
+  const typeSelect = form.querySelector('#subject-type');
+  if (typeSelect) {
+    typeSelect.value = 'พื้นฐาน';
+  }
+  const editTypeSelect = document.getElementById('edit-subject-type');
+  if (editTypeSelect) {
+    editTypeSelect.value = 'พื้นฐาน';
   }
 
   setSubjectFormMode('create');
@@ -851,6 +876,7 @@ export function renderSubjectsTable() {
     const classTitle = classNames.length ? classNames.join(', ') : classDisplay;
     const roomName = subject.room_name || (subject.default_room_id ? getRoomDisplayNameById(subject.default_room_id) : '-');
     const subjectCode = subject.subject_code || '-';
+    const subjectType = subject.subject_type || 'พื้นฐาน';
     const periods = subject.periods_per_week ?? '-';
     const rawRequirements = subject.special_requirements == null ? '' : String(subject.special_requirements).trim();
     const requirementsDisplay = rawRequirements ? rawRequirements.replace(/\n/g, '<br>') : '-';
@@ -871,6 +897,7 @@ export function renderSubjectsTable() {
           </div>
         </td>
         <td class="col-subject-code">${subjectCode}</td>
+        <td class="col-subject-type">${subjectType}</td>
         <td class="col-teacher">${teacherName}</td>
         <td class="col-class" title="${classTitle}">${classDisplay}</td>
         <td class="col-periods">${periods}</td>
@@ -949,6 +976,7 @@ function getSubjectSearchableText(subject) {
   return [
     subject.subject_name || '',
     subject.subject_code || '',
+    subject.subject_type || '',
     teacherName,
     classNames.join(' '),
     roomName,

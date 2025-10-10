@@ -139,6 +139,7 @@ function buildSchedulePromptDataset(year, semesterId, semesterName) {
         group_key: subject.group_key || null,
         subject_name: subject.subject_name || '',
         subject_code: subject.subject_code || null,
+        subject_type: subject.subject_type || 'พื้นฐาน',
         subject_group: subject.subject_group || null,
         teacher_id: subject.teacher_id != null ? Number(subject.teacher_id) : null,
         teacher_name: teacherName,
