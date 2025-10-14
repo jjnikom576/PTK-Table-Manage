@@ -151,6 +151,8 @@ export const getAcademicWeek = (date, semesterData) => {
 };
 
 const NBSP = '\u00A0';
+
+// Default periods as fallback (if API fails)
 const DEFAULT_PERIODS = [
   { period_no: 1, period_name: 'คาบที่ 1', start_time: '08:00', end_time: '08:50' },
   { period_no: 2, period_name: 'คาบที่ 2', start_time: '08:50', end_time: '09:40' },
@@ -163,6 +165,11 @@ const DEFAULT_PERIODS = [
   { period_no: 9, period_name: 'คาบที่ 8', start_time: '14:50', end_time: '15:40' }
 ];
 const BREAK_KEYWORDS = ['พัก', 'break', 'lunch', 'เบรก', 'หยุด'];
+
+// Cache for periods from API
+let cachedPeriods = null;
+let cachedPeriodsTimestamp = null;
+const PERIODS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 const normalisePeriod = (period) => {
   if (!period) return null;
@@ -179,6 +186,42 @@ const normalisePeriod = (period) => {
     period_type: period.period_type ?? period.type ?? ''
   };
 };
+
+/**
+ * Fetch periods from API
+ * @param {number} year - Academic year
+ * @param {number} semesterId - Semester ID
+ * @returns {Promise<Array>} - Periods array
+ */
+export async function fetchPeriodsFromAPI(year, semesterId) {
+  // Check cache validity
+  if (cachedPeriods && cachedPeriodsTimestamp &&
+      (Date.now() - cachedPeriodsTimestamp) < PERIODS_CACHE_DURATION) {
+    return cachedPeriods;
+  }
+
+  try {
+    // Dynamically import schedule API
+    const { default: scheduleAPI } = await import('./api/schedule-api.js');
+
+    const result = await scheduleAPI.getPeriods(year, semesterId);
+
+    if (result.success && Array.isArray(result.data) && result.data.length > 0) {
+      // Cache the result
+      cachedPeriods = result.data;
+      cachedPeriodsTimestamp = Date.now();
+      return result.data;
+    }
+
+    // Fallback to default if API returns empty
+    console.warn('[Utils] API returned empty periods, using defaults');
+    return DEFAULT_PERIODS.map(p => ({ ...p }));
+  } catch (error) {
+    console.error('[Utils] Failed to fetch periods from API:', error);
+    // Fallback to default
+    return DEFAULT_PERIODS.map(p => ({ ...p }));
+  }
+}
 
 export const ensurePeriodsList = (periods = []) => {
   if (Array.isArray(periods) && periods.length) {
@@ -256,6 +299,38 @@ export const getLunchSlot = () => {
   };
 };
 
+/**
+ * Get lunch slot from API (async version)
+ * @param {number} year - Academic year
+ * @param {number} semesterId - Semester ID
+ * @returns {Promise<Object>} - Lunch slot object
+ */
+export async function getLunchSlotAsync(year, semesterId) {
+  try {
+    const periods = await fetchPeriodsFromAPI(year, semesterId);
+    const lunch = ensurePeriodsList(periods).find(isBreakPeriod);
+
+    if (!lunch) {
+      // Fallback to default
+      return {
+        period: 5,
+        label: 'พักเที่ยง',
+        time: '12:00 น.\u00A0-\u00A013:00 น.'
+      };
+    }
+
+    return {
+      period: lunch.period_no,
+      label: lunch.period_name || 'พักเที่ยง',
+      time: formatPeriodTimeRange(lunch)
+    };
+  } catch (error) {
+    console.error('[Utils] Failed to get lunch slot from API:', error);
+    // Fallback to default
+    return getLunchSlot();
+  }
+}
+
 export const getDisplayPeriods = () =>
   toDisplayPeriods(DEFAULT_PERIODS).map(({ period, actual, display, label }) => ({
     actual,
@@ -263,6 +338,28 @@ export const getDisplayPeriods = () =>
     label,
     period
   }));
+
+/**
+ * Get display periods from API (async version)
+ * @param {number} year - Academic year
+ * @param {number} semesterId - Semester ID
+ * @returns {Promise<Array>} - Display periods array
+ */
+export async function getDisplayPeriodsAsync(year, semesterId) {
+  try {
+    const periods = await fetchPeriodsFromAPI(year, semesterId);
+    return toDisplayPeriods(periods).map(({ period, actual, display, label }) => ({
+      actual,
+      display,
+      label,
+      period
+    }));
+  } catch (error) {
+    console.error('[Utils] Failed to get display periods from API:', error);
+    // Fallback to default
+    return getDisplayPeriods();
+  }
+}
 
 /**
  * Get Short Day Name

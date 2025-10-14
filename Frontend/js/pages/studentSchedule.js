@@ -7,7 +7,7 @@ import * as dataService from '../services/dataService.js';
 import * as globalContext from '../context/globalContext.js';
 import coreAPI from '../api/core-api.js';
 import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '../utils/export.js';
-import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, getDisplayPeriods, getLunchSlot, isActiveSemester } from '../utils.js';
+import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, getDisplayPeriods, getDisplayPeriodsAsync, getLunchSlot, getLunchSlotAsync, isActiveSemester } from '../utils.js';
 
 // =============================================================================
 // EXPORT FUNCTIONS (NEW)
@@ -422,7 +422,7 @@ export async function loadScheduleForContext(classRef, context) {
 
       // Render schedule
       renderScheduleHeader(result.data.classInfo?.class_name || String(classId), context);
-      renderScheduleTable(result.data, context);
+      await renderScheduleTable(result.data, context);
 
       // Setup export functionality
       renderExportBar(context);
@@ -550,7 +550,7 @@ export function renderScheduleHeader(className, context) {
 /**
  * Render Schedule Table
  */
-export function renderScheduleTable(resultData, context) {
+export async function renderScheduleTable(resultData, context) {
   const tableContainer = getScheduleContainer();
   if (!tableContainer) return;
 
@@ -560,8 +560,10 @@ export function renderScheduleTable(resultData, context) {
     return;
   }
 
-  const displayPeriods = getDisplayPeriods();
-  const lunchSlot = getLunchSlot();
+  const year = context?.currentYear || context?.year;
+  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
+  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
+  const lunchSlot = await getLunchSlotAsync(year, semesterId);
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
 
   // Build header: วัน/เวลา | คาบ 1 | คาบ 2 | ...
@@ -690,9 +692,11 @@ function getScheduleContainer() {
 /**
  * Generate Schedule Table
  */
-export function generateScheduleTable(scheduleData, className, context) {
-  const displayPeriods = getDisplayPeriods();
-  const lunchSlot = getLunchSlot();
+export async function generateScheduleTable(scheduleData, className, context) {
+  const year = context?.currentYear || context?.year;
+  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
+  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
+  const lunchSlot = await getLunchSlotAsync(year, semesterId);
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
   
   // Create schedule matrix
@@ -832,7 +836,7 @@ async function robustLoadSchedule(classRef, context) {
       pageState.currentSchedule = result.data;
       pageState.selectedClass = classId;
       renderScheduleHeader(result.data.classInfo?.class_name || String(classId), ctx);
-      renderScheduleTable(result.data, ctx);
+      await renderScheduleTable(result.data, ctx);
     } else {
       renderEmptyScheduleState(String(classRef), ctx);
     }
@@ -1414,9 +1418,11 @@ async function prepareStudentExportData(className, context) {
     throw new Error('ไม่มีข้อมูลตารางเรียน');
   }
 
-  const displayPeriods = getDisplayPeriods();
-  const lunchSlot = getLunchSlot();
-  const lunchKey = 'พักเที่ยง';
+  const year = context?.currentYear || context?.year;
+  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
+  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
+  const lunchSlot = await getLunchSlotAsync(year, semesterId);
+  const lunchKey = lunchSlot.label || 'พักเที่ยง'; // Use dynamic label from API
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
   const cleanRoom = (n) => String(n || '').replace(/^ห้อง\s*/, '');
 
