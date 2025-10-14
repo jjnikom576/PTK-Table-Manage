@@ -658,7 +658,7 @@ async function renderTeacherSchedule(teacherId, context) {
 
   } catch (error) {
     console.error('[TeacherSchedule] Failed to render teacher schedule:', error);
-    showError(`โหลดตารางสอน ${teacher.name} ล้มเหลว: ${error.message}`);
+    showError(`โหลดตารางสอน ${teacher.full_name || teacher.name} ล้มเหลว: ${error.message}`);
   } finally {
     setLoading(false);
   }
@@ -1238,7 +1238,7 @@ function renderTeacherInfo(teacher, scheduleData) {
 
   infoContainer.innerHTML = `
     <div class="teacher-profile">
-      <h3>${teacher.name}</h3>
+      <h3>${teacher.full_name || teacher.name}</h3>
       <div class="teacher-details">
         <span class="badge badge--${teacher.subject_group.toLowerCase()}">${teacher.subject_group}</span>
         <span class="teacher-role">${teacher.role === 'admin' ? 'ผู้ดูแลระบบ' : 'ครู'}</span>
@@ -1263,7 +1263,7 @@ function renderScheduleTable(scheduleData, teacher, context) {
 
   let tableHTML = `
     <div class="schedule-table-wrapper">
-      <h4>ตารางสอน ${teacher.name}</h4>
+      <h4>ตารางสอน ${teacher.full_name || teacher.name}</h4>
       <table class="schedule-table teacher-schedule">
         <thead>
           <tr>
@@ -1624,7 +1624,7 @@ async function handleExport(button, teacherId, context) {
     const exportData = await prepareTeacherExportData(teacherId, context);
 
     const teacher = pageState.teachers.find(t => t.id === teacherId);
-    const filename = generateExportFilename(`ตารางสอน-${teacher?.name || 'ครู'}`, context);
+    const filename = generateExportFilename(`ตารางสอน-${teacher?.full_name || teacher?.name || 'ครู'}`, context);
 
     switch (format) {
       case 'html':
@@ -1701,7 +1701,7 @@ async function prepareTeacherExportData(teacherId, context) {
   // FIX: ส่วนหัว - จัดกึ่งกลางเหมือนเว็บ
   const titleRow = createEmptyRow();
   const midCol = Math.ceil(periods.length / 2);
-  titleRow[`คาบ ${midCol}`] = `ตารางสอน - ${teacher?.name || ''}`;
+  titleRow[`คาบ ${midCol}`] = `ตารางสอน - ${teacher?.full_name || teacher?.name || ''}`;
   exportData.push(titleRow);
 
   const groupRow = createEmptyRow();
@@ -2000,7 +2000,7 @@ async function exportTableToHTML(teacherId, context, filename) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ตารางสอน - ${teacher.name || ''}</title>
+    <title>ตารางสอน - ${teacher.full_name || teacher.name || ''}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -2686,12 +2686,10 @@ function renderDynamicTeacherScheduleTable(scheduleData, teacher) {
     return rowHTML;
   }).join('');
 
-  const teacherTitle = teacher?.name ? `<h4>ตารางสอน ${teacher.name}</h4>` : '';
 
   return `
     <div class="schedule-table-card">
       <div class="table-responsive">
-        ${teacherTitle}
         <table class="schedule-table teacher-schedule">
           <thead>
             <tr>
