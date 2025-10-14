@@ -590,11 +590,15 @@ export async function renderScheduleTable(resultData, context) {
       const period = actual;
       const cell = matrix[day]?.[period];
       if (cell) {
+        const subjectCode = cell.subject?.subject_code || cell.subject?.subject_name?.substring(0, 6) || '-';
+        const teacherName = cell.teacher?.name || '';
+        const roomName = String(cell.room?.name || '').replace(/^ห้อง\s*/i, '');
+
         html += `<td class="schedule-cell has-subject" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
                 `<div class="schedule-cell-content">` +
-                `<div class="subject-name">${cell.subject?.subject_name || '-'}</div>` +
-                `<div class="teacher-name">${cell.teacher?.name || ''}</div>` +
-                `<div class="room-info">${cell.room?.name || ''}</div>` +
+                `<div class="subject-code">${subjectCode}</div>` +
+                `<div class="teacher-name">${teacherName}</div>` +
+                `<div class="room-info">${roomName}</div>` +
                 `</div>` +
                 `</td>`;
       } else {
@@ -620,14 +624,93 @@ export async function renderScheduleTable(resultData, context) {
   tableContainer.innerHTML = html;
   try { fitStudentTableFonts(tableContainer); } catch (e) { console.warn('[StudentSchedule] font fit failed:', e); }
 
+  // Render subject legend below table
+  renderSubjectLegend(resultData, context);
+
   // Hide empty state when table is rendered
   const emptyState = document.getElementById('student-empty-state');
   if (emptyState) emptyState.style.display = 'none';
 }
 
+/**
+ * Render Subject Legend (คำอธิบายรหัสวิชา)
+ */
+function renderSubjectLegend(resultData, context) {
+  const legendContainer = document.getElementById('student-subject-legend') || createLegendContainer();
+  if (!legendContainer) return;
+
+  const matrix = resultData?.matrix;
+  if (!matrix) {
+    legendContainer.innerHTML = '';
+    return;
+  }
+
+  // Collect all unique subjects from matrix
+  const subjectsMap = new Map();
+
+  Object.values(matrix).forEach(daySchedule => {
+    Object.values(daySchedule).forEach(cell => {
+      if (cell && cell.subject) {
+        const subjectCode = cell.subject.subject_code || cell.subject.subject_name?.substring(0, 6) || '';
+        const subjectName = cell.subject.subject_name || '';
+
+        if (subjectCode && !subjectsMap.has(subjectCode)) {
+          subjectsMap.set(subjectCode, {
+            code: subjectCode,
+            name: subjectName
+          });
+        }
+      }
+    });
+  });
+
+  // Sort by subject code
+  const subjects = Array.from(subjectsMap.values()).sort((a, b) =>
+    a.code.localeCompare(b.code, 'th')
+  );
+
+  if (subjects.length === 0) {
+    legendContainer.innerHTML = '';
+    return;
+  }
+
+  // Render legend (compact 3-column layout)
+  legendContainer.innerHTML = `
+    <div class="student-legend-card">
+      <h4 style="text-align: center !important;">📚 คำอธิบายรหัสวิชา</h4>
+      <div class="student-legend-grid">
+        ${subjects.map(subject => `
+          <div class="student-legend-item">
+            <span class="subject-code">${subject.code}</span>
+            <span class="subject-name">${subject.name}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Create Legend Container if not exists
+ */
+function createLegendContainer() {
+  const tableContainer = getScheduleContainer();
+  if (!tableContainer || !tableContainer.parentElement) return null;
+
+  let legendContainer = document.getElementById('student-subject-legend');
+  if (!legendContainer) {
+    legendContainer = document.createElement('div');
+    legendContainer.id = 'student-subject-legend';
+    legendContainer.className = 'subject-legend-container';
+    tableContainer.parentElement.insertBefore(legendContainer, tableContainer.nextSibling);
+  }
+
+  return legendContainer;
+}
+
 // Determine a global font size that makes all cells fit, then apply uniformly
 function fitStudentTableFonts(container) {
-  const subjects = container.querySelectorAll('.schedule-cell .subject-name');
+  const subjects = container.querySelectorAll('.schedule-cell .subject-code');
   const teachers = container.querySelectorAll('.schedule-cell .teacher-name');
   const rooms = container.querySelectorAll('.schedule-cell .room-info');
   const contents = container.querySelectorAll('.schedule-cell .schedule-cell-content');
@@ -1461,7 +1544,8 @@ async function prepareStudentExportData(className, context) {
       const cellData = pageState.currentSchedule.matrix[dayNumber]?.[actual];
 
       if (cellData) {
-        rowData[key] = `${cellData.subject.subject_name}\n${cellData.teacher.name}\n${cleanRoom(cellData.room.name)}`;
+        const subjectCode = cellData.subject.subject_code || cellData.subject.subject_name?.substring(0, 6) || '-';
+        rowData[key] = `${subjectCode}\n${cellData.teacher.name}\n${cleanRoom(cellData.room.name)}`;
       } else {
         rowData[key] = '-';
       }
@@ -1473,6 +1557,41 @@ async function prepareStudentExportData(className, context) {
 
     exportData.push(rowData);
   });
+
+  // เพิ่มแถวว่าง
+  exportData.push(createEmptyRow());
+
+  // เพิ่มคำอธิบายรหัสวิชา
+  const subjectsMap = new Map();
+  Object.values(pageState.currentSchedule.matrix).forEach(daySchedule => {
+    Object.values(daySchedule).forEach(cell => {
+      if (cell && cell.subject) {
+        const subjectCode = cell.subject.subject_code || cell.subject.subject_name?.substring(0, 6) || '';
+        const subjectName = cell.subject.subject_name || '';
+
+        if (subjectCode && !subjectsMap.has(subjectCode)) {
+          subjectsMap.set(subjectCode, { code: subjectCode, name: subjectName });
+        }
+      }
+    });
+  });
+
+  const subjects = Array.from(subjectsMap.values()).sort((a, b) =>
+    a.code.localeCompare(b.code, 'th')
+  );
+
+  if (subjects.length > 0) {
+    const legendHeaderRow = createEmptyRow();
+    legendHeaderRow['คาบ 3'] = '📚 คำอธิบายรหัสวิชา';
+    exportData.push(legendHeaderRow);
+
+    subjects.forEach(subject => {
+      const subjectRow = createEmptyRow();
+      subjectRow['คาบ 1'] = subject.code;
+      subjectRow['คาบ 2'] = subject.name;
+      exportData.push(subjectRow);
+    });
+  }
 
   return exportData;
 }
