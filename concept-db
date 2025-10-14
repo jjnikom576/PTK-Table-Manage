@@ -92,20 +92,9 @@ CREATE UNIQUE INDEX idx_semesters_active ON semesters(is_active) WHERE is_active
 CREATE UNIQUE INDEX idx_semesters_year_num ON semesters(academic_year_id, semester_number);
 CREATE INDEX idx_semesters_global_context ON semesters(academic_year_id, is_active);
 
--- Periods (Shared across all years)
-CREATE TABLE periods (
-  period_no INTEGER PRIMARY KEY,
-  period_name TEXT NOT NULL,
-  start_time TIME NOT NULL,
-  end_time TIME NOT NULL,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-);
 
--- Indexes for periods
-CREATE INDEX idx_periods_time_range ON periods(start_time, end_time);
-CREATE INDEX idx_periods_name ON periods(period_name);
-CREATE INDEX idx_periods_schedule_order ON periods(period_no, start_time);
+
+
 Dynamic Table Creation Function (SQL Template)
 sql-- Template สำหรับสร้าง dynamic tables แต่ละปี
 -- Replace {YEAR} with actual year (e.g., 2567, 2568)
@@ -183,6 +172,27 @@ CREATE INDEX idx_rooms_{YEAR}_name_search ON rooms_{YEAR}(room_name);
 CREATE INDEX idx_rooms_{YEAR}_type_active ON rooms_{YEAR}(room_type, is_active);
 CREATE UNIQUE INDEX idx_rooms_{YEAR}_unique_name ON rooms_{YEAR}(semester_id, room_name);
 
+
+  
+
+-- Periods (Shared across all years)
+CREATE TABLE periods_{YEAR} (
+  period_no INTEGER PRIMARY KEY,
+  semester_id INTEGER NOT NULL, -- จาก global context
+  period_name TEXT NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for periods
+CREATE INDEX idx_periods_time_range ON periods(start_time, end_time);
+CREATE INDEX idx_periods_name ON periods(period_name);
+CREATE INDEX idx_periods_schedule_order ON periods(period_no, start_time);
+
+
+
 -- Subjects Table (Junction table for many-to-many)
 CREATE TABLE subjects_{YEAR} (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,6 +224,7 @@ CREATE INDEX idx_subjects_{YEAR}_search ON subjects_{YEAR}(subject_name, subject
 CREATE INDEX idx_subjects_{YEAR}_teacher_load ON subjects_{YEAR}(teacher_id, periods_per_week);
 CREATE INDEX idx_subjects_{YEAR}_class_subjects ON subjects_{YEAR}(class_id, subject_name);
 CREATE UNIQUE INDEX idx_subjects_{YEAR}_unique ON subjects_{YEAR}(semester_id, teacher_id, class_id, subject_name);
+
 
 -- Schedules Table (ตารางจริง)
 CREATE TABLE schedules_{YEAR} (
