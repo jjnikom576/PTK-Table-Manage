@@ -27,20 +27,30 @@ import {
  */
 function getTeacherName(teacher) {
   if (!teacher) return 'ไม่ระบุชื่อ';
-  
-  // Try full_name first
-  if (teacher.full_name) return teacher.full_name;
-  
-  // Try name
-  if (teacher.name) return teacher.name;
-  
-  // Build from title + f_name + l_name
-  const parts = [];
-  if (teacher.title) parts.push(teacher.title);
-  if (teacher.f_name) parts.push(teacher.f_name);
-  if (teacher.l_name) parts.push(teacher.l_name);
-  
-  return parts.length > 0 ? parts.join(' ') : 'ไม่ระบุชื่อ';
+
+  // Build from title + f_name + l_name (title ชิดกับ f_name, ไม่เว้นวรรค)
+  let name = '';
+
+  // title ชิดกับ f_name (ไม่เว้นวรรค)
+  if (teacher.title && teacher.f_name) {
+    name = teacher.title + teacher.f_name;
+  } else if (teacher.f_name) {
+    name = teacher.f_name;
+  } else if (teacher.title) {
+    name = teacher.title;
+  }
+
+  // เว้นวรรคก่อน l_name
+  if (teacher.l_name) {
+    name = name ? name + '  ' + teacher.l_name : teacher.l_name;
+  }
+
+  // Fallback: ถ้ายังไม่มีชื่อ ลอง full_name หรือ name
+  if (!name) {
+    name = teacher.full_name || teacher.name || 'ไม่ระบุชื่อ';
+  }
+
+  return name;
 }
 
 // =============================================================================
@@ -661,27 +671,34 @@ function renderTeacherInfoSection(teacher, scheduleData, context) {
   const infoContainer = document.getElementById('teacher-info');
   if (!infoContainer) return;
 
+  // ดึง semester_name จาก context
+  const semesterName = context.currentSemester?.semester_name ||
+                      context.semester?.semester_name ||
+                      globalContext.getContext()?.currentSemester?.semester_name || 'ไม่ระบุภาคเรียน';
+
+  const subjectGroup = teacher.subject_group || 'ไม่ระบุกลุ่มสาระ';
+  const email = teacher.email || '-';
+  const phone = teacher.phone || '-';
+
   infoContainer.innerHTML = `
-    <div class="teacher-info-card" style="text-align: center;">
-      <h4 style="text-align: center;">ตารางสอน - ${getTeacherName(teacher)}</h4>
-      <div class="teacher-details-grid" style="text-align: center;">
-        <div class="detail-item" style="text-align: center;">
-          <span class="label">กลุ่มสาระ:</span>
-          <span class="value">${teacher.subject_group}</span>
+    <div class="teacher-info-card">
+      <h4>${getTeacherName(teacher)}</h4>
+          
+      <div class="teacher-badge">
+        <span class="label">กลุ่มสาระการเรียนรู้:</span>
+        ${subjectGroup}
+      </div>
+      <div class="teacher-details-grid">
+        <div class="detail-item">
+          <span class="label">📧 อีเมล:</span>
+          <span class="value">${email}</span>
         </div>
-        ${teacher.phone ? `
-        <div class="detail-item" style="text-align: center;">
-          <span class="label">📞</span>
-          <span class="value">${teacher.phone}</span>
-        </div>` : ''}
-        ${teacher.email ? `
-        <div class="detail-item" style="text-align: center;">
-          <span class="label">📧</span>
-          <span class="value">${teacher.email}</span>
-        </div>` : ''}
-        <div class="detail-item" style="text-align: center;">
-          <span class="label">ภาคเรียน:</span>
-          <span class="value">ภาคเรียนที่ ${context.currentSemester?.selected || 1} ปีการศึกษา ${context.currentYear}</span>
+        <div class="detail-item">
+          <span class="label">📱 โทรศัพท์:</span>
+          <span class="value">${phone}</span>
+        </div>
+        <div class="detail-item">
+          <span class="value">${semesterName} ปีการศึกษา ${context.currentYear}</span>
         </div>
       </div>
     </div>
@@ -830,8 +847,8 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
     subjectClassMap.get(key).schedules.push(schedule);
   });
 
-  // สร้างสรุปแต่ละวิชา+ห้อง
-  const subjectSummary = Array.from(subjectClassMap.values())
+  // สร้างสรุปแต่ละวิชา+ห้อง (แบบไม่รวมกลุ่ม)
+  const subjectClassItems = Array.from(subjectClassMap.values())
     .map(item => {
       // หา subject info
       const subject = scheduleData.subjects.find(s => s.id === item.subject_id);
@@ -839,19 +856,19 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
         console.warn(`[renderWorkloadDetails] Subject not found: ${item.subject_id}`);
         return null;
       }
-      
+
       // หา class info
       const classInfo = scheduleData.classes.find(c => c.id === item.class_id);
       if (!classInfo) {
         console.warn(`[renderWorkloadDetails] Class not found: ${item.class_id}`);
         return null;
       }
-      
+
       // นับ unique time slots
       const uniqueTimeSlots = new Set(
         item.schedules.map(sc => `${sc.day_of_week}-${sc.period_no || sc.period}`)
       );
-      
+
       return {
         subject,
         class: classInfo,
@@ -859,12 +876,48 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
         scheduleCount: item.schedules.length
       };
     })
-    .filter(item => item !== null)
+    .filter(item => item !== null);
+
+  // ⭐ รวมกลุ่มตาม subject_code + subject_name
+  const groupedMap = new Map();
+
+  subjectClassItems.forEach(item => {
+    const subjectCode = item.subject.subject_code || '';
+    const subjectName = item.subject.subject_name || '';
+    const groupKey = `${subjectCode}|${subjectName}`;
+
+    if (!groupedMap.has(groupKey)) {
+      groupedMap.set(groupKey, {
+        subject: item.subject,
+        classes: [],
+        totalPeriods: 0
+      });
+    }
+
+    const group = groupedMap.get(groupKey);
+    group.classes.push(item.class);
+    group.totalPeriods += item.periods;
+  });
+
+  // แปลงเป็น array และเรียงลำดับ
+  const subjectSummary = Array.from(groupedMap.values())
+    .map(group => {
+      // ⭐ เรียงลำดับชื่อห้องก่อนรวมกัน - แสดงเป็นแนวตั้ง
+      const sortedClassNames = group.classes
+        .map(c => c.class_name || c.name || 'ไม่ระบุห้อง')
+        .sort((a, b) => a.localeCompare(b, 'th'));
+
+      return {
+        subject: group.subject,
+        classNames: sortedClassNames.join('<br>'), // ⭐ ใช้ <br> แทน comma
+        periods: group.totalPeriods
+      };
+    })
     .sort((a, b) => {
-      // เรียงตาม subject_code แล้วตาม class_name
+      // เรียงตาม subject_code
       const codeCompare = (a.subject.subject_code || '').localeCompare(b.subject.subject_code || '', 'th');
       if (codeCompare !== 0) return codeCompare;
-      return (a.class.class_name || '').localeCompare(b.class.class_name || '', 'th');
+      return (a.subject.subject_name || '').localeCompare(b.subject.subject_name || '', 'th');
     });
 
   workloadContainer.innerHTML = `
@@ -877,7 +930,7 @@ function renderWorkloadDetailsSection(scheduleData, teacher) {
           <div class="subject-workload-item">
             <span class="subject-code">${subjectCode}</span>
             <span class="subject-name">${item.subject.subject_name}</span>
-            <span class="class-names">${item.class.class_name || item.class.name || 'ไม่ระบุห้อง'}</span>
+            <span class="class-names">${item.classNames}</span>
             <span class="periods-count">${item.periods} คาบ</span>
           </div>
         `}).join('')}
@@ -1093,15 +1146,19 @@ async function getTeacherScheduleData(teacherId, context) {
       matrix,
       classes,
       rooms,
+      periods: resolvedPeriods, // ⭐ เพิ่ม periods
+      periodSequence: periodSequence, // ⭐ เพิ่ม periodSequence
       totalPeriods: validPeriods.length // ใช้จำนวน entries จริง
     };
-    
+
     console.log(`[TeacherSchedule] ✅ Schedule data prepared for teacher ${teacherId}:`, {
       totalSubjects: result.subjects.length,
       totalSchedules: result.schedules.length,
-      totalPeriods: result.totalPeriods
+      totalPeriods: result.totalPeriods,
+      periods: result.periods?.length || 0,
+      periodSequence: result.periodSequence?.length || 0
     });
-    
+
     return result;
     
   } catch (error) {
@@ -1570,6 +1627,9 @@ async function handleExport(button, teacherId, context) {
     const filename = generateExportFilename(`ตารางสอน-${teacher?.name || 'ครู'}`, context);
 
     switch (format) {
+      case 'html':
+        await exportTableToHTML(teacherId, context, filename);
+        break;
       case 'csv':
         await exportTableToCSV(exportData, filename);
         break;
@@ -1599,120 +1659,105 @@ async function handleExport(button, teacherId, context) {
 async function prepareTeacherExportData(teacherId, context) {
   const scheduleData = await getTeacherScheduleData(teacherId, context);
   const teacher = pageState.teachers.find(t => t.id === teacherId);
-  const timeSlots = generateTimeSlots();
+
+  // ⭐ ใช้ periods จาก API แทน hardcode
+  // periodSequence มี structure: [{ type: 'teaching'/'break', period: {...} }]
+  // periods เป็น array ของ period objects
+  const periodSequence = scheduleData.periodSequence || [];
+  const rawPeriods = scheduleData.periods || [];
+
+  // ใช้เฉพาะ teaching periods (ไม่รวม lunch break)
+  const teachingEntries = periodSequence.filter(entry => entry.type === 'teaching');
+  let periods = teachingEntries.map(entry => entry.period);
+
+  // ถ้าไม่มี periodSequence ให้ fallback ไปใช้ rawPeriods โดยตรง
+  if (periods.length === 0 && rawPeriods.length > 0) {
+    periods = rawPeriods.filter(p => p.period_name !== 'พักเที่ยง');
+  }
+
+  const timeSlots = periods.map(p => `${p.start_time || ''}-${p.end_time || ''}`);
   const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
+
+  console.log('[Export] 📊 Export Data Debug:', {
+    periodSequenceCount: periodSequence.length,
+    teachingPeriodsCount: periods.length,
+    rawPeriodsCount: rawPeriods.length,
+    timeSlots: timeSlots,
+    firstPeriod: periods[0],
+    matrixSample: scheduleData.matrix?.[1]?.[1] || 'No matrix data'
+  });
 
   const exportData = [];
 
-  // FIX: ส่วนหัว - จัดกึ่งกลางเหมือนเว็บ
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `ตารางสอน - ${teacher?.name || ''}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
+  // สร้าง header columns dynamically ตามจำนวน periods
+  const createEmptyRow = () => {
+    const row = { 'วัน/เวลา': '' };
+    periods.forEach((_, idx) => {
+      row[`คาบ ${idx + 1}`] = '';
+    });
+    return row;
+  };
 
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `กลุ่มสาระ: ${teacher?.subject_group || ''}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
+  // FIX: ส่วนหัว - จัดกึ่งกลางเหมือนเว็บ
+  const titleRow = createEmptyRow();
+  const midCol = Math.ceil(periods.length / 2);
+  titleRow[`คาบ ${midCol}`] = `ตารางสอน - ${teacher?.name || ''}`;
+  exportData.push(titleRow);
+
+  const groupRow = createEmptyRow();
+  groupRow[`คาบ ${midCol}`] = `กลุ่มสาระ: ${teacher?.subject_group || ''}`;
+  exportData.push(groupRow);
 
   // เพิ่มโทรศัพท์ถ้ามี
   if (teacher?.phone) {
-    exportData.push({
-      'วัน/เวลา': '',
-      'คาบ 1': '',
-      'คาบ 2': '',
-      'คาบ 3': `📞 ${teacher.phone}`,
-      'คาบ 4': '',
-      'คาบ 5': '',
-      'คาบ 6': '',
-      'คาบ 7': '',
-      'คาบ 8': ''
-    });
+    const phoneRow = createEmptyRow();
+    phoneRow[`คาบ ${midCol}`] = `📞 ${teacher.phone}`;
+    exportData.push(phoneRow);
   }
 
   // เพิ่มอีเมลถ้ามี
   if (teacher?.email) {
-    exportData.push({
-      'วัน/เวลา': '',
-      'คาบ 1': '',
-      'คาบ 2': '',
-      'คาบ 3': `📧 ${teacher.email}`,
-      'คาบ 4': '',
-      'คาบ 5': '',
-      'คาบ 6': '',
-      'คาบ 7': '',
-      'คาบ 8': ''
-    });
+    const emailRow = createEmptyRow();
+    emailRow[`คาบ ${midCol}`] = `📧 ${teacher.email}`;
+    exportData.push(emailRow);
   }
 
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': `ภาคเรียน: ภาคเรียนที่ ${context.currentSemester?.selected || 1} ปีการศึกษา ${context.currentYear}`,
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
+  const semesterRow = createEmptyRow();
+  semesterRow[`คาบ ${midCol}`] = `ภาคเรียน: ภาคเรียนที่ ${context.currentSemester?.selected || 1} ปีการศึกษา ${context.currentYear}`;
+  exportData.push(semesterRow);
 
   // บรรทัดว่าง
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': '',
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
+  exportData.push(createEmptyRow());
   // FIX: หัวตาราง
-  exportData.push({
-    'วัน/เวลา': 'วัน/เวลา',
-    'คาบ 1': `คาบ 1\n${timeSlots[0] || ''}`,
-    'คาบ 2': `คาบ 2\n${timeSlots[1] || ''}`,
-    'คาบ 3': `คาบ 3\n${timeSlots[2] || ''}`,
-    'คาบ 4': `คาบ 4\n${timeSlots[3] || ''}`,
-    'คาบ 5': `คาบ 5\n${timeSlots[4] || ''}`,
-    'คาบ 6': `คาบ 6\n${timeSlots[5] || ''}`,
-    'คาบ 7': `คาบ 7\n${timeSlots[6] || ''}`,
-    'คาบ 8': `คาบ 8\n${timeSlots[7] || ''}`
+  const headerRow = { 'วัน/เวลา': 'วัน/เวลา' };
+  periods.forEach((period, idx) => {
+    headerRow[`คาบ ${idx + 1}`] = `คาบ ${idx + 1}\n${timeSlots[idx] || ''}`;
   });
+  exportData.push(headerRow);
 
   // FIX: ข้อมูลตาราง - แต่ละวัน
   days.forEach((day, dayIndex) => {
     const dayNumber = dayIndex + 1;
     const rowData = { 'วัน/เวลา': day };
 
-    // แต่ละคาบ (8 คาบ)
-    timeSlots.forEach((timeSlot, periodIndex) => {
-      const period = periodIndex + 1;
-      const cellData = scheduleData.matrix[dayNumber]?.[period];
+    // แต่ละคาบ (dynamic) - ใช้ period.period_no จาก API
+    periods.forEach((period, periodIndex) => {
+      const periodNo = period.period_no; // ⭐ ใช้ period_no จาก period object
+      const displayCol = periodIndex + 1; // column สำหรับ export
+      const cellDataArray = scheduleData.matrix[dayNumber]?.[periodNo];
 
-      if (cellData) {
-        const subjectCode = cellData.subject.subject_code || cellData.subject.subject_name.substring(0, 6);
-        const className = cellData.class.class_name || cellData.class.name || '';
-        const roomName = String(cellData.room.name || cellData.room.room_name || "").replace(/^ห้อง\s*/i, "");
-        rowData[`คาบ ${period}`] = `${subjectCode}\n${className}\n${roomName}`;
+      // matrix เป็น array ของ cell data
+      if (cellDataArray && Array.isArray(cellDataArray) && cellDataArray.length > 0) {
+        // ถ้ามีหลายห้องในคาบเดียวกัน ให้แสดงทั้งหมด
+        const cellTexts = cellDataArray.map(cellData => {
+          const subjectCode = cellData.subject?.subject_code || cellData.subject?.subject_name?.substring(0, 6) || '';
+          const className = cellData.class?.class_name || cellData.class?.name || '';
+          const roomName = String(cellData.room?.name || cellData.room?.room_name || "").replace(/^ห้อง\s*/i, "");
+          return `${subjectCode}\n${className}\n${roomName}`;
+        });
+        rowData[`คาบ ${displayCol}`] = cellTexts.join('\n---\n');
       } else {
-        rowData[`คาบ ${period}`] = '-';
+        rowData[`คาบ ${displayCol}`] = '-';
       }
     });
 
@@ -1720,80 +1765,85 @@ async function prepareTeacherExportData(teacherId, context) {
   });
 
   // FIX: ส่วนสรุป - บรรทัดว่าง
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': '',
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
+  exportData.push(createEmptyRow());
 
-  // ส่วนสรุป - จัดกึ่งกลาง
-  const subjectSummary = scheduleData.subjects.map(subject => {
+  // ⭐ สร้างสรุปแบบรวมกลุ่ม (เหมือน renderWorkloadDetailsSection)
+  const groupedMap = new Map();
+
+  scheduleData.subjects.forEach(subject => {
     const subjectSchedules = scheduleData.schedules.filter(s => s.subject_id === subject.id);
     const classInfo = scheduleData.classes.find(c => c.id === subject.class_id);
-    return { subject, class: classInfo, periods: subjectSchedules.length };
+
+    const subjectCode = subject.subject_code || '';
+    const subjectName = subject.subject_name || '';
+    const groupKey = `${subjectCode}|${subjectName}`;
+
+    if (!groupedMap.has(groupKey)) {
+      groupedMap.set(groupKey, {
+        subject: subject,
+        classes: [],
+        totalPeriods: 0
+      });
+    }
+
+    const group = groupedMap.get(groupKey);
+    if (classInfo) {
+      group.classes.push(classInfo);
+    }
+    group.totalPeriods += subjectSchedules.length;
   });
 
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': '📝 ภาระงานสอน',
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
+  // แปลงเป็น array
+  const subjectSummary = Array.from(groupedMap.values())
+    .map(group => {
+      // ⭐ เรียงลำดับชื่อห้องก่อนรวมกัน
+      const sortedClassNames = group.classes
+        .map(c => c.class_name || c.name || 'ไม่ระบุห้อง')
+        .sort((a, b) => a.localeCompare(b, 'th'));
+
+      return {
+        subject: group.subject,
+        classNames: sortedClassNames.join(', '),
+        periods: group.totalPeriods
+      };
+    })
+    .sort((a, b) => {
+      const codeCompare = (a.subject.subject_code || '').localeCompare(b.subject.subject_code || '', 'th');
+      if (codeCompare !== 0) return codeCompare;
+      return (a.subject.subject_name || '').localeCompare(b.subject.subject_name || '', 'th');
+    });
+
+  const workloadHeaderRow = createEmptyRow();
+  workloadHeaderRow[`คาบ ${midCol}`] = '📝 ภาระงานสอน';
+  exportData.push(workloadHeaderRow);
 // รายการวิชา
   subjectSummary.forEach(item => {
     const subjectCode = item.subject.subject_code || item.subject.subject_name.substring(0, 6);
-    exportData.push({
-      'วัน/เวลา': '',
-      'คาบ 1': `${subjectCode} ${item.subject.subject_name}`,
-      'คาบ 2': '',
-      'คาบ 3': '',
-       'คาบ 4': `${item.class?.class_name || item.class?.name || 'ไม่ระบุห้อง'}`,
-        'คาบ 5': '',
-         'คาบ 6': `${item.periods} คาบ`,
-          'คาบ 7': '', 
-          'คาบ 8': ''
-    });
+    const workloadRow = createEmptyRow();
+    workloadRow['คาบ 1'] = `${subjectCode} ${item.subject.subject_name}`;
+
+    // จัดให้ชื่อห้องและจำนวนคาบอยู่ตำแหน่งที่เหมาะสม
+    const classCol = Math.min(4, periods.length); // คอลัมน์ที่ 4 หรือน้อยกว่าถ้าคาบไม่พอ
+    const periodsCol = Math.min(6, periods.length); // คอลัมน์ที่ 6 หรือน้อยกว่าถ้าคาบไม่พอ
+
+    if (periods.length >= classCol) {
+      workloadRow[`คาบ ${classCol}`] = `${item.classNames}`;
+    }
+    if (periods.length >= periodsCol) {
+      workloadRow[`คาบ ${periodsCol}`] = `${item.periods} คาบ`;
+    }
+
+    exportData.push(workloadRow);
   });
 
 
   // สรุปรวม - จัดกึ่งกลาง
-  exportData.push({
-    'วัน/เวลา': '', 
-    'คาบ 1': '', 
-    'คาบ 2': '',
-    'คาบ 3': `รวม ${scheduleData.totalPeriods} คาบ/สัปดาห์`,
-    'คาบ 4': '', 
-    'คาบ 5': '', 
-    'คาบ 6': '', 
-    'คาบ 7': '', 
-    'คาบ 8': ''
-  });
+  const totalRow = createEmptyRow();
+  totalRow[`คาบ ${midCol}`] = `รวม ${scheduleData.totalPeriods} คาบ/สัปดาห์`;
+  exportData.push(totalRow);
 
   // FIX: ส่วนสรุป - บรรทัดว่าง
-  exportData.push({
-    'วัน/เวลา': '',
-    'คาบ 1': '',
-    'คาบ 2': '',
-    'คาบ 3': '',
-    'คาบ 4': '',
-    'คาบ 5': '',
-    'คาบ 6': '',
-    'คาบ 7': '',
-    'คาบ 8': ''
-  });
-
-
+  exportData.push(createEmptyRow());
 
   return exportData;
 }
@@ -1802,6 +1852,520 @@ async function prepareTeacherExportData(teacherId, context) {
 // HELPER FUNCTIONS
 // =============================================================================
 
+
+/**
+ * Get Teacher Name for Export (แสดงแค่ชื่อ-นามสกุล ไม่มี title)
+ */
+function getTeacherNameForExport(teacher) {
+  if (!teacher) return 'ไม่ระบุชื่อ';
+
+  const fname = teacher.f_name || '';
+  const lname = teacher.l_name || '';
+
+  if (fname && lname) {
+    return `${fname}  ${lname}`;
+  } else if (fname) {
+    return fname;
+  } else if (lname) {
+    return lname;
+  }
+
+  return 'ไม่ระบุชื่อ';
+}
+
+/**
+ * Get Teacher Prefix for Export (ครู สำหรับไทย, T. สำหรับอังกฤษ)
+ */
+function getTeacherPrefixForExport(teacher) {
+  if (!teacher || !teacher.f_name) return 'ครู';
+
+  // ตรวจสอบว่าชื่อเป็นภาษาอังกฤษหรือไทย
+  const isEnglish = /^[A-Za-z\s]+$/.test(teacher.f_name);
+
+  return isEnglish ? 'T.' : 'ครู';
+}
+
+/**
+ * Generate Workload HTML for Export
+ */
+function generateWorkloadHTML(scheduleData) {
+  // กรอง schedules ที่ valid
+  const validSchedules = scheduleData.schedules.filter(s => {
+    const periodNo = s.period_no || s.period;
+    return periodNo >= 1 && periodNo <= 8;
+  });
+
+  // สร้าง grouped workload เหมือนหน้าจริง
+  const groupedMap = new Map();
+
+  scheduleData.subjects.forEach(subject => {
+    const subjectSchedules = validSchedules.filter(s => s.subject_id === subject.id);
+    const classInfo = scheduleData.classes.find(c => c.id === subject.class_id);
+
+    const subjectCode = subject.subject_code || '';
+    const subjectName = subject.subject_name || '';
+    const groupKey = `${subjectCode}|${subjectName}`;
+
+    if (!groupedMap.has(groupKey)) {
+      groupedMap.set(groupKey, {
+        subject: subject,
+        classes: [],
+        totalPeriods: 0
+      });
+    }
+
+    const group = groupedMap.get(groupKey);
+    if (classInfo) {
+      group.classes.push(classInfo);
+    }
+    group.totalPeriods += subjectSchedules.length;
+  });
+
+  // เรียงลำดับและสร้าง HTML
+  const subjectSummary = Array.from(groupedMap.values())
+    .map(group => {
+      const sortedClassNames = group.classes
+        .map(c => c.class_name || c.name || 'ไม่ระบุห้อง')
+        .sort((a, b) => a.localeCompare(b, 'th'));
+
+      return {
+        subject: group.subject,
+        classNames: sortedClassNames.join(', '),
+        periods: group.totalPeriods
+      };
+    })
+    .sort((a, b) => {
+      const codeCompare = (a.subject.subject_code || '').localeCompare(b.subject.subject_code || '', 'th');
+      if (codeCompare !== 0) return codeCompare;
+      return (a.subject.subject_name || '').localeCompare(b.subject.subject_name || '', 'th');
+    });
+
+  // สร้าง HTML
+  let html = '<div class="workload-details"><div class="subjects-list">';
+
+  subjectSummary.forEach(item => {
+    const subjectCode = item.subject.subject_code || item.subject.subject_name.substring(0, 6);
+    html += `
+      <div class="subject-workload-item">
+        <div class="subject-code">${subjectCode}</div>
+        <div class="subject-name">${item.subject.subject_name}</div>
+        <div class="class-names">${item.classNames}</div>
+        <div class="periods-count">${item.periods} คาบ</div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  html += `<div class="total-workload">รวม ${scheduleData.totalPeriods} คาบ/สัปดาห์</div>`;
+  html += '</div>';
+
+  return html;
+}
+
+/**
+ * Export Table to HTML
+ */
+async function exportTableToHTML(teacherId, context, filename) {
+  try {
+    const scheduleData = await getTeacherScheduleData(teacherId, context);
+    const teacher = pageState.teachers.find(t => t.id === teacherId);
+
+    if (!teacher) {
+      throw new Error('ไม่พบข้อมูลครู');
+    }
+
+    // Debug: ดู context structure
+    console.log('[Export HTML] Context:', context);
+    console.log('[Export HTML] Current Year:', context.currentYear);
+    console.log('[Export HTML] Current Semester:', context.currentSemester);
+
+    // ดึงข้อมูลจาก context หรือ global context
+    const year = context.currentYear || context.year || globalContext.getContext()?.currentYear || 'N/A';
+    const semesterName = context.currentSemester?.semester_name ||
+                        context.semester?.semester_name ||
+                        globalContext.getContext()?.currentSemester?.semester_name || 'ไม่ระบุภาคเรียน';
+
+    console.log('[Export HTML] Resolved Year:', year);
+    console.log('[Export HTML] Resolved Semester:', semesterName);
+
+    // สร้าง HTML โดยใช้ฟังก์ชัน render ที่มีอยู่แล้ว
+    const scheduleTableHTML = renderDynamicTeacherScheduleTable(scheduleData, teacher);
+
+    // สร้าง workload HTML แยก
+    const workloadHTML = generateWorkloadHTML(scheduleData);
+
+    // สร้าง HTML เต็มรูปแบบพร้อม CSS จากหน้าจริง
+    const fullHTML = `<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ตารางสอน - ${teacher.name || ''}</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ===== CSS Variables ===== */
+        :root {
+            --font-family-primary: 'Sarabun', 'Noto Sans Thai', sans-serif;
+            --color-primary: #4299e1;
+            --color-primary-dark: #2b6cb0;
+            --color-primary-light: #ebf8ff;
+            --color-dark: #2d3748;
+            --color-dark-lighter: #718096;
+            --color-gray-50: #f7fafc;
+            --color-gray-100: #edf2f7;
+            --color-gray-200: #e2e8f0;
+            --color-gray-300: #cbd5e0;
+            --color-light-dark: #f5f5f5;
+            --font-weight-semibold: 600;
+            --font-weight-medium: 500;
+            --font-weight-bold: 700;
+            --font-size-xs: 0.75rem;
+            --font-size-sm: 0.875rem;
+            --font-size-2xl: 1.5rem;
+            --radius-md: 0.375rem;
+            --radius-lg: 0.5rem;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-primary);
+            padding: 20px;
+            background: #f5f5f5;
+            color: var(--color-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: var(--radius-lg);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h2, h3, h4 {
+            color: var(--color-dark);
+            text-align: center;
+            margin-bottom: 1rem;
+        }
+
+        /* ===== Teacher Info ===== */
+        .teacher-info-section {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: var(--radius-lg);
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--color-primary);
+            text-align: center;
+        }
+
+        .teacher-info-section h2 {
+            color: var(--color-primary);
+            margin-bottom: 0.75rem;
+            font-size: 1.75rem;
+        }
+
+        .teacher-meta {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            margin-top: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-md);
+            font-size: var(--font-size-sm);
+            background: var(--color-primary-light);
+            color: var(--color-primary-dark);
+            font-weight: var(--font-weight-semibold);
+        }
+
+        /* ===== Schedule Table ===== */
+        .schedule-section {
+            margin: 2rem 0;
+        }
+
+        .schedule-section h3 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: var(--font-size-sm);
+            background: #fff;
+            table-layout: fixed;
+            margin: 0 auto;
+        }
+
+        .schedule-table thead th {
+            background: var(--color-light-dark);
+            color: var(--color-dark);
+            font-weight: var(--font-weight-semibold);
+            padding: 0.75rem 0.5rem;
+            text-align: center;
+            vertical-align: middle;
+            border: 1px solid var(--color-gray-200);
+            height: 64px;
+        }
+
+        .schedule-table thead th:first-child {
+            text-align: center;
+            background: var(--color-primary);
+            color: #fff;
+        }
+
+        .schedule-table tbody td {
+            border: 1px solid var(--color-gray-100);
+            padding: 0.5rem;
+            text-align: center;
+            vertical-align: middle;
+            height: 64px;
+        }
+
+        .schedule-table tbody td:first-child {
+            text-align: center;
+            font-weight: var(--font-weight-semibold);
+            background: var(--color-gray-50);
+        }
+
+        .period-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .period-number {
+            font-weight: var(--font-weight-semibold);
+            font-size: 0.9rem;
+        }
+
+        .time-slot {
+            font-size: 0.75rem;
+            color: #666;
+            white-space: nowrap;
+        }
+
+        .subject-info, .schedule-cell-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.15rem;
+            min-height: 48px;
+            text-align: center;
+        }
+
+        .subject-name {
+            font-weight: var(--font-weight-semibold);
+            color: var(--color-dark);
+            font-size: 14px;
+            text-align: center;
+            line-height: 1.25;
+            white-space: nowrap;
+        }
+
+        .class-name {
+            font-size: 12px;
+            color: var(--color-primary-dark);
+            font-weight: var(--font-weight-medium);
+        }
+
+        .room-name {
+            font-size: 12px;
+            color: var(--color-dark-lighter);
+        }
+
+        .lunch-column {
+            background: #fff9cc;
+            font-weight: var(--font-weight-semibold);
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .empty-cell {
+            color: #999;
+        }
+
+        /* ===== Workload Section ===== */
+        .workload-section {
+            margin: 2rem 0;
+        }
+
+        .workload-section h3 {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.5rem;
+        }
+
+        .workload-details {
+            text-align: center;
+            margin: 0 auto;
+            max-width: 700px;
+        }
+
+        .subjects-list {
+            display: block;
+            text-align: center;
+            padding-left: 0;
+            margin: 0 auto;
+        }
+
+        .subject-workload-item {
+            display: grid;
+            grid-template-columns: 100px minmax(200px, 1fr) 150px 90px;
+            gap: 0.75rem 1rem;
+            text-align: left;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            width: 100%;
+            max-width: 700px;
+            margin-left: auto;
+            margin-right: auto;
+            align-items: center;
+        }
+
+        .subject-workload-item .subject-code {
+            text-align: left;
+            font-family: monospace;
+            font-weight: var(--font-weight-bold);
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .subject-workload-item .subject-name {
+            text-align: left;
+            font-weight: var(--font-weight-bold);
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .subject-workload-item .class-names {
+            text-align: center;
+            color: #0066cc;
+            font-weight: var(--font-weight-medium);
+            font-size: 0.95rem;
+            line-height: 1.6;
+        }
+
+        .periods-count {
+            text-align: right;
+            font-weight: var(--font-weight-bold);
+            color: #007700;
+            font-size: 1rem;
+        }
+
+        .total-workload {
+            text-align: center;
+            background: var(--color-primary);
+            color: white;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            margin-top: 1.5rem;
+            font-size: 1.25rem;
+            font-weight: var(--font-weight-bold);
+        }
+
+        /* ===== Print Button ===== */
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: var(--font-weight-semibold);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .print-button:hover {
+            background: var(--color-primary-dark);
+        }
+
+        /* ===== Print Styles ===== */
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 10px;
+            }
+
+            .print-button {
+                display: none;
+            }
+
+            .schedule-table {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-button" onclick="window.print()">🖨️ พิมพ์</button>
+
+    <div class="container">
+        <div class="teacher-info-section">
+            <h2>ตารางสอน - ${getTeacherPrefixForExport(teacher)} ${getTeacherNameForExport(teacher)}</h2>
+            <div class="teacher-meta">
+                <span><strong>${semesterName}</strong></span>
+                <span style="margin-left: 1.5rem;"><strong>ปีการศึกษา ${year}</strong></span>
+            </div>
+        </div>
+
+        <div class="schedule-section">
+            ${scheduleTableHTML}
+        </div>
+
+        <div class="workload-section">
+            <h3>📊 ภาระงานสอน</h3>
+            ${workloadHTML}
+        </div>
+    </div>
+</body>
+</html>`;
+
+    // ดาวน์โหลดไฟล์ HTML
+    const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${filename}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('[Export] HTML export completed:', filename);
+  } catch (error) {
+    console.error('[Export] HTML export failed:', error);
+    throw error;
+  }
+}
 
 function generateExportFilename(baseName, context) {
   const year = context.currentYear || 'unknown';
@@ -1863,6 +2427,7 @@ function hideExportProgress(button) {
   button.disabled = false;
   const format = button.dataset.exportType;
   const texts = {
+    'html': '🌐 HTML',
     'csv': '📄 CSV',
     'xlsx': '📊 Excel',
     'gsheets': '📋 Google Sheets'

@@ -668,13 +668,16 @@
 
 .subject-workload-item {
   display: grid !important;
-  grid-template-columns: 90px 1fr 70px 70px;
-  gap: 0.75rem;
+  grid-template-columns: 100px minmax(200px, 1fr) 150px 90px;
+  gap: 0.75rem 1rem;
   text-align: left !important;
   margin-bottom: 0.5rem;
   padding: 0.5rem;
   border-bottom: 1px solid #f0f0f0;
   width: 100%;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
   align-items: center; /* FIX: เธเธฑเธ”เนเธเธงเธ•เธฑเนเธเนเธซเนเธญเธขเธนเนเนเธเธงเน€เธ”เธตเธขเธงเธเธฑเธ */
 }
 
@@ -687,18 +690,19 @@
   font-size: 1rem; /* FIX: เน€เธเธดเนเธกเธเธเธฒเธ”เธ•เธฑเธงเธญเธฑเธเธฉเธฃ */
 }
 
-.subject-name {
+.subject-workload-item .subject-name {
   text-align: left !important;
   font-weight: bold;
   color: #333;
   font-size: 1rem;
 }
 
-.class-names {
+.subject-workload-item .class-names {
   text-align: center !important;
   color: #0066cc;
   font-weight: medium;
-  font-size: 1rem; /* FIX: เน€เธเธดเนเธกเธเธเธฒเธ”เธ•เธฑเธงเธญเธฑเธเธฉเธฃ */
+  font-size: 0.95rem;
+  line-height: 1.6; /* FIX: เน€เธเธดเนเธกเธเธเธฒเธ”เธ•เธฑเธงเธญเธฑเธเธฉเธฃ */
 }
 
 .periods-count {
@@ -1063,9 +1067,9 @@
 
 .student-legend-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.75rem 1rem;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -1094,6 +1098,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Responsive: 3 columns on medium screens */
+@media (max-width: 1024px) {
+  .student-legend-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
 
 /* Responsive: 2 columns on tablets */

@@ -55,17 +55,22 @@
                         <span>📤 ส่งออกตาราง:</span>
                     </div>
                     <div class="export-buttons">
-                        <button type="button" class="btn btn--outline btn--sm" 
+                        <button type="button" class="btn btn--outline btn--sm"
+                                data-export-type="html" data-target="student"
+                                aria-label="ส่งออกเป็นไฟล์ HTML">
+                            🌐 HTML
+                        </button>
+                        <button type="button" class="btn btn--outline btn--sm"
                                 data-export-type="csv" data-target="student"
                                 aria-label="ส่งออกเป็นไฟล์ CSV">
                             📄 CSV
                         </button>
-                        <button type="button" class="btn btn--outline btn--sm" 
+                        <button type="button" class="btn btn--outline btn--sm"
                                 data-export-type="xlsx" data-target="student"
                                 aria-label="ส่งออกเป็นไฟล์ Excel">
                             📊 Excel
                         </button>
-                        <button type="button" class="btn btn--outline btn--sm btn--gsheets" 
+                        <button type="button" class="btn btn--outline btn--sm btn--gsheets"
                                 data-export-type="gsheets" data-target="student"
                                 aria-label="ส่งออกไป Google Sheets">
                             📋 Google Sheets
@@ -148,37 +153,42 @@
                 </div>
 
                 <!-- Teacher Details Tab -->
-                <div id="teacher-details" class="sub-page hidden" role="tabpanel" 
+                <div id="teacher-details" class="sub-page hidden" role="tabpanel"
                      aria-labelledby="tab-teacher-details">
-                    
+
+                    <!-- Teacher Selection -->
+                    <div class="teacher-controls">
+                        <div class="teacher-tabs" id="teacher-tabs" role="tablist" aria-label="เลือกครู">
+                            <!-- Teacher tabs will be rendered here -->
+                        </div>
+                    </div>
+
                     <!-- Export Bar for Teacher (hidden until a teacher is selected) -->
                     <div id="export-bar-teacher" class="export-bar hidden" role="toolbar" aria-label="เครื่องมือส่งออกข้อมูลครู">
                         <div class="export-label">
                             <span>📤 ส่งออกตารางครู:</span>
                         </div>
                         <div class="export-buttons">
-                            <button type="button" class="btn btn--outline btn--sm" 
+                            <button type="button" class="btn btn--outline btn--sm"
+                                    data-export-type="html" data-target="teacher"
+                                    aria-label="ส่งออกตารางครูเป็นไฟล์ HTML">
+                                🌐 HTML
+                            </button>
+                            <button type="button" class="btn btn--outline btn--sm"
                                     data-export-type="csv" data-target="teacher"
                                     aria-label="ส่งออกตารางครูเป็นไฟล์ CSV">
                                 📄 CSV
                             </button>
-                            <button type="button" class="btn btn--outline btn--sm" 
+                            <button type="button" class="btn btn--outline btn--sm"
                                     data-export-type="xlsx" data-target="teacher"
                                     aria-label="ส่งออกตารางครูเป็นไฟล์ Excel">
                                 📊 Excel
                             </button>
-                            <button type="button" class="btn btn--outline btn--sm btn--gsheets" 
+                            <button type="button" class="btn btn--outline btn--sm btn--gsheets"
                                     data-export-type="gsheets" data-target="teacher"
                                     aria-label="ส่งออกตารางครูไป Google Sheets">
                                 📋 Google Sheets
                             </button>
-                        </div>
-                    </div>
-                    
-                    <!-- Teacher Selection -->
-                    <div class="teacher-controls">
-                        <div class="teacher-tabs" id="teacher-tabs" role="tablist" aria-label="เลือกครู">
-                            <!-- Teacher tabs will be rendered here -->
                         </div>
                     </div>
                     
