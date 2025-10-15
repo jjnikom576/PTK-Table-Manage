@@ -4,6 +4,7 @@ import { initRoomManagement } from './roomManagement.js';
 import { initSubjectManagement } from './subjectManagement.js';
 import { initPeriodManagement } from './periodManagement.js';
 import { initAcademicManagement } from './academicManagement.js';
+import { initSubstituteManagement } from './substituteManagement.js';
 
 export function bindMainAdminNavigation() {
   const mainNavTabs = document.querySelectorAll('#page-admin .sub-nav-tabs .sub-nav-tab:not([data-bound])');
@@ -47,6 +48,8 @@ export function bindMainAdminNavigation() {
           initAcademicYearNavigation();
         } else if (targetId === 'admin-data') {
           bindDataSubNavigation(); // ensure sub nav is bound after templates render
+        } else if (targetId === 'admin-substitute') {
+          initSubstituteManagement();
         }
       } else {
         console.error('❌ Target admin section not found:', targetId);

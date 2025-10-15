@@ -65,7 +65,9 @@ let pageState = {
   isLoading: false,
   error: null,
   // For group filter in "ตารางรายครู"
-  selectedGroup: 'ALL'
+  selectedGroup: 'ALL',
+  // Flag to prevent duplicate event listeners
+  eventsInitialized: false
 };
 
 // =============================================================================
@@ -1384,6 +1386,12 @@ function renderWorkloadDetails(scheduleData, teacher) {
  * Setup Event Listeners
  */
 function setupEventListeners(context) {
+  // ⭐ FIX: ป้องกันการ bind event listeners ซ้ำ
+  if (pageState.eventsInitialized) {
+    console.log('[TeacherSchedule] Event listeners already initialized, skipping...');
+    return;
+  }
+
   console.log('[TeacherSchedule] Setting up event listeners');
 
   // Sub-nav tabs (📊 สรุปภาระงาน <-> 📋 ตารางรายครู)
@@ -1500,6 +1508,8 @@ function setupEventListeners(context) {
     }
   });
 
+  // ⭐ FIX: เซ็ต flag เพื่อป้องกันการ bind ซ้ำ
+  pageState.eventsInitialized = true;
   console.log('[TeacherSchedule] Event listeners setup completed');
 }
 

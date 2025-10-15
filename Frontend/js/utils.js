@@ -399,9 +399,42 @@ export const getGradeLevel = (className) => className.split('/')[0];
 export const getSectionNumber = (className) => Number(className.split('/')[1] || 1);
 
 /**
+ * Get Teacher Display Name (รองรับทั้ง full_name และ title + f_name + l_name)
+ * @param {Object} teacher - Teacher object
+ * @returns {string} - Formatted teacher name
+ */
+export function getTeacherName(teacher) {
+  if (!teacher) return 'ไม่ระบุชื่อ';
+
+  // Build from title + f_name + l_name (title ชิดกับ f_name, ไม่เว้นวรรค)
+  let name = '';
+
+  // title ชิดกับ f_name (ไม่เว้นวรรค)
+  if (teacher.title && teacher.f_name) {
+    name = teacher.title + teacher.f_name;
+  } else if (teacher.f_name) {
+    name = teacher.f_name;
+  } else if (teacher.title) {
+    name = teacher.title;
+  }
+
+  // เว้นวรรคก่อน l_name (เว้นวรรค 2 ตัว)
+  if (teacher.l_name) {
+    name = name ? name + '  ' + teacher.l_name : teacher.l_name;
+  }
+
+  // Fallback: ถ้ายังไม่มีชื่อ ลอง full_name หรือ name
+  if (!name) {
+    name = teacher.full_name || teacher.name || 'ไม่ระบุชื่อ';
+  }
+
+  return name;
+}
+
+/**
  * Format Teacher Name with Subject Group
  */
-export const formatTeacherName = (teacher) => teacher ? `${teacher.name} (${teacher.subject_group})` : '';
+export const formatTeacherName = (teacher) => teacher ? `${getTeacherName(teacher)} (${teacher.subject_group})` : '';
 
 /**
  * Get Teacher Subject Group

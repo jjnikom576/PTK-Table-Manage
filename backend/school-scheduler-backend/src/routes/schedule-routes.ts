@@ -2045,4 +2045,176 @@ scheduleRoutes.get('/conflicts', requireAdmin, async (c: Context<{ Bindings: Env
   }
 });
 
+// ===========================================
+// Substitutions Routes
+// ===========================================
+
+// GET /api/schedule/substitutions/stats - Get substitution statistics for all teachers
+scheduleRoutes.get('/substitutions/stats', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+
+    // Get active context
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.semester || !contextResult.data?.academic_year?.year) {
+      return c.json({
+        success: false,
+        message: 'No active semester found'
+      }, 400);
+    }
+
+    const semester = contextResult.data.semester;
+    const year = contextResult.data.academic_year.year;
+    const tableName = "substitutions_" + year;
+
+    // Query: COUNT substitutions per teacher in current semester
+    const query = `
+      SELECT
+        substitute_teacher_id as teacher_id,
+        COUNT(*) as substitution_count
+      FROM ${tableName}
+      WHERE semester_id = ? AND status != 'cancelled'
+      GROUP BY substitute_teacher_id
+    `;
+
+    const results: any = await c.env.DB.prepare(query).bind(semester.id).all();
+
+    if (!results.success) {
+      return c.json({
+        success: false,
+        message: 'Failed to query substitution stats'
+      }, 500);
+    }
+
+    // Build stats object { teacher_id: count }
+    const stats: Record<number, number> = {};
+    (results.results || []).forEach((row: any) => {
+      stats[row.teacher_id] = row.substitution_count;
+    });
+
+    return c.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Get substitution stats error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to get substitution stats',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// POST /api/schedule/substitutions - Submit substitution assignments
+scheduleRoutes.post('/substitutions', requireAdmin, requireJSON, async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const body = await c.req.json<{
+      date: string;
+      assignments: Array<{
+        schedule_id: number;
+        absent_teacher_id: number;
+        substitute_teacher_id: number;
+        absent_date: string;
+      }>;
+    }>();
+
+    if (!body.date || !Array.isArray(body.assignments) || body.assignments.length === 0) {
+      return c.json({
+        success: false,
+        message: 'Date and assignments array are required'
+      }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+
+    // Get active context
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.semester || !contextResult.data?.academic_year?.year) {
+      return c.json({
+        success: false,
+        message: 'No active semester found'
+      }, 400);
+    }
+
+    const semester = contextResult.data.semester;
+    const year = contextResult.data.academic_year.year;
+    const tableName = "substitutions_" + year;
+
+    // ⭐ Check if table exists, if not create it
+    await c.env.DB.exec(`CREATE TABLE IF NOT EXISTS ${tableName} (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      semester_id INTEGER NOT NULL,
+      absent_date DATE NOT NULL,
+      absent_teacher_id INTEGER NOT NULL,
+      reason TEXT DEFAULT 'อื่นๆ',
+      reason_detail TEXT,
+      schedule_id INTEGER NOT NULL,
+      substitute_teacher_id INTEGER,
+      status TEXT DEFAULT 'assigned' CHECK (status IN ('pending', 'assigned', 'completed', 'cancelled')),
+      notes TEXT,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Insert all assignments in a batch
+    const insertedIds: number[] = [];
+
+    for (const assignment of body.assignments) {
+      const insertQuery = `
+        INSERT INTO ${tableName} (
+          semester_id, absent_date, absent_teacher_id,
+          schedule_id, substitute_teacher_id, status, created_by
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const user = c.get('user');
+      const result = await c.env.DB.prepare(insertQuery)
+        .bind(
+          semester.id,
+          assignment.absent_date,
+          assignment.absent_teacher_id,
+          assignment.schedule_id,
+          assignment.substitute_teacher_id,
+          'assigned',
+          user?.id || null
+        )
+        .run();
+
+      if (result.meta?.last_row_id) {
+        insertedIds.push(result.meta.last_row_id);
+      }
+    }
+
+    // Log activity
+    const user = c.get('user');
+    const authManager = new AuthManager(c.env.DB, c.env);
+    await authManager.logActivity(
+      user.id!,
+      'CREATE_SUBSTITUTION',
+      tableName,
+      insertedIds.join(','),
+      null,
+      { date: body.date, count: body.assignments.length }
+    );
+
+    return c.json({
+      success: true,
+      message: `Successfully created ${insertedIds.length} substitution assignments`,
+      data: {
+        inserted_count: insertedIds.length,
+        ids: insertedIds
+      }
+    });
+  } catch (error) {
+    console.error('Create substitutions error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to create substitutions',
+      error: String(error)
+    }, 500);
+  }
+});
+
 export default scheduleRoutes;

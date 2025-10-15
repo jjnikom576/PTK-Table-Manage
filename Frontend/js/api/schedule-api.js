@@ -835,6 +835,42 @@ class ScheduleAPI {
   }
 
   /**
+   * SUBSTITUTION MANAGEMENT API
+   */
+  async getSubstitutionStats() {
+    try {
+      const result = await apiManager.get('schedule/substitutions/stats');
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถโหลดสถิติการสอนแทนได้'
+      };
+    }
+  }
+
+  async createSubstitutions(date, assignments) {
+    try {
+      const result = await apiManager.post('schedule/substitutions', {
+        date: date,
+        assignments: assignments
+      });
+
+      if (result.success) {
+        // Invalidate substitution stats cache if exists
+        this.invalidateCacheByPattern('substitutions_');
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถบันทึกการสอนแทนได้'
+      };
+    }
+  }
+
+  /**
    * YEAR MIGRATION UTILITIES
    */
   async migrateYearData(fromYear, toYear, entities = ['teachers', 'classes', 'rooms', 'subjects']) {

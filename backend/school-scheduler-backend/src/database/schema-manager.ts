@@ -159,12 +159,13 @@ export class SchemaManager {
         this.createRoomsTable(year),
         this.createSubjectsTable(year),
         this.createPeriodsTable(year),
-        this.createSchedulesTable(year)
+        this.createSchedulesTable(year),
+        this.createSubstitutionsTable(year)
       ];
 
       await Promise.all(tables);
 
-      return { success: true, data: { year, tablesCreated: 6 } };
+      return { success: true, data: { year, tablesCreated: 7 } };
     } catch (error) {
       return { success: false, error: String(error) };
     }
@@ -425,6 +426,49 @@ export class SchemaManager {
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_room ON ${tableName}(room_id) WHERE room_id IS NOT NULL`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_daily ON ${tableName}(semester_id, day_of_week)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_conflict_check ON ${tableName}(semester_id, day_of_week, period_no)`
+    ];
+
+    for (const index of indexes) {
+      await this.db.exec(index);
+    }
+  }
+
+  private async createSubstitutionsTable(year: number): Promise<void> {
+    const tableName = `substitutions_${year}`;
+
+    await this.db.exec(
+      "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
+      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+      "semester_id INTEGER NOT NULL, " +
+      "absent_date DATE NOT NULL, " +
+      "absent_teacher_id INTEGER NOT NULL, " +
+      "reason TEXT NOT NULL CHECK (reason IN ('ลากิจ', 'ลาป่วย', 'ประชุม', 'อบรม', 'ไปราชการ', 'อื่นๆ')), " +
+      "reason_detail TEXT, " +
+      "schedule_id INTEGER NOT NULL, " +
+      "substitute_teacher_id INTEGER, " +
+      "status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'assigned', 'completed', 'cancelled')), " +
+      "notes TEXT, " +
+      "created_by INTEGER, " +
+      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+      "FOREIGN KEY (semester_id) REFERENCES semesters(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (absent_teacher_id) REFERENCES teachers_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (substitute_teacher_id) REFERENCES teachers_" + year + "(id) ON DELETE SET NULL, " +
+      "FOREIGN KEY (schedule_id) REFERENCES schedules_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL" +
+      ")"
+    );
+
+    // Create indexes for efficient queries
+    const indexes = [
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_semester ON ${tableName}(semester_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_date ON ${tableName}(absent_date)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_absent_teacher ON ${tableName}(absent_teacher_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_substitute_teacher ON ${tableName}(substitute_teacher_id) WHERE substitute_teacher_id IS NOT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_status ON ${tableName}(status)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_date_status ON ${tableName}(absent_date, status)`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_schedule ON ${tableName}(schedule_id)`,
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_${tableName}_unique_substitution ON ${tableName}(semester_id, schedule_id, absent_date)`
     ];
 
     for (const index of indexes) {

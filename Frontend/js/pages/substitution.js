@@ -653,6 +653,9 @@ export function initSubstitutionSubNav(context) {
       <button class="sub-nav-btn" data-sub-page="substitution-schedule">
         📋 ตารางสอนแทน
       </button>
+      <button class="sub-nav-btn" data-sub-page="substitution-management">
+        🔄 จัดการการสอนแทน
+      </button>
     </div>
     <div class="context-display">
       <span class="context-badge">
@@ -667,17 +670,19 @@ export function initSubstitutionSubNav(context) {
   subNavContainer.addEventListener('click', async (e) => {
     if (e.target.matches('[data-sub-page]')) {
       const subPage = e.target.dataset.subPage;
-      
+
       // Update active button
-      subNavContainer.querySelectorAll('.sub-nav-btn').forEach(btn => 
+      subNavContainer.querySelectorAll('.sub-nav-btn').forEach(btn =>
         btn.classList.toggle('active', btn.dataset.subPage === subPage)
       );
-      
+
       // Switch to selected sub page
       if (subPage === 'hall-of-fame') {
         await switchToHallOfFame(context);
       } else if (subPage === 'substitution-schedule') {
         await switchToSubstitutionSchedule(context);
+      } else if (subPage === 'substitution-management') {
+        await switchToSubstitutionManagement(context);
       }
     }
   });
@@ -742,5 +747,346 @@ export function updateSubNavForContext(newContext) {
   const contextDisplay = document.querySelector('#substitution-sub-nav .context-display .context-badge');
   if (contextDisplay) {
     contextDisplay.textContent = `${formatSemester(newContext.semester)} ปีการศึกษา ${newContext.year}`;
+  }
+}
+
+/**
+ * Switch to substitution management view
+ */
+export async function switchToSubstitutionManagement(context) {
+  substitutionPageState.currentSubPage = 'substitution-management';
+
+  const contentContainer = document.querySelector('#substitution-content');
+  if (!contentContainer) return;
+
+  try {
+    showSubstitutionPageLoading(true);
+
+    const managementHTML = await renderSubstitutionManagement(context);
+    contentContainer.innerHTML = managementHTML;
+
+    // Initialize event listeners
+    initializeSubstitutionManagementListeners(context);
+
+  } catch (error) {
+    console.error('Error switching to substitution management:', error);
+    showSubstitutionPageError(`ไม่สามารถแสดงหน้าจัดการการสอนแทนได้: ${error.message}`);
+  } finally {
+    showSubstitutionPageLoading(false);
+  }
+}
+
+/**
+ * Render substitution management view
+ */
+export async function renderSubstitutionManagement(context) {
+  const data = substitutionPageState.loadedData;
+  if (!data) throw new Error('ไม่มีข้อมูลที่โหลดแล้ว');
+
+  // Set default date to today
+  const today = new Date().toISOString().slice(0, 10);
+  substitutionPageState.selectedDate = today;
+
+  const teachers = data.teachers || [];
+
+  // Sort teachers by full_name
+  const sortedTeachers = teachers.sort((a, b) =>
+    (a.full_name || a.name || '').localeCompare(b.full_name || b.name || '', 'th')
+  );
+
+  return `
+    <div class="substitute-management-container">
+      <h3>🔄 จัดการการสอนแทน</h3>
+      <div class="substitute-form">
+        <div class="form-group">
+          <label for="substitute-date">วันที่:</label>
+          <input type="date" id="substitute-date" name="date" value="${today}" required>
+        </div>
+        <div class="form-group">
+          <label>ครูที่ไม่อยู่:</label>
+          <div id="absent-teachers-checklist" class="checklist">
+            ${sortedTeachers.map(teacher => `
+              <label class="checkbox-item">
+                <input type="checkbox"
+                       class="absent-teacher-checkbox"
+                       data-teacher-id="${teacher.id}"
+                       data-teacher-name="${teacher.full_name || teacher.name}"
+                       value="${teacher.id}">
+                <span class="checkbox-label">${teacher.full_name || teacher.name}</span>
+              </label>
+            `).join('')}
+          </div>
+        </div>
+        <div class="substitute-actions">
+          <button type="button" class="btn btn--primary" id="btn-find-substitutes">🧮 หาครูสอนแทน</button>
+          <button type="button" class="btn btn--success" id="btn-submit-substitutes">💾 Submit การสอนแทน</button>
+        </div>
+      </div>
+      <div id="substitute-recommendations" class="recommendations hidden">
+        <!-- Substitute recommendations will appear here -->
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Initialize substitution management event listeners
+ */
+export function initializeSubstitutionManagementListeners(context) {
+  const container = document.querySelector('#substitution-content');
+  if (!container) return;
+
+  // Date picker change
+  const datePicker = document.querySelector('#substitute-date');
+  if (datePicker) {
+    datePicker.addEventListener('change', (e) => {
+      substitutionPageState.selectedDate = e.target.value;
+      console.log('[Substitution] Selected date changed to:', e.target.value);
+    });
+  }
+
+  // Find substitutes button
+  container.addEventListener('click', async (e) => {
+    if (e.target.matches('#btn-find-substitutes')) {
+      await findSubstituteTeachers(context);
+    }
+  });
+
+  // Submit substitutes button
+  container.addEventListener('click', async (e) => {
+    if (e.target.matches('#btn-submit-substitutes')) {
+      await submitSubstitutions(context);
+    }
+  });
+}
+
+/**
+ * Find substitute teachers using optimization algorithm
+ */
+async function findSubstituteTeachers(context) {
+  try {
+    const selectedDate = substitutionPageState.selectedDate;
+    if (!selectedDate) {
+      alert('กรุณาเลือกวันที่');
+      return;
+    }
+
+    // Get selected absent teachers
+    const checkboxes = document.querySelectorAll('.absent-teacher-checkbox:checked');
+    if (checkboxes.length === 0) {
+      alert('กรุณาเลือกครูที่ไม่อยู่อย่างน้อย 1 คน');
+      return;
+    }
+
+    const absentTeacherIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    console.log('[Substitution] Finding substitutes for:', {
+      date: selectedDate,
+      absentTeachers: absentTeacherIds
+    });
+
+    // Show loading
+    const recommendationsDiv = document.querySelector('#substitute-recommendations');
+    if (recommendationsDiv) {
+      recommendationsDiv.classList.remove('hidden');
+      recommendationsDiv.innerHTML = '<div class="loading-state"><div class="loading-spinner"></div><p>กำลังค้นหาครูสอนแทนที่เหมาะสม...</p></div>';
+    }
+
+    // Get affected schedules for absent teachers on selected date
+    const data = substitutionPageState.loadedData;
+    const dayOfWeek = new Date(selectedDate).getDay(); // 0=Sunday, 1=Monday, ...
+
+    const affectedSchedules = data.schedules.filter(schedule => {
+      const subject = data.subjects.find(s => s.id === schedule.subject_id);
+      return subject && absentTeacherIds.includes(subject.teacher_id) && schedule.day_of_week === dayOfWeek;
+    });
+
+    if (affectedSchedules.length === 0) {
+      recommendationsDiv.innerHTML = '<div class="empty-state"><p>ไม่พบตารางสอนที่ได้รับผลกระทบในวันนี้</p></div>';
+      return;
+    }
+
+    // Find best substitute teachers using optimization logic
+    const recommendations = await findOptimalSubstitutes(affectedSchedules, absentTeacherIds, data, selectedDate, dayOfWeek);
+
+    // Display recommendations
+    displaySubstituteRecommendations(recommendations, affectedSchedules, data);
+
+  } catch (error) {
+    console.error('[Substitution] Error finding substitutes:', error);
+    alert(`เกิดข้อผิดพลาด: ${error.message}`);
+  }
+}
+
+/**
+ * Find optimal substitute teachers
+ * Logic:
+ * 1. Prefer teachers with fewer classes on that day
+ * 2. Avoid teachers who have already substituted many times
+ * 3. Must not have a class during the same period
+ */
+async function findOptimalSubstitutes(affectedSchedules, absentTeacherIds, data, selectedDate, dayOfWeek) {
+  const recommendations = [];
+  const allTeachers = data.teachers.filter(t => !absentTeacherIds.includes(t.id));
+
+  for (const schedule of affectedSchedules) {
+    const subject = data.subjects.find(s => s.id === schedule.subject_id);
+    const classData = data.classes.find(c => c.id === schedule.class_id);
+    const room = data.rooms.find(r => r.id === schedule.room_id);
+    const absentTeacher = data.teachers.find(t => t.id === subject.teacher_id);
+
+    // Find available teachers for this period
+    const availableTeachers = allTeachers.filter(teacher => {
+      // Check if teacher has a class during this period
+      const hasConflict = data.schedules.some(sch => {
+        const teacherSubjects = data.subjects.filter(s => s.teacher_id === teacher.id);
+        return teacherSubjects.some(s => s.id === sch.subject_id) &&
+               sch.day_of_week === dayOfWeek &&
+               sch.period_no === schedule.period_no;
+      });
+      return !hasConflict;
+    });
+
+    // Score each available teacher
+    const scoredTeachers = availableTeachers.map(teacher => {
+      // Count classes on this day
+      const classesOnDay = data.schedules.filter(sch => {
+        const teacherSubjects = data.subjects.filter(s => s.teacher_id === teacher.id);
+        return teacherSubjects.some(s => s.id === sch.subject_id) && sch.day_of_week === dayOfWeek;
+      }).length;
+
+      // TODO: Count previous substitutions (would need historical data from DB)
+      const previousSubstitutions = 0;
+
+      // Calculate score (lower is better)
+      const score = classesOnDay * 10 + previousSubstitutions * 5;
+
+      return {
+        teacher,
+        score,
+        classesOnDay,
+        previousSubstitutions
+      };
+    });
+
+    // Sort by score (best first)
+    scoredTeachers.sort((a, b) => a.score - b.score);
+
+    recommendations.push({
+      schedule,
+      subject,
+      classData,
+      room,
+      absentTeacher,
+      candidates: scoredTeachers.slice(0, 3) // Top 3 candidates
+    });
+  }
+
+  return recommendations;
+}
+
+/**
+ * Display substitute recommendations
+ */
+function displaySubstituteRecommendations(recommendations, affectedSchedules, data) {
+  const recommendationsDiv = document.querySelector('#substitute-recommendations');
+  if (!recommendationsDiv) return;
+
+  const html = `
+    <h4>📋 ผลการค้นหาครูสอนแทน (${recommendations.length} คาบ)</h4>
+    <div class="recommendations-list">
+      ${recommendations.map((rec, index) => `
+        <div class="recommendation-card">
+          <div class="recommendation-header">
+            <strong>คาบที่ ${rec.schedule.period_no}</strong>
+            <span class="badge">ห้อง ${rec.classData?.class_name || '-'}</span>
+          </div>
+          <div class="recommendation-details">
+            <p><strong>วิชา:</strong> ${rec.subject?.subject_name || '-'}</p>
+            <p><strong>ครูเดิม:</strong> ${rec.absentTeacher?.full_name || rec.absentTeacher?.name || '-'}</p>
+            <p><strong>ห้อง:</strong> ${rec.room?.room_name || '-'}</p>
+          </div>
+          <div class="recommendation-candidates">
+            <label><strong>เลือกครูสอนแทน:</strong></label>
+            <select class="substitute-teacher-select" data-schedule-id="${rec.schedule.id}">
+              <option value="">-- เลือกครู --</option>
+              ${rec.candidates.map(candidate => `
+                <option value="${candidate.teacher.id}">
+                  ${candidate.teacher.full_name || candidate.teacher.name}
+                  (สอน ${candidate.classesOnDay} คาบในวันนี้)
+                </option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  recommendationsDiv.innerHTML = html;
+  recommendationsDiv.classList.remove('hidden');
+}
+
+/**
+ * Submit substitutions to database
+ */
+async function submitSubstitutions(context) {
+  try {
+    const selectedDate = substitutionPageState.selectedDate;
+    if (!selectedDate) {
+      alert('กรุณาเลือกวันที่');
+      return;
+    }
+
+    // Get selected absent teachers
+    const checkboxes = document.querySelectorAll('.absent-teacher-checkbox:checked');
+    if (checkboxes.length === 0) {
+      alert('กรุณาเลือกครูที่ไม่อยู่อย่างน้อย 1 คน');
+      return;
+    }
+
+    // Get substitute teacher selections
+    const selects = document.querySelectorAll('.substitute-teacher-select');
+    const substitutions = [];
+
+    selects.forEach(select => {
+      const scheduleId = parseInt(select.dataset.scheduleId);
+      const substituteTeacherId = select.value ? parseInt(select.value) : null;
+
+      if (substituteTeacherId) {
+        substitutions.push({
+          schedule_id: scheduleId,
+          substitute_teacher_id: substituteTeacherId
+        });
+      }
+    });
+
+    if (substitutions.length === 0) {
+      alert('กรุณาเลือกครูสอนแทนอย่างน้อย 1 คน');
+      return;
+    }
+
+    const absentTeacherIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+    console.log('[Substitution] Submitting:', {
+      date: selectedDate,
+      absentTeachers: absentTeacherIds,
+      substitutions
+    });
+
+    // TODO: Call API to submit (will implement API routes next)
+    // For now, show success message
+    alert(`จะบันทึกการสอนแทน ${substitutions.length} คาบ\nในวันที่ ${selectedDate}`);
+
+    // TODO: After API is implemented:
+    // const response = await saveSubstitutionsToAPI(selectedDate, absentTeacherIds, substitutions, context);
+    // if (response.success) {
+    //   alert('บันทึกการสอนแทนสำเร็จ');
+    //   // Clear selections and reload
+    // }
+
+  } catch (error) {
+    console.error('[Substitution] Submit error:', error);
+    alert(`เกิดข้อผิดพลาด: ${error.message}`);
   }
 }
