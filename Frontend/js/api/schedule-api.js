@@ -849,11 +849,12 @@ class ScheduleAPI {
     }
   }
 
-  async createSubstitutions(date, assignments) {
+  async createSubstitutions(date, absentTeachers, force = false) {
     try {
-      const result = await apiManager.post('schedule/substitutions', {
+      const endpoint = force ? 'schedule/substitutions?force=true' : 'schedule/substitutions';
+      const result = await apiManager.post(endpoint, {
         date: date,
-        assignments: assignments
+        absentTeachers: absentTeachers
       });
 
       if (result.success) {

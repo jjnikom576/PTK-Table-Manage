@@ -547,6 +547,9 @@ async function handleSubmitSubstitutes() {
       return;
     }
 
+    // Get day of week from selected date
+    const dayOfWeek = new Date(selectedDate).getDay(); // 0=Sunday, 1=Monday, ...
+
     // Get selected absent teachers from toggle buttons
     const toggleButtons = document.querySelectorAll('.teacher-toggle-btn[data-state="on"]');
     if (toggleButtons.length === 0) {
@@ -554,38 +557,53 @@ async function handleSubmitSubstitutes() {
       return;
     }
 
-    // Get substitute selections
-    const selects = document.querySelectorAll('.substitute-teacher-select');
-    const substitutions = [];
+    const absentTeacherIds = Array.from(toggleButtons).map(btn => parseInt(btn.dataset.teacherId));
 
-    selects.forEach(select => {
-      const scheduleId = parseInt(select.dataset.scheduleId);
-      const absentTeacherId = parseInt(select.dataset.absentTeacherId);
-      const substituteTeacherId = select.value ? parseInt(select.value) : null;
+    // ⭐ รวบรวมข้อมูลตาม schema ใหม่: { date, absentTeachers: [{ teacherId, day_of_week, periods: {...} }] }
+    const absentTeachersData = [];
 
-      if (substituteTeacherId) {
-        substitutions.push({
-          schedule_id: scheduleId,
-          absent_teacher_id: absentTeacherId,
-          substitute_teacher_id: substituteTeacherId,
-          absent_date: selectedDate
+    for (const teacherId of absentTeacherIds) {
+      // หา selects ทั้งหมดของครูคนนี้
+      const teacherSelects = document.querySelectorAll(`.substitute-teacher-select[data-absent-teacher-id="${teacherId}"]`);
+
+      const periods = {}; // { period_no: substitute_teacher_id }
+
+      teacherSelects.forEach(select => {
+        const periodNo = parseInt(select.dataset.periodNo);
+        const substituteTeacherId = select.value ? parseInt(select.value) : null;
+
+        if (substituteTeacherId) {
+          periods[periodNo] = substituteTeacherId;
+        }
+      });
+
+      // ถ้ามีการเลือกครูสอนแทนอย่างน้อย 1 คาบ ให้เพิ่มข้อมูลครูคนนี้
+      if (Object.keys(periods).length > 0) {
+        absentTeachersData.push({
+          teacherId: teacherId,
+          day_of_week: dayOfWeek,
+          periods: periods
         });
       }
-    });
+    }
 
-    if (substitutions.length === 0) {
+    if (absentTeachersData.length === 0) {
       alert('กรุณาเลือกครูสอนแทนอย่างน้อย 1 คน');
       return;
     }
 
+    // นับจำนวนคาบทั้งหมด
+    const totalPeriods = absentTeachersData.reduce((sum, teacher) => sum + Object.keys(teacher.periods).length, 0);
+
     console.log('[Substitute] Submitting:', {
       date: selectedDate,
-      substitutions: substitutions.length,
-      data: substitutions
+      absentTeachers: absentTeachersData.length,
+      totalPeriods: totalPeriods,
+      data: absentTeachersData
     });
 
     // Confirm before submitting
-    const confirmMsg = `ยืนยันการบันทึกการสอนแทน ${substitutions.length} คาบ\nในวันที่ ${formatThaiDate(selectedDate)}`;
+    const confirmMsg = `ยืนยันการบันทึกการสอนแทน ${totalPeriods} คาบ\n(${absentTeachersData.length} ครูขาด)\nในวันที่ ${formatThaiDate(selectedDate)}`;
     if (!confirm(confirmMsg)) {
       return;
     }
@@ -598,11 +616,11 @@ async function handleSubmitSubstitutes() {
       submitButton.textContent = '⏳ กำลังบันทึก...';
     }
 
-    // Call API to submit
-    const response = await scheduleAPI.createSubstitutions(selectedDate, substitutions);
+    // ⭐ Call API with new schema
+    const response = await scheduleAPI.createSubstitutions(selectedDate, absentTeachersData);
 
     if (response.success) {
-      alert(`✅ บันทึกการสอนแทนสำเร็จ!\n\nบันทึกแล้ว ${response.data?.inserted_count || substitutions.length} คาบ`);
+      alert(`✅ บันทึกการสอนแทนสำเร็จ!\n\nบันทึกแล้ว ${response.data?.inserted_count || absentTeachersData.length} ครู (${totalPeriods} คาบ)`);
 
       // Reset UI
       substituteState.currentAssignments = {};
@@ -629,7 +647,51 @@ async function handleSubmitSubstitutes() {
       }
 
     } else {
-      alert(`❌ เกิดข้อผิดพลาด: ${response.error || response.message || 'ไม่สามารถบันทึกการสอนแทนได้'}`);
+      // ⭐ ตรวจสอบว่าเป็น DUPLICATE_DATE error หรือไม่
+      if (response.error === 'DUPLICATE_DATE') {
+        const confirmReplace = confirm(
+          `⚠️ ${response.message}\n\n` +
+          `ต้องการแทนที่ข้อมูลเดิมหรือไม่?\n\n` +
+          `✓ ใช่ - แทนที่ข้อมูลเดิม\n` +
+          `✗ ไม่ - ยกเลิกการบันทึก`
+        );
+
+        if (confirmReplace) {
+          // ⭐ เรียก API อีกครั้งด้วย force=true
+          console.log('[Substitute] User confirmed replace, calling API with force=true');
+
+          const forceResponse = await scheduleAPI.createSubstitutions(selectedDate, absentTeachersData, true);
+
+          if (forceResponse.success) {
+            alert(`✅ แทนที่ข้อมูลสำเร็จ!\n\nบันทึกแล้ว ${forceResponse.data?.inserted_count || absentTeachersData.length} ครู (${totalPeriods} คาบ)`);
+
+            // Reset UI (same as success case above)
+            substituteState.currentAssignments = {};
+            const recommendationsDiv = document.querySelector('#substitute-recommendations');
+            if (recommendationsDiv) {
+              recommendationsDiv.innerHTML = '';
+              recommendationsDiv.classList.add('hidden');
+            }
+
+            document.querySelectorAll('.teacher-toggle-btn[data-state="on"]').forEach(btn => {
+              btn.dataset.state = 'off';
+              btn.setAttribute('aria-checked', 'false');
+              btn.classList.remove('active');
+              const indicator = btn.querySelector('.toggle-indicator');
+              if (indicator) indicator.textContent = '○';
+            });
+
+            const statsResp = await scheduleAPI.getSubstitutionStats();
+            if (statsResp.success) {
+              substituteState.substituteStats = statsResp.data || {};
+            }
+          } else {
+            alert(`❌ ไม่สามารถแทนที่ข้อมูลได้: ${forceResponse.error || forceResponse.message}`);
+          }
+        }
+      } else {
+        alert(`❌ เกิดข้อผิดพลาด: ${response.error || response.message || 'ไม่สามารถบันทึกการสอนแทนได้'}`);
+      }
     }
 
     // Restore button state
