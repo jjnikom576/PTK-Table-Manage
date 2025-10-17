@@ -1,16 +1,17 @@
 // src/routes/schedule-routes.ts
 import { Hono, Context } from 'hono';
 import { DatabaseManager } from '../database/database-manager';
+import { SchemaManager } from '../database/schema-manager';
 import { AuthManager } from '../auth/auth-manager';
 import { requireJSON, requireAdmin } from '../middleware/auth-middleware';
-import { 
-  Env, 
-  CreateTeacherRequest, 
-  CreateClassRequest, 
-  CreateRoomRequest, 
+import {
+  Env,
+  CreateTeacherRequest,
+  CreateClassRequest,
+  CreateRoomRequest,
   CreatePeriodRequest,
   CreateSubjectRequest,
-  CreateScheduleRequest 
+  CreateScheduleRequest
 } from '../interfaces';
 import type { AdminUser } from '../interfaces';
 
@@ -1469,7 +1470,12 @@ scheduleRoutes.put('/subjects/:id', requireAdmin, requireJSON, async (c: Context
     }
 
     if (body.subject_code !== undefined) {
-      updateData.subject_code = body.subject_code ? String(body.subject_code).trim() : null;
+      if (body.subject_code === null) {
+        updateData.subject_code = null;
+      } else {
+        const subjectCode = String(body.subject_code).trim();
+        updateData.subject_code = subjectCode.length > 0 ? subjectCode : null;
+      }
     }
 
     if (body.periods_per_week !== undefined) {
@@ -1481,10 +1487,11 @@ scheduleRoutes.put('/subjects/:id', requireAdmin, requireJSON, async (c: Context
     }
 
     if (body.default_room_id !== undefined) {
-      if (body.default_room_id === null || body.default_room_id === '') {
+      const defaultRoomRaw = body.default_room_id as number | string | null;
+      if (defaultRoomRaw === null || (typeof defaultRoomRaw === 'string' && defaultRoomRaw.trim() === '')) {
         updateData.default_room_id = null;
       } else {
-        const roomId = Number(body.default_room_id);
+        const roomId = Number(defaultRoomRaw);
         if (!Number.isFinite(roomId)) {
           return c.json({ success: false, message: 'Invalid default_room_id' }, 400);
         }
@@ -1493,8 +1500,12 @@ scheduleRoutes.put('/subjects/:id', requireAdmin, requireJSON, async (c: Context
     }
 
     if (body.special_requirements !== undefined) {
-      const requirements = String(body.special_requirements).trim();
-      updateData.special_requirements = requirements ? requirements : null;
+      if (body.special_requirements === null) {
+        updateData.special_requirements = null;
+      } else {
+        const requirements = String(body.special_requirements).trim();
+        updateData.special_requirements = requirements.length > 0 ? requirements : null;
+      }
     }
 
     if (body.subject_type !== undefined) {
@@ -2067,6 +2078,7 @@ scheduleRoutes.get('/substitutions/stats', async (c: Context<{ Bindings: Env; Va
     const semester = contextResult.data.semester;
     const year = contextResult.data.academic_year.year;
     const tableName = "substitutions_" + year;
+    const teachersTableName = "teachers_" + year;
 
     // ⭐ ตรวจสอบว่า table มีหรือยัง ถ้าไม่มีให้ return empty stats
     const checkTableQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
@@ -2080,32 +2092,13 @@ scheduleRoutes.get('/substitutions/stats', async (c: Context<{ Bindings: Env; Va
       });
     }
 
-    // Query: นับจำนวนครั้งที่ครูแต่ละคนปรากฏใน period_1 ถึง period_9
-    // ใช้ UNION ALL เพื่อรวมข้อมูลจากทุก period column
-    const query = "SELECT teacher_id, SUM(count) as total_count FROM (" +
-      "SELECT period_1 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_1 IS NOT NULL GROUP BY period_1 " +
-      "UNION ALL " +
-      "SELECT period_2 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_2 IS NOT NULL GROUP BY period_2 " +
-      "UNION ALL " +
-      "SELECT period_3 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_3 IS NOT NULL GROUP BY period_3 " +
-      "UNION ALL " +
-      "SELECT period_4 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_4 IS NOT NULL GROUP BY period_4 " +
-      "UNION ALL " +
-      "SELECT period_5 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_5 IS NOT NULL GROUP BY period_5 " +
-      "UNION ALL " +
-      "SELECT period_6 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_6 IS NOT NULL GROUP BY period_6 " +
-      "UNION ALL " +
-      "SELECT period_7 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_7 IS NOT NULL GROUP BY period_7 " +
-      "UNION ALL " +
-      "SELECT period_8 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_8 IS NOT NULL GROUP BY period_8 " +
-      "UNION ALL " +
-      "SELECT period_9 as teacher_id, COUNT(*) as count FROM " + tableName + " WHERE semester_id = ? AND period_9 IS NOT NULL GROUP BY period_9" +
-      ") GROUP BY teacher_id";
+    // Query: นับจำนวนครั้งที่ครูแต่ละคนสอนแทน (normalized schema)
+    const query = "SELECT substitute_teacher_id as teacher_id, COUNT(*) as total_count " +
+      "FROM " + tableName + " " +
+      "WHERE semester_id = ? AND substitute_teacher_id IS NOT NULL " +
+      "GROUP BY substitute_teacher_id";
 
-    const results: any = await c.env.DB.prepare(query).bind(
-      semester.id, semester.id, semester.id, semester.id, semester.id,
-      semester.id, semester.id, semester.id, semester.id
-    ).all();
+    const results: any = await c.env.DB.prepare(query).bind(semester.id).all();
 
     if (!results.success) {
       return c.json({
@@ -2169,96 +2162,112 @@ scheduleRoutes.post('/substitutions', requireAdmin, requireJSON, async (c: Conte
     const year = contextResult.data.academic_year.year;
     const tableName = "substitutions_" + year;
 
-    // ⭐ สร้าง table ถ้ายังไม่มี (dynamic table pattern)
-    const createTableSQL = "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
-      "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-      "semester_id INTEGER NOT NULL, " +
-      "absent_teacher_id INTEGER NOT NULL, " +
-      "date TEXT NOT NULL, " +
-      "day_of_week INTEGER NOT NULL, " +
-      "period_1 INTEGER, " +
-      "period_2 INTEGER, " +
-      "period_3 INTEGER, " +
-      "period_4 INTEGER, " +
-      "period_5 INTEGER, " +
-      "period_6 INTEGER, " +
-      "period_7 INTEGER, " +
-      "period_8 INTEGER, " +
-      "period_9 INTEGER, " +
-      "reason TEXT, " +
-      "details TEXT, " +
-      "created_at TEXT NOT NULL DEFAULT (datetime('now')), " +
-      "UNIQUE(semester_id, absent_teacher_id, date)" +
-      ")";
-
-    await c.env.DB.exec(createTableSQL);
+    // ⭐ ใช้ SchemaManager สร้าง table แทน (ให้ได้ schema ที่ถูกต้อง)
+    const schemaManager = new SchemaManager(c.env.DB, c.env);
+    await schemaManager.createDynamicTablesForYear(year);
 
     // ⭐ เช็คว่ามี force parameter หรือไม่
     const forceParam = c.req.query('force');
     const forceReplace = forceParam === 'true' || forceParam === '1';
+    const teachersTableName = "teachers_" + year;
+    
+    let existingRecordsSummary: Array<{ absent_teacher_id: number; count: number; teacher_name: string | null }> = [];
 
-    // ⭐ ตรวจสอบว่ามีข้อมูลในวันนี้อยู่แล้วหรือไม่
-    const checkQuery = "SELECT absent_teacher_id, period_1, period_2, period_3, period_4, period_5, period_6, period_7, period_8, period_9 " +
-      "FROM " + tableName + " " +
-      "WHERE semester_id = ? AND date = ?";
-
-    const existingRecords: any = await c.env.DB.prepare(checkQuery)
-      .bind(semester.id, body.date)
-      .all();
-
-    // ถ้ามีข้อมูลอยู่แล้ว และไม่ได้บังคับให้ replace
-    if (existingRecords.results && existingRecords.results.length > 0 && !forceReplace) {
-      const existingTeachers = existingRecords.results.map((r: any) => r.absent_teacher_id);
-      return c.json({
-        success: false,
-        error: 'DUPLICATE_DATE',
-        message: "มีข้อมูลการสอนแทนในวันที่ " + body.date + " อยู่แล้ว (" + existingTeachers.length + " ครู)",
-        data: {
-          existing_absent_teachers: existingTeachers,
-          date: body.date
-        }
-      }, 409);
-    }
-
-    // ⭐ ถ้า force=true และมีข้อมูลเดิม ให้ลบข้อมูลเดิมก่อน
-    if (forceReplace && existingRecords.results && existingRecords.results.length > 0) {
-      const deleteQuery = "DELETE FROM " + tableName + " WHERE semester_id = ? AND date = ?";
+    if (forceReplace) {
+      const deleteQuery = "DELETE FROM " + tableName + " WHERE semester_id = ? AND absent_date = ?";
       await c.env.DB.prepare(deleteQuery).bind(semester.id, body.date).run();
       console.log('[Substitutions] Deleted existing records for date:', body.date);
+    } else {
+      const existingQuery =
+        "SELECT sub.absent_teacher_id, COUNT(*) as count, t.full_name AS teacher_name " +
+        "FROM " + tableName + " sub " +
+        "LEFT JOIN " + teachersTableName + " t ON sub.absent_teacher_id = t.id " +
+        "WHERE sub.semester_id = ? AND sub.absent_date = ? " +
+        "GROUP BY sub.absent_teacher_id, t.full_name";
+
+      const existingResult: any = await c.env.DB.prepare(existingQuery)
+        .bind(semester.id, body.date)
+        .all();
+
+      if (!existingResult.success) {
+        return c.json({
+          success: false,
+          message: 'Failed to check existing substitution records'
+        }, 500);
+      }
+
+      existingRecordsSummary = existingResult.results || [];
+
+      if (existingRecordsSummary.length > 0) {
+        const existingCount = existingRecordsSummary.reduce((sum: number, row: any) => sum + (row.count || 0), 0);
+
+        return c.json({
+          success: false,
+          error: 'DUPLICATE_DATE',
+          message: 'พบการบันทึกการสอนแทนในวันดังกล่าวอยู่แล้ว',
+          data: {
+            date: body.date,
+            existing_count: existingCount,
+            teachers: existingRecordsSummary.map((row: any) => ({
+              teacher_id: row.absent_teacher_id,
+              teacher_name: row.teacher_name || null,
+              periods: row.count
+            }))
+          }
+        }, 409);
+      }
     }
 
-    // Insert/Update records for each absent teacher
+    // ⭐ Get schedules table to find schedule_id and subject_id
+    const schedulesTable = "schedules_" + year;
+
+    // Insert records for each absent teacher's schedule
     const insertedIds: number[] = [];
     const user = c.get('user');
 
     for (const absentTeacher of body.absentTeachers) {
       const { teacherId, day_of_week, periods } = absentTeacher;
 
-      // แปลง periods object เป็น values สำหรับ period_1 ถึง period_9
-      const periodValues: (number | null)[] = [];
-      for (let i = 1; i <= 9; i++) {
-        periodValues.push(periods[i] || null);
-      }
+      // Insert one row per period (normalized schema)
+      for (const [periodNoStr, substituteTeacherId] of Object.entries(periods)) {
+        const periodNo = parseInt(periodNoStr);
 
-      // ⭐ ใช้ INSERT เนื่องจากเช็คซ้ำแล้ว (ถ้าต้องการ force update ต้องใช้ query parameter)
-      const insertQuery = "INSERT INTO " + tableName + " (" +
-        "semester_id, absent_teacher_id, date, day_of_week, " +
-        "period_1, period_2, period_3, period_4, period_5, " +
-        "period_6, period_7, period_8, period_9" +
-        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        // Find the schedule_id for this absent teacher, day, and period
+        const scheduleQuery = "SELECT s.id as schedule_id, s.subject_id " +
+          "FROM " + schedulesTable + " s " +
+          "INNER JOIN subjects_" + year + " subj ON s.subject_id = subj.id " +
+          "WHERE s.semester_id = ? AND subj.teacher_id = ? AND s.day_of_week = ? AND s.period_no = ?";
 
-      const result = await c.env.DB.prepare(insertQuery)
-        .bind(
-          semester.id,
-          teacherId,
-          body.date,
-          day_of_week,
-          ...periodValues
-        )
-        .run();
+        const schedule: any = await c.env.DB.prepare(scheduleQuery)
+          .bind(semester.id, teacherId, day_of_week, periodNo)
+          .first();
 
-      if (result.meta?.last_row_id) {
-        insertedIds.push(result.meta.last_row_id);
+        if (!schedule) {
+          console.warn(`[Substitutions] No schedule found for teacher ${teacherId}, day ${day_of_week}, period ${periodNo}`);
+          continue;
+        }
+
+        // Insert substitution record
+        const insertQuery = "INSERT INTO " + tableName + " (" +
+          "semester_id, absent_date, absent_teacher_id, reason, schedule_id, subject_id, substitute_teacher_id, status" +
+          ") VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+
+        const result = await c.env.DB.prepare(insertQuery)
+          .bind(
+            semester.id,
+            body.date,
+            teacherId,
+            'ไปราชการ', // default reason
+            schedule.schedule_id,
+            schedule.subject_id,
+            substituteTeacherId,
+            'assigned'
+          )
+          .run();
+
+        if (result.meta?.last_row_id) {
+          insertedIds.push(result.meta.last_row_id);
+        }
       }
     }
 
@@ -2331,35 +2340,17 @@ scheduleRoutes.get('/substitutions/hall-of-fame', async (c: Context<{ Bindings: 
     let substitutionStats: Record<number, number> = {};
 
     if (tableExists) {
-      // ⭐ ดึงสถิติการสอนแทนแบบเดียวกับ /stats endpoint
-      const statsQuery = "SELECT teacher_id, SUM(count) as total_count FROM (" +
-        "SELECT period_1 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_1 IS NOT NULL GROUP BY period_1 " +
-        "UNION ALL " +
-        "SELECT period_2 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_2 IS NOT NULL GROUP BY period_2 " +
-        "UNION ALL " +
-        "SELECT period_3 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_3 IS NOT NULL GROUP BY period_3 " +
-        "UNION ALL " +
-        "SELECT period_4 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_4 IS NOT NULL GROUP BY period_4 " +
-        "UNION ALL " +
-        "SELECT period_5 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_5 IS NOT NULL GROUP BY period_5 " +
-        "UNION ALL " +
-        "SELECT period_6 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_6 IS NOT NULL GROUP BY period_6 " +
-        "UNION ALL " +
-        "SELECT period_7 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_7 IS NOT NULL GROUP BY period_7 " +
-        "UNION ALL " +
-        "SELECT period_8 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_8 IS NOT NULL GROUP BY period_8 " +
-        "UNION ALL " +
-        "SELECT period_9 as teacher_id, COUNT(*) as count FROM " + substitutionsTableName + " WHERE semester_id = ? AND period_9 IS NOT NULL GROUP BY period_9" +
-        ") GROUP BY teacher_id";
+      // ⭐ นับจำนวนครั้งที่แต่ละครูสอนแทน (normalized schema)
+      const statsQuery = "SELECT substitute_teacher_id, COUNT(*) as count " +
+        "FROM " + substitutionsTableName + " " +
+        "WHERE semester_id = ? AND substitute_teacher_id IS NOT NULL " +
+        "GROUP BY substitute_teacher_id";
 
-      const statsResult: any = await c.env.DB.prepare(statsQuery).bind(
-        semester.id, semester.id, semester.id, semester.id, semester.id,
-        semester.id, semester.id, semester.id, semester.id
-      ).all();
+      const statsResult: any = await c.env.DB.prepare(statsQuery).bind(semester.id).all();
 
       if (statsResult.success) {
         (statsResult.results || []).forEach((row: any) => {
-          substitutionStats[row.teacher_id] = row.total_count;
+          substitutionStats[row.substitute_teacher_id] = row.count;
         });
       }
     }
@@ -2396,6 +2387,305 @@ scheduleRoutes.get('/substitutions/hall-of-fame', async (c: Context<{ Bindings: 
     return c.json({
       success: false,
       message: 'Failed to get hall of fame',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// GET /api/schedule/substitutions/teacher/:id - Get all substitution dates for a teacher
+scheduleRoutes.get('/substitutions/teacher/:id', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const teacherId = parseInt(c.req.param('id'));
+    if (isNaN(teacherId)) {
+      return c.json({ success: false, message: 'Invalid teacher ID' }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+
+    // Get active context
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.semester || !contextResult.data?.academic_year?.year) {
+      return c.json({
+        success: false,
+        message: 'No active semester found'
+      }, 400);
+    }
+
+    const semester = contextResult.data.semester;
+    const year = contextResult.data.academic_year.year;
+    const tableName = "substitutions_" + year;
+
+    // Check if table exists
+    const checkTableQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
+    const tableExists: any = await c.env.DB.prepare(checkTableQuery).bind(tableName).first();
+
+    if (!tableExists) {
+      return c.json({
+        success: true,
+        data: { dates: [], total_count: 0 }
+      });
+    }
+
+    // Query to find all dates where this teacher substituted (normalized schema)
+    const query = "SELECT DISTINCT absent_date as date FROM " + tableName + " " +
+      "WHERE semester_id = ? AND substitute_teacher_id = ? " +
+      "ORDER BY absent_date DESC";
+
+    const result: any = await c.env.DB.prepare(query).bind(semester.id, teacherId).all();
+
+    if (!result.success) {
+      return c.json({
+        success: false,
+        message: 'Failed to query substitution dates'
+      }, 500);
+    }
+
+    const dates = (result.results || []).map((row: any) => row.date);
+
+    return c.json({
+      success: true,
+      data: {
+        teacher_id: teacherId,
+        dates: dates,
+        total_count: dates.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Get teacher substitutions error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to get teacher substitutions',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// GET /api/schedule/substitutions/date/:date - Get all substitution details for a specific date (PUBLIC)
+scheduleRoutes.get('/substitutions/date/:date', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const date = c.req.param('date');
+
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return c.json({ success: false, message: 'Invalid date format (expected YYYY-MM-DD)' }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+
+    // Get active context
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.semester || !contextResult.data?.academic_year?.year) {
+      return c.json({
+        success: false,
+        message: 'No active semester found'
+      }, 400);
+    }
+
+    const semester = contextResult.data.semester;
+    const year = contextResult.data.academic_year.year;
+    const tableName = "substitutions_" + year;
+    const teachersTableName = "teachers_" + year;
+
+    // Check if table exists
+    const checkTableQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
+    const tableExists: any = await c.env.DB.prepare(checkTableQuery).bind(tableName).first();
+
+    if (!tableExists) {
+      return c.json({
+        success: true,
+        data: { date: date, absent_teachers: [], available_dates: [] }
+      });
+    }
+
+    // Get list of available substitution dates (latest first)
+    const availableDatesQuery = "SELECT absent_date, COUNT(*) as count " +
+      "FROM " + tableName + " " +
+      "WHERE semester_id = ? " +
+      "GROUP BY absent_date " +
+      "ORDER BY absent_date DESC " +
+      "LIMIT 30";
+
+    const availableDatesResult: any = await c.env.DB.prepare(availableDatesQuery)
+      .bind(semester.id)
+      .all();
+
+    const availableDates = (availableDatesResult?.results || []).map((row: any) => ({
+      date: row.absent_date,
+      count: row.count
+    }));
+
+    // Get all substitution records for this date
+    const schedulesTable = "schedules_" + year;
+    const subjectsTable = "subjects_" + year;
+    const classesTable = "classes_" + year;
+    const roomsTable = "rooms_" + year;
+
+    const query = "SELECT " +
+      "sub.id, sub.schedule_id, sub.subject_id, sub.absent_teacher_id, sub.substitute_teacher_id, " +
+      "sched.period_no, sched.class_id, sched.room_id, " +
+      "subj.subject_name, " +
+      "cls.class_name, " +
+      "rm.room_name, " +
+      "at.full_name as absent_teacher_name, " +
+      "st.full_name as substitute_teacher_name " +
+      "FROM " + tableName + " sub " +
+      "INNER JOIN " + schedulesTable + " sched ON sub.schedule_id = sched.id " +
+      "LEFT JOIN " + subjectsTable + " subj ON sub.subject_id = subj.id " +
+      "LEFT JOIN " + classesTable + " cls ON sched.class_id = cls.id " +
+      "LEFT JOIN " + roomsTable + " rm ON sched.room_id = rm.id " +
+      "LEFT JOIN " + teachersTableName + " at ON sub.absent_teacher_id = at.id " +
+      "LEFT JOIN " + teachersTableName + " st ON sub.substitute_teacher_id = st.id " +
+      "WHERE sub.semester_id = ? AND sub.absent_date = ? " +
+      "ORDER BY sub.absent_teacher_id, sched.period_no";
+
+    const result: any = await c.env.DB.prepare(query).bind(semester.id, date).all();
+
+    if (!result.success) {
+      return c.json({
+        success: false,
+        message: 'Failed to query substitution records'
+      }, 500);
+    }
+
+    // Group by absent teacher
+    const groupedByTeacher: { [key: number]: any } = {};
+
+    (result.results || []).forEach((row: any) => {
+      const absentTeacherId = row.absent_teacher_id;
+
+      if (!groupedByTeacher[absentTeacherId]) {
+        groupedByTeacher[absentTeacherId] = {
+          teacher_id: absentTeacherId,
+          teacher_name: row.absent_teacher_name || 'Unknown',
+          periods: []
+        };
+      }
+
+      groupedByTeacher[absentTeacherId].periods.push({
+        period_no: row.period_no,
+        subject_name: row.subject_name || 'N/A',
+        class_name: row.class_name || 'N/A',
+        room_name: row.room_name || 'N/A',
+        substitute_teacher_id: row.substitute_teacher_id,
+        substitute_teacher_name: row.substitute_teacher_name || 'ว่าง'
+      });
+    });
+
+    const absent_teachers = Object.values(groupedByTeacher);
+
+    return c.json({
+      success: true,
+      data: {
+        date: date,
+        absent_teachers: absent_teachers,
+        available_dates: availableDates
+      }
+    });
+
+  } catch (error) {
+    console.error('Get substitution by date error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to get substitution data',
+      error: String(error)
+    }, 500);
+  }
+});
+
+// GET /api/schedule/substitutions/teacher/:id/date/:date - Get substitution details for a teacher on a specific date
+scheduleRoutes.get('/substitutions/teacher/:id/date/:date', async (c: Context<{ Bindings: Env; Variables: AppVariables }>) => {
+  try {
+    const teacherId = parseInt(c.req.param('id'));
+    const date = c.req.param('date');
+
+    if (isNaN(teacherId)) {
+      return c.json({ success: false, message: 'Invalid teacher ID' }, 400);
+    }
+    if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return c.json({ success: false, message: 'Invalid date format (expected YYYY-MM-DD)' }, 400);
+    }
+
+    const dbManager = new DatabaseManager(c.env.DB, c.env);
+
+    // Get active context
+    const contextResult = await dbManager.getGlobalContext();
+    if (!contextResult.success || !contextResult.data?.semester || !contextResult.data?.academic_year?.year) {
+      return c.json({
+        success: false,
+        message: 'No active semester found'
+      }, 400);
+    }
+
+    const semester = contextResult.data.semester;
+    const year = contextResult.data.academic_year.year;
+    const tableName = "substitutions_" + year;
+    const teachersTableName = "teachers_" + year;
+
+    // Check if table exists
+    const checkTableQuery = "SELECT name FROM sqlite_master WHERE type='table' AND name=?";
+    const tableExists: any = await c.env.DB.prepare(checkTableQuery).bind(tableName).first();
+
+    if (!tableExists) {
+      return c.json({
+        success: true,
+        data: { periods: [] }
+      });
+    }
+
+    // Get all substitution records for this teacher on this date (normalized schema)
+    const schedulesTable = "schedules_" + year;
+    const subjectsTable = "subjects_" + year;
+    const classesTable = "classes_" + year;
+    const roomsTable = "rooms_" + year;
+
+    const query = "SELECT " +
+      "sub.id, sub.schedule_id, sub.subject_id, sub.absent_teacher_id, " +
+      "sched.period_no, sched.class_id, sched.room_id, " +
+      "subj.subject_name, " +
+      "cls.class_name, " +
+      "rm.room_name, " +
+      "t.full_name as absent_teacher_name " +
+      "FROM " + tableName + " sub " +
+      "INNER JOIN " + schedulesTable + " sched ON sub.schedule_id = sched.id " +
+      "LEFT JOIN " + subjectsTable + " subj ON sub.subject_id = subj.id " +
+      "LEFT JOIN " + classesTable + " cls ON sched.class_id = cls.id " +
+      "LEFT JOIN " + roomsTable + " rm ON sched.room_id = rm.id " +
+      "LEFT JOIN " + teachersTableName + " t ON sub.absent_teacher_id = t.id " +
+      "WHERE sub.semester_id = ? AND sub.absent_date = ? AND sub.substitute_teacher_id = ? " +
+      "ORDER BY sched.period_no";
+
+    const result: any = await c.env.DB.prepare(query).bind(semester.id, date, teacherId).all();
+
+    if (!result.success) {
+      return c.json({
+        success: false,
+        message: 'Failed to query substitution details'
+      }, 500);
+    }
+
+    const periods = (result.results || []).map((row: any) => ({
+      period_no: row.period_no,
+      absent_teacher_id: row.absent_teacher_id,
+      absent_teacher_name: row.absent_teacher_name || 'Unknown',
+      class_name: row.class_name || 'N/A',
+      subject_name: row.subject_name || 'N/A',
+      room_name: row.room_name || 'N/A'
+    }));
+
+    return c.json({
+      success: true,
+      data: {
+        teacher_id: teacherId,
+        date: date,
+        periods: periods
+      }
+    });
+
+  } catch (error) {
+    console.error('Get substitution details error:', error);
+    return c.json({
+      success: false,
+      message: 'Failed to get substitution details',
       error: String(error)
     }, 500);
   }

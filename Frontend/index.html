@@ -12,6 +12,7 @@
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/responsive.css">
     <link rel="stylesheet" href="css/teacher-table-fix.css">
+    <link rel="stylesheet" href="css/substitution-details.css">
 </head>
 <body>
     <!-- Template Content Containers -->
@@ -233,17 +234,24 @@
                     <nav class="sub-navigation" aria-label="เมนูย่อยตารางสอนแทน">
                         <ul class="sub-nav-tabs" role="tablist">
                             <li role="none">
-                                <button type="button" class="sub-nav-tab active" role="tab" 
+                                <button type="button" class="sub-nav-tab active" role="tab"
                                         aria-selected="true" data-target="hall-of-fame"
                                         id="tab-hall-of-fame" aria-controls="hall-of-fame">
                                     🏅 Hall of Fame
                                 </button>
                             </li>
                             <li role="none">
-                                <button type="button" class="sub-nav-tab" role="tab" 
+                                <button type="button" class="sub-nav-tab" role="tab"
                                         aria-selected="false" data-target="substitution-schedule"
                                         id="tab-substitution-schedule" aria-controls="substitution-schedule">
                                     📋 ตารางสอนแทน
+                                </button>
+                            </li>
+                            <li role="none">
+                                <button type="button" class="sub-nav-tab" role="tab"
+                                        aria-selected="false" data-target="substitution-details"
+                                        id="tab-substitution-details" aria-controls="substitution-details">
+                                    👥 รายละเอียดรายครู
                                 </button>
                             </li>
                         </ul>
@@ -266,67 +274,81 @@
                     </div>
                 </div>
 
-                <!-- Substitution Schedule Tab -->
-                <div id="substitution-schedule" class="sub-page hidden" role="tabpanel" 
+                <!-- Substitution Schedule Tab (Today's Schedule) -->
+                <div id="substitution-schedule" class="sub-page hidden" role="tabpanel"
                      aria-labelledby="tab-substitution-schedule">
-                    
-                    <!-- Export Bar for Substitution -->
-                    <div id="export-bar-substitution" class="export-bar" role="toolbar" aria-label="เครื่องมือส่งออกข้อมูลสอนแทน">
+
+                    <!-- Today's Date Header -->
+                    <div class="schedule-header">
+                        <h3 id="today-schedule-title">📅 ตารางสอนแทนวันนี้</h3>
+                        <p id="today-date-display" class="date-display"></p>
+                    </div>
+
+                    <!-- Substitution Content -->
+                    <div id="today-substitution-content" class="substitute-timetables">
+                        <!-- Today's substitution timetables will be rendered here (grouped by absent teacher) -->
+                    </div>
+
+                    <div id="today-substitution-empty" class="empty-state">
+                        <p>ไม่มีการสอนแทนในวันนี้</p>
+                    </div>
+
+                    <div id="today-substitution-loading" class="loading-state hidden" aria-live="polite">
+                        <div class="loading-spinner"></div>
+                        <p>กำลังโหลดตารางสอนแทนวันนี้...</p>
+                    </div>
+                </div>
+
+                <!-- Substitution Details Tab (Teacher-by-Teacher) -->
+                <div id="substitution-details" class="sub-page hidden" role="tabpanel"
+                     aria-labelledby="tab-substitution-details">
+
+                    <!-- Teacher Selection (similar to teacher schedule page) -->
+                    <div id="substitution-teacher-tabs" class="teacher-tabs">
+                        <!-- Teacher tabs will be rendered here -->
+                    </div>
+
+                    <!-- Export Bar for Substitution (hidden until teacher selected) -->
+                    <div id="export-bar-substitution" class="export-bar hidden" role="toolbar" aria-label="เครื่องมือส่งออกข้อมูลสอนแทน">
                         <div class="export-label">
-                            <span>📤 ส่งออกตารางสอนแทน:</span>
+                            <span>📤 ส่งออกรายละเอียดการสอนแทน:</span>
                         </div>
                         <div class="export-buttons">
-                            <button type="button" class="btn btn--outline btn--sm" 
+                            <button type="button" class="btn btn--outline btn--sm"
                                     data-export-type="csv" data-target="substitution"
-                                    aria-label="ส่งออกตารางสอนแทนเป็นไฟล์ CSV">
+                                    aria-label="ส่งออกเป็นไฟล์ CSV">
                                 📄 CSV
                             </button>
-                            <button type="button" class="btn btn--outline btn--sm" 
+                            <button type="button" class="btn btn--outline btn--sm"
                                     data-export-type="xlsx" data-target="substitution"
-                                    aria-label="ส่งออกตารางสอนแทนเป็นไฟล์ Excel">
+                                    aria-label="ส่งออกเป็นไฟล์ Excel">
                                 📊 Excel
                             </button>
-                            <button type="button" class="btn btn--outline btn--sm btn--gsheets" 
+                            <button type="button" class="btn btn--outline btn--sm btn--gsheets"
                                     data-export-type="gsheets" data-target="substitution"
-                                    aria-label="ส่งออกตารางสอนแทนไป Google Sheets">
+                                    aria-label="ส่งออกไป Google Sheets">
                                 📋 Google Sheets
                             </button>
                         </div>
                     </div>
-                    
-                    <!-- Date Picker Controls -->
-                    <div class="date-controls">
-                        <h3>📅 เลือกวันที่ดูการสอนแทน</h3>
-                        <div class="date-picker-toolbar">
-                            <button type="button" class="btn btn--ghost" id="btn-today">วันนี้</button>
-                            <button type="button" class="btn btn--ghost" id="btn-yesterday">เมื่อวาน</button>
-                            <button type="button" class="btn btn--ghost" id="btn-last-week">สัปดาห์ที่แล้ว</button>
-                            
-                            <div class="date-input-group">
-                                <label for="date-picker" class="sr-only">เลือกวันที่</label>
-                                <input type="date" id="date-picker" class="date-input" aria-label="เลือกวันที่">
-                                <button type="button" class="btn btn--primary" id="btn-load-date">โหลด</button>
-                            </div>
+
+                    <!-- Substitution Details Content -->
+                    <div id="substitution-details-content" class="teacher-content hidden">
+                        <div id="substitution-teacher-info" class="teacher-info hidden">
+                            <!-- Teacher info will be rendered here -->
+                        </div>
+
+                        <div id="substitution-dates-container" class="dates-container hidden">
+                            <!-- Date buttons will be rendered here -->
+                        </div>
+
+                        <div id="substitution-detail-table" class="schedule-container hidden">
+                            <!-- Substitution details table will be rendered here -->
                         </div>
                     </div>
-                    
-                    <!-- Substitution Content -->
-                    <div id="substitution-content" class="substitution-container">
-                        <div id="selected-date-info" class="date-info hidden">
-                            <h4 id="substitution-date-title">ตารางสอนแทน</h4>
-                        </div>
-                        
-                        <div id="absent-teachers" class="absent-section">
-                            <!-- Absent teachers cards will be rendered here -->
-                        </div>
-                        
-                        <div id="substitute-assignments" class="substitute-section">
-                            <!-- Substitute assignments will be rendered here -->
-                        </div>
-                    </div>
-                    
-                    <div id="substitution-empty" class="empty-state">
-                        <p>เลือกวันที่เพื่อดูตารางสอนแทน</p>
+
+                    <div id="substitution-details-empty" class="empty-state">
+                        <p>เลือกครูเพื่อดูรายละเอียดการสอนแทน</p>
                     </div>
                 </div>
                 

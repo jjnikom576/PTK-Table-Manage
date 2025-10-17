@@ -322,3 +322,38 @@ D1 database bound as `DB` in worker environment (configured in `wrangler.json`)
 - AI-powered schedule generation
 - Enhanced analytics dashboard
 - Substitute teacher optimization
+
+## Repository Guidelines
+
+### Project Structure & Module Organization
+- Backend worker lives in `backend/school-scheduler-backend` (TypeScript + Hono). Key directories: `src/routes`, `src/database`, `src/middleware`.
+- Frontend SPA sits in `frontend`; static assets reside in `css/`, `js/`, and `templates/`, with mock datasets stored in `js/data/`.
+- Database migrations and seed scripts are under `backend/school-scheduler-backend/migrations`; year-suffixed D1 tables (for example `teachers_2567`) are provisioned through `SchemaManager`.
+
+### Build, Test, and Development Commands
+- `cd backend/school-scheduler-backend && npm install` installs Wrangler/TypeScript dependencies.
+- `npm run dev` seeds the local D1 instance via `seedLocalD1` then starts `wrangler dev` on http://localhost:8787.
+- `npm run check` runs `tsc` type checking and a Wrangler dry-run deploy—use it before opening a PR.
+- `npm run deploy` performs a full Cloudflare deploy and triggers the `predeploy` migration hook.
+- `cd frontend && python -m http.server 8000` serves the static UI; VS Code Live Server is an acceptable alternative.
+- `curl -X POST http://localhost:8787/api/setup` bootstraps tables and the default admin credentials.
+
+### Coding Style & Naming Conventions
+- Use TypeScript with 2-space indentation, single quotes, and explicit interface imports (see `src/index.ts`).
+- Construct dynamic D1 table names with string concatenation (`'teachers_' + year` style) to avoid template literal issues in Workers.
+- Frontend modules live under `js/`; cache keys follow `METHOD:/api/...` naming. New HTML fragments belong in `templates/` using snake-case filenames.
+
+### Testing Guidelines
+- No automated test suite yet—exercise routes manually via `curl` or the admin UI.
+- After backend changes, run `npm run dev` and check `/api/health`; confirm seeding by requesting `/api/schedule/teachers`.
+- When adjusting cache-sensitive logic, call `clearCachePattern()` with the relevant regex to verify cache invalidation.
+
+### Commit & Pull Request Guidelines
+- Match existing history: short, lower-case, imperative commit subjects (e.g., `add teacher cache`, `fix login session`).
+- Keep unrelated backend and frontend tweaks in separate commits, and isolate generated migrations where practical.
+- Pull requests should include a problem summary, linked issue or ticket, screenshots or JSON samples when UI/API behaviour changes, and confirmation that `npm run check` passes.
+- Tag reviewers responsible for the affected area and call out any follow-up or open questions.
+
+### Security & Configuration Tips
+- Configuration secrets stay in `wrangler.json` vars; never commit real credentials. Use the default `ADMIN_DEFAULT_PASSWORD` for local work only.
+- Ensure new tables or queries always include `semester_id` and respect the active academic year/semester context to prevent cross-year leakage.

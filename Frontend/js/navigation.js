@@ -52,7 +52,7 @@ async function showPage(pageId) {
       try {
         const gc = await import('./context/globalContext.js');
         const ctx = gc.getContext ? gc.getContext() : null;
-        
+
         if (pageId === 'admin') {
           const mod = await import('./pages/admin.js');
           if (mod && typeof mod.initAdminPage === 'function') {
@@ -64,6 +64,13 @@ async function showPage(pageId) {
             console.log('[nav] 👨‍🏫 Initializing teacher schedule page...');
             await mod.initTeacherSchedulePage(ctx);
             console.log('[nav] ✅ Teacher schedule page initialized');
+          }
+        } else if (pageId === 'substitution') {
+          const mod = await import('./pages/substitutionSchedule.js');
+          if (mod && typeof mod.initSubstitutionSchedulePage === 'function') {
+            console.log('[nav] 📋 Initializing substitution schedule page...');
+            await mod.initSubstitutionSchedulePage(ctx);
+            console.log('[nav] ✅ Substitution schedule page initialized');
           }
         }
       } catch (e) {

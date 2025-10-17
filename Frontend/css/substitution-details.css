@@ -1,0 +1,382 @@
+/* =========================================
+   SUBSTITUTION DETAILS - Teacher by Teacher View
+   Uses same CSS as Teacher Schedule page
+   ========================================= */
+
+/* Teacher tabs container */
+#substitution-teacher-tabs {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Teacher tabs (details) */
+.teacher-tab {
+  padding: .4rem .65rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--color-dark-lighter);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.teacher-tab:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.teacher-tab.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* Grouped teacher tabs (menu-like) and filter chips */
+.teacher-groups {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: .75rem;
+}
+
+.teacher-groups.single {
+  grid-template-columns: minmax(260px, 720px);
+  justify-content: center;
+  justify-items: center;
+}
+
+.group-section {
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: .5rem;
+}
+
+.teacher-groups.single .group-section {
+  width: 100%;
+  max-width: 720px;
+}
+
+.group-title {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  margin: .25rem .25rem .5rem;
+  text-align: center;
+}
+
+.group-list {
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  align-items: stretch;
+}
+
+.group-list .teacher-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: .5rem .75rem;
+  cursor: pointer;
+  text-align: center;
+  width: 100%;
+}
+
+.teacher-tab__name {
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.count-badge {
+  display: inline-block;
+  padding: .2rem .5rem;
+  background: #e74c3c;
+  color: white;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  margin-left: .35rem;
+}
+
+.group-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  margin-bottom: .5rem;
+  justify-content: center;
+}
+
+.group-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: .35rem .6rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-full);
+  background: #fff;
+  color: var(--color-dark-lighter);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.group-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+}
+
+.group-chip.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* Pastel backgrounds per subject group section */
+.teacher-groups .group-section:nth-child(6n+1) { background: #fff7e6; }
+.teacher-groups .group-section:nth-child(6n+2) { background: #e6f7ff; }
+.teacher-groups .group-section:nth-child(6n+3) { background: #f6ffed; }
+.teacher-groups .group-section:nth-child(6n+4) { background: #f9f0ff; }
+.teacher-groups .group-section:nth-child(6n+5) { background: #fff0f6; }
+.teacher-groups .group-section:nth-child(6n+6) { background: #f0f5ff; }
+
+/* Force visibility */
+#substitution-details {
+  display: block !important;
+}
+
+#substitution-details.hidden {
+  display: none !important;
+}
+
+#substitution-details:not(.hidden) {
+  display: block !important;
+}
+
+/* =========================================
+   HALL OF FAME - Ranking Cards
+   Same style as Teacher Summary "🥇 ครู (รายคน)"
+   ========================================= */
+
+/* Hall of Fame wrapper container */
+.hall-of-fame-container {
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Container for ranking - override any podium styles */
+#substitute-ranking,
+.ranking-podium {
+  width: 100% !important;
+  max-width: 100% !important;
+  display: block !important;
+}
+
+/* Ranking list (teacher-summary) - Responsive grid */
+.ranking-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: .75rem;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Responsive breakpoints */
+@media (max-width: 1024px) {
+  .ranking-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .ranking-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+.ranking-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: .25rem;
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: .6rem .75rem;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  text-align: center;
+  min-height: 120px;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.ranking-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+}
+
+.rank-line {
+  font-weight: var(--font-weight-bold);
+  color: var(--color-primary);
+  font-size: 1rem;
+}
+
+.group-line {
+  color: var(--color-dark-lighter);
+  font-size: .9rem;
+}
+
+.name-line {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+  font-size: 1rem;
+}
+
+.meta-line {
+  color: var(--color-dark-lighter);
+  font-size: .9rem;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.meta-line .dot {
+  opacity: .6;
+}
+
+/* Medal colors for top 3 */
+.ranking-item.rank-1 .rank-line {
+  color: #d4af37; /* Gold */
+}
+
+.ranking-item.rank-2 .rank-line {
+  color: #a9a9a9; /* Silver */
+}
+
+.ranking-item.rank-3 .rank-line {
+  color: #cd7f32; /* Bronze */
+}
+
+/* =========================================
+   SUBSTITUTION DETAILS - Content Layout
+   ========================================= */
+
+/* Teacher info card - centered */
+#substitution-teacher-info {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+#substitution-teacher-info .teacher-card {
+  text-align: center;
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: 1rem 2rem;
+  box-shadow: var(--shadow-sm);
+}
+
+#substitution-teacher-info .teacher-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--color-dark);
+}
+
+#substitution-teacher-info .teacher-meta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* Date buttons container - centered */
+#substitution-dates-container {
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+#substitution-dates-container h4 {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.date-buttons-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.date-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  background: #fff;
+  color: var(--color-dark-lighter);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.date-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary-dark);
+  background: var(--color-primary-lighter, #f0f7ff);
+}
+
+.date-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+/* Detail table - full width */
+#substitution-detail-table {
+  width: 100%;
+  max-width: 100%;
+}
+
+#substitution-detail-table .detail-card {
+  width: 100%;
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: var(--shadow-sm);
+}
+
+#substitution-detail-table .detail-card h4 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: var(--color-dark);
+}
+
+#substitution-detail-table .detail-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1rem;
+}
+
+#substitution-detail-table .detail-table th,
+#substitution-detail-table .detail-table td {
+  padding: 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+#substitution-detail-table .detail-table th {
+  background: var(--color-gray-100, #f5f5f5);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+#substitution-detail-table .table-footer {
+  text-align: center;
+  padding: 0.5rem;
+  color: var(--color-dark-lighter);
+}
+
+#substitution-detail-table .table-footer strong {
+  color: var(--color-primary);
+}

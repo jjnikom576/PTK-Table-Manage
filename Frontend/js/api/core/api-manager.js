@@ -105,6 +105,8 @@ class APIManager {
           return {
             success: false,
             error: data.error || data.message || 'Request failed',
+            message: data.message || null,
+            data: data.data || null,
             status: response.status
           };
         }
@@ -125,6 +127,8 @@ class APIManager {
           return {
             success: false,
             error: text || 'Request failed',
+            message: text || null,
+            data: null,
             status: response.status
           };
         }

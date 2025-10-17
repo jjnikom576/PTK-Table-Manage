@@ -16,7 +16,7 @@ import authAPI from './api/auth-api.js';
 // Import page modules
 import { initStudentSchedulePage } from './pages/studentSchedule.js';
 import { initTeacherSchedulePage } from './pages/teacherSchedule.js';
-import { initSubstitutionPage } from './pages/substitution.js';
+import { initSubstitutionSchedulePage } from './pages/substitutionSchedule.js';
 import { initAdminPage } from './pages/admin.js';
 
 /**
@@ -238,7 +238,7 @@ class SchoolScheduleApp {
     this.modules = {
       studentSchedule: initStudentSchedulePage,
       teacherSchedule: initTeacherSchedulePage,
-      substitution: initSubstitutionPage,
+      substitution: initSubstitutionSchedulePage,
       admin: initAdminPage
     };
     
@@ -884,7 +884,7 @@ class SchoolScheduleApp {
       case 'substitution':
         if (!this.modules.substitution) {
           this.modules.substitution = true;
-          await initSubstitutionPage(context);
+          await initSubstitutionSchedulePage(context);
         }
         break;
       case 'admin':
@@ -1192,7 +1192,7 @@ class SchoolScheduleApp {
         }
       }
       else if (this.currentPage === 'substitution') {
-        const substitutionPage = await import('./pages/substitution.js');
+        const substitutionPage = await import('./pages/substitutionSchedule.js');
         if (substitutionPage.refreshPage) {
           await substitutionPage.refreshPage(newContext);
         }

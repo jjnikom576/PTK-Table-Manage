@@ -37,7 +37,10 @@ export async function authMiddleware(
       '/api/schedule/teachers',
       '/api/schedule/rooms',
       '/api/schedule/subjects',
-      '/api/schedule/schedules'
+      '/api/schedule/schedules',
+      '/api/schedule/substitutions/hall-of-fame',
+      '/api/schedule/substitutions/teacher/',
+      '/api/schedule/substitutions/date/'
     ];
 
     const isPublicRoute = publicRoutes.includes(path);

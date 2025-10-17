@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(npm run dev)",
+      "Bash(python:*)",
+      "Bash(wrangler d1 migrations apply:*)",
+      "Bash(npx wrangler dev:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

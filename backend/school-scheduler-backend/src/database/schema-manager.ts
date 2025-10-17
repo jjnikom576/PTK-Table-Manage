@@ -445,6 +445,7 @@ export class SchemaManager {
       "reason TEXT NOT NULL CHECK (reason IN ('ลากิจ', 'ลาป่วย', 'ประชุม', 'อบรม', 'ไปราชการ', 'อื่นๆ')), " +
       "reason_detail TEXT, " +
       "schedule_id INTEGER NOT NULL, " +
+      "subject_id INTEGER, " +
       "substitute_teacher_id INTEGER, " +
       "status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'assigned', 'completed', 'cancelled')), " +
       "notes TEXT, " +
@@ -455,9 +456,13 @@ export class SchemaManager {
       "FOREIGN KEY (absent_teacher_id) REFERENCES teachers_" + year + "(id) ON DELETE CASCADE, " +
       "FOREIGN KEY (substitute_teacher_id) REFERENCES teachers_" + year + "(id) ON DELETE SET NULL, " +
       "FOREIGN KEY (schedule_id) REFERENCES schedules_" + year + "(id) ON DELETE CASCADE, " +
+      "FOREIGN KEY (subject_id) REFERENCES subjects_" + year + "(id) ON DELETE SET NULL, " +
       "FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE SET NULL" +
       ")"
     );
+
+    // Ensure 'subject_id' column exists for previously created tables
+    await this.addColumnIfMissing(tableName, 'subject_id', 'INTEGER');
 
     // Create indexes for efficient queries
     const indexes = [
@@ -465,6 +470,7 @@ export class SchemaManager {
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_date ON ${tableName}(absent_date)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_absent_teacher ON ${tableName}(absent_teacher_id)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_substitute_teacher ON ${tableName}(substitute_teacher_id) WHERE substitute_teacher_id IS NOT NULL`,
+      `CREATE INDEX IF NOT EXISTS idx_${tableName}_subject ON ${tableName}(subject_id) WHERE subject_id IS NOT NULL`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_status ON ${tableName}(status)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_date_status ON ${tableName}(absent_date, status)`,
       `CREATE INDEX IF NOT EXISTS idx_${tableName}_schedule ON ${tableName}(schedule_id)`,

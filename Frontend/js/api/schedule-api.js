@@ -871,6 +871,54 @@ class ScheduleAPI {
     }
   }
 
+  async getHallOfFame() {
+    try {
+      const result = await apiManager.get('schedule/substitutions/hall-of-fame');
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถโหลดข้อมูล Hall of Fame ได้'
+      };
+    }
+  }
+
+  async getTeacherSubstitutions(teacherId) {
+    try {
+      const result = await apiManager.get(`schedule/substitutions/teacher/${teacherId}`);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถโหลดข้อมูลการสอนแทนของครูได้'
+      };
+    }
+  }
+
+  async getSubstitutionDetails(teacherId, date) {
+    try {
+      const result = await apiManager.get(`schedule/substitutions/teacher/${teacherId}/date/${date}`);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถโหลดรายละเอียดการสอนแทนได้'
+      };
+    }
+  }
+
+  async getSubstitutionsByDate(date) {
+    try {
+      const result = await apiManager.get(`schedule/substitutions/date/${date}`);
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: 'ไม่สามารถโหลดข้อมูลการสอนแทนตามวันที่ได้'
+      };
+    }
+  }
+
   /**
    * YEAR MIGRATION UTILITIES
    */

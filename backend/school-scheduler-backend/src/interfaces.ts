@@ -96,11 +96,11 @@ export interface Subject {
   class_ids?: number[];
   group_key?: string;
   subject_name: string;
-  subject_code?: string;
+  subject_code?: string | null;
   subject_type: 'พื้นฐาน' | 'เพิ่มเติม' | 'พัฒนาผู้เรียน';
   periods_per_week: number;
-  default_room_id?: number;
-  special_requirements?: string;
+  default_room_id?: number | null;
+  special_requirements?: string | null;
   is_active: number;
   created_at?: string;
   updated_at?: string;
@@ -268,11 +268,11 @@ export interface CreateSubjectRequest {
   class_ids?: number[];
   group_key?: string;
   subject_name: string;
-  subject_code?: string;
+  subject_code?: string | null;
   subject_type?: 'พื้นฐาน' | 'เพิ่มเติม' | 'พัฒนาผู้เรียน';
   periods_per_week: number;
-  default_room_id?: number;
-  special_requirements?: string;
+  default_room_id?: number | null;
+  special_requirements?: string | null;
 }
 
 export interface CreateScheduleRequest {

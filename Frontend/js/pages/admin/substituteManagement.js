@@ -282,6 +282,9 @@ function findOptimalSubstitutes(affectedSchedules, absentTeacherIds, dayOfWeek) 
   const recommendations = [];
   const allTeachers = substituteState.teachers.filter(t => !absentTeacherIds.includes(t.id));
 
+  // ⭐ NEW: Track per-period assignments to prevent same teacher being assigned multiple times in same period
+  const periodAssignments = {}; // { period_no: [teacher_id1, teacher_id2, ...] }
+
   console.log('[Algorithm] Finding substitutes for', affectedSchedules.length, 'affected schedules');
   console.log('[Algorithm] Total teachers available:', allTeachers.length);
   console.log('[Algorithm] Day of week:', dayOfWeek);
@@ -315,10 +318,13 @@ function findOptimalSubstitutes(affectedSchedules, absentTeacherIds, dayOfWeek) 
                schPeriod === periodNo;
       });
 
-      // Constraint 2: ไม่สอนแทนเกิน 1 คาบในวันนี้ (ตรวจสอบจาก currentAssignments)
+      // Constraint 2: ⭐ FIX - ตรวจสอบว่าครูคนนี้ถูกมอบหมายในคาบนี้แล้วหรือยัง (ป้องกันการซ้ำในคาบเดียวกัน)
+      const alreadyAssignedThisPeriod = periodAssignments[periodNo]?.includes(teacher.id) || false;
+
+      // Constraint 3: ไม่สอนแทนเกิน 1 คาบในวันนี้ (ตรวจสอบจาก currentAssignments)
       const alreadyAssignedToday = Object.values(substituteState.currentAssignments).includes(teacher.id);
 
-      return !hasConflict && !alreadyAssignedToday;
+      return !hasConflict && !alreadyAssignedThisPeriod && !alreadyAssignedToday;
     });
 
     console.log(`[Algorithm] Period ${periodNo} - Total teachers: ${allTeachers.length}, Available: ${availableTeachers.length}`);
@@ -380,6 +386,16 @@ function findOptimalSubstitutes(affectedSchedules, absentTeacherIds, dayOfWeek) 
 
     console.log(`[Algorithm] Top candidate for period ${periodNo}:`,
       scoredTeachers[0] ? `${getTeacherName(scoredTeachers[0].teacher)} (score: ${scoredTeachers[0].score})` : 'None');
+
+    // ⭐ NEW: บันทึกครูที่ถูกเลือกลงใน periodAssignments เพื่อป้องกันการซ้ำ
+    if (scoredTeachers[0]) {
+      if (!periodAssignments[periodNo]) {
+        periodAssignments[periodNo] = [];
+      }
+      periodAssignments[periodNo].push(scoredTeachers[0].teacher.id);
+      console.log(`[Algorithm] Assigned teacher ${getTeacherName(scoredTeachers[0].teacher)} (ID: ${scoredTeachers[0].teacher.id}) to period ${periodNo}`);
+      console.log(`[Algorithm] Period ${periodNo} now has ${periodAssignments[periodNo].length} assigned teacher(s):`, periodAssignments[periodNo]);
+    }
 
     recommendations.push({
       schedule: { ...schedule, period_no: periodNo }, // ⭐ แก้ให้ period_no ถูกต้อง
@@ -649,8 +665,16 @@ async function handleSubmitSubstitutes() {
     } else {
       // ⭐ ตรวจสอบว่าเป็น DUPLICATE_DATE error หรือไม่
       if (response.error === 'DUPLICATE_DATE') {
+        const summaryLines = Array.isArray(response.data?.teachers)
+          ? response.data.teachers.map((item) => {
+              const name = item.teacher_name || `ครูรหัส ${item.teacher_id}`;
+              return `• ${name}: ${item.periods} คาบ`;
+            }).join('\n')
+          : '';
+
         const confirmReplace = confirm(
-          `⚠️ ${response.message}\n\n` +
+          `⚠️ ${response.message || 'พบการบันทึกการสอนแทนในวันดังกล่าวอยู่แล้ว'}\n` +
+          (summaryLines ? `\n${summaryLines}\n` : '\n') +
           `ต้องการแทนที่ข้อมูลเดิมหรือไม่?\n\n` +
           `✓ ใช่ - แทนที่ข้อมูลเดิม\n` +
           `✗ ไม่ - ยกเลิกการบันทึก`
