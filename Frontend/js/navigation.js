@@ -46,6 +46,10 @@ async function showPage(pageId) {
       el.style.display = 'block';
       window.location.hash = pageId;
       currentPage = pageId;
+      if (window.SchoolScheduleApp) {
+        window.SchoolScheduleApp._userNavigated = true;
+        window.SchoolScheduleApp.currentPage = pageId;
+      }
       updateActiveNav(pageId);
 
       // Initialize page modules when first shown

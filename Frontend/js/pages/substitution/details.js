@@ -7,6 +7,7 @@
 import scheduleAPI from '../../api/schedule-api.js';
 import * as globalContext from '../../context/globalContext.js';
 import { formatThaiDate, getTeacherName } from '../../utils.js';
+import { scrollElementToViewportTop } from '../teacher/helpers.js';
 
 // =============================================================================
 // MODULE STATE
@@ -176,6 +177,7 @@ async function loadTeacherSubstitutions(teacherId) {
 
       // Render teacher details
       renderTeacherDetails(teacherId);
+      scrollToDetailsSection('#substitution-details');
 
     } else {
       throw new Error(response.message || 'ไม่สามารถโหลดข้อมูลการสอนแทนได้');
@@ -370,6 +372,8 @@ function renderTeacherDetails(teacherId) {
   renderDateButtons(teacherId, data.dates);
 
   console.log('[SubstitutionDetails] Teacher details rendered for:', teacher.full_name);
+
+  scrollToDetailsSection('#substitution-details-content');
 }
 
 /**
@@ -469,6 +473,7 @@ function renderDateDetailsTable(teacherId, date, data) {
   `;
 
   container.innerHTML = html;
+  scrollToDetailsSection('#substitution-detail-table');
 
   console.log('[SubstitutionDetails] Date details table rendered:', periods.length, 'periods');
 }
@@ -623,4 +628,32 @@ function showError(message) {
     errorEl.classList.remove('hidden');
   }
   console.error('[SubstitutionDetails] Error:', message);
+}
+
+function scrollToDetailsSection(targetSelector, offset = 180) {
+  try {
+    if (typeof window === 'undefined') return;
+
+    const app = window.SchoolScheduleApp;
+    const pageActive =
+      (app && app.currentPage === 'substitution') ||
+      !document.getElementById('page-substitution')?.classList.contains('hidden');
+
+    if (!pageActive) return;
+
+    const target =
+      (typeof targetSelector === 'string' && document.querySelector(targetSelector)) ||
+      document.querySelector('#substitution-details-content') ||
+      document.getElementById('substitution-details');
+
+    if (!target) return;
+
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        scrollElementToViewportTop(target, offset);
+      }, 50);
+    });
+  } catch (error) {
+    console.warn('[SubstitutionDetails] scrollToDetailsSection failed:', error);
+  }
 }

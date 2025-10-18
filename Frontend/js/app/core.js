@@ -148,6 +148,24 @@ export async function initializeTeacherPage(app) {
 
 export async function loadDefaultPage(app) {
   try {
+    const hashPage = (typeof window !== 'undefined' && window.location && window.location.hash)
+      ? window.location.hash.replace('#', '')
+      : '';
+
+    const userRequestedPage =
+      app._userNavigated ||
+      (hashPage && hashPage !== '' && hashPage !== 'student' && hashPage !== 'student-schedule');
+
+    if (userRequestedPage) {
+      console.log('⏭️ Default page load skipped; user already navigated to:', hashPage || app.currentPage);
+      return;
+    }
+
+    if (app.currentPage && app.currentPage !== 'student') {
+      console.log('⏭️ Default page load skipped; current page is already:', app.currentPage);
+      return;
+    }
+
     console.log('📄 Loading default page...');
 
     const studentPage = document.getElementById('page-student');

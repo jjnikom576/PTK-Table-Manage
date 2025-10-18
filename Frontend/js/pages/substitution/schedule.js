@@ -382,6 +382,8 @@ function renderTodaySchedule(absentTeachers) {
 
   contentEl.innerHTML = html;
 
+  scrollToSubstitutionSection('#substitution-schedule');
+
   console.log('[SubstitutionSchedule] Today schedule rendered:', absentTeachers.length, 'teachers', { absentTeachers });
 }
 
@@ -434,6 +436,37 @@ function renderHallOfFame() {
   bindRankingClickEvents();
 
   console.log('[SubstitutionSchedule] Hall of Fame rendered:', teachers.length, 'teachers');
+}
+
+function scrollToSubstitutionSection(targetSelector, offset = 72) {
+  try {
+    if (typeof window === 'undefined') return;
+
+    const app = window.SchoolScheduleApp;
+    const pageActive =
+      (app && app.currentPage === 'substitution') ||
+      !document.getElementById('page-substitution')?.classList.contains('hidden');
+
+    if (!pageActive) return;
+
+    const target =
+      (typeof targetSelector === 'string' && document.querySelector(targetSelector)) ||
+      document.getElementById('page-substitution');
+
+    if (!target) return;
+
+    requestAnimationFrame(() => {
+      const rect = target.getBoundingClientRect();
+      const currentY = window.pageYOffset || document.documentElement.scrollTop || 0;
+      const desiredY = currentY + rect.top - offset;
+      window.scrollTo({
+        top: Math.max(0, desiredY),
+        behavior: 'smooth'
+      });
+    });
+  } catch (error) {
+    console.warn('[SubstitutionSchedule] scrollToSubstitutionSection failed:', error);
+  }
 }
 
 /**
