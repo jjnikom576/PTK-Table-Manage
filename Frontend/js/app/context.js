@@ -417,7 +417,7 @@ export async function refreshCurrentPage(app, newContext) {
         await teacherPage.refreshPage(newContext);
       }
     } else if (app.currentPage === 'substitution') {
-      const substitutionPage = await import('../pages/substitutionSchedule.js');
+      const substitutionPage = await import('../pages/substitution/schedule.js');
       if (substitutionPage.refreshPage) {
         await substitutionPage.refreshPage(newContext);
       }

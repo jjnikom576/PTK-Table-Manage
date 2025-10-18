@@ -5,7 +5,7 @@ import { initYearService } from '../services/yearService.js';
 import { initNavigation, setupMobileMenu, navigateToPage as navigateToPageUtil } from '../navigation.js';
 import { initStudentSchedulePage } from '../pages/studentSchedule.js';
 import { initTeacherSchedulePage } from '../pages/teacherSchedule.js';
-import { initSubstitutionSchedulePage } from '../pages/substitutionSchedule.js';
+import { initSubstitutionSchedulePage } from '../pages/substitution/schedule.js';
 import { initAdminPage } from '../pages/admin.js';
 import coreAPI from '../api/core-api.js';
 

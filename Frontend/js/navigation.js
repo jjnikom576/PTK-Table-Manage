@@ -66,7 +66,7 @@ async function showPage(pageId) {
             console.log('[nav] ✅ Teacher schedule page initialized');
           }
         } else if (pageId === 'substitution') {
-          const mod = await import('./pages/substitutionSchedule.js');
+          const mod = await import('./pages/substitution/schedule.js');
           if (mod && typeof mod.initSubstitutionSchedulePage === 'function') {
             console.log('[nav] 📋 Initializing substitution schedule page...');
             await mod.initSubstitutionSchedulePage(ctx);
@@ -123,4 +123,3 @@ export function setupMobileMenu() {
 export function getNavigationState() {
   return { currentPage, initialized };
 }
-

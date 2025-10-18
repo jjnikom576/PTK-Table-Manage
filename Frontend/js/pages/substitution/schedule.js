@@ -3,10 +3,10 @@
  * Similar to teacherSchedule.js structure
  */
 
-import scheduleAPI from '../api/schedule-api.js';
-import * as globalContext from '../context/globalContext.js';
-import { formatThaiDate, getTeacherName } from '../utils.js';
-import { initSubstitutionDetails, refreshSubstitutionDetails } from './substitutionDetails.js';
+import scheduleAPI from '../../api/schedule-api.js';
+import * as globalContext from '../../context/globalContext.js';
+import { formatThaiDate, getTeacherName } from '../../utils.js';
+import { initSubstitutionDetails, refreshSubstitutionDetails } from './details.js';
 
 // =============================================================================
 // PAGE STATE

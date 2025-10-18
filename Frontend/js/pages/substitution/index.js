@@ -18,4 +18,4 @@ export {
   renderSubstitutionManagement,
   calculateSubstituteStats,
   generateSubstituteRanking
-} from './substitution/index.js';
+} from './core.js';

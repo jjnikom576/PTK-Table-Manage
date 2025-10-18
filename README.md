@@ -42,10 +42,14 @@ wrangler d1 migrations apply DB --remote   # Direct remote migration
 ```bash
 cd frontend
 
-# Serve frontend (any static server works)
-python -m http.server 8000
-# Or use VS Code Live Server
+# (Current) Serve static assets with any HTTP server
+python -m http.server 8000   # or use VS Code Live Server
 # Frontend: http://localhost:8000
+
+# (Upcoming) After migrating to Vite
+npm install
+npm run dev          # Vite dev server with hot reload
+npm run build        # Output production bundle to dist/
 ```
 
 ### Initial Setup
@@ -62,6 +66,35 @@ python -m http.server 8000
 
 # Default credentials: admin / Aa1234
 ```
+
+## Frontend Migration to Vite
+
+We are in the process of modernising the SPA build pipeline. The near-term plan is to replace the ad‑hoc static-server workflow with Vite so that hot reload, asset bundling, and production builds are all first-class.
+
+### Migration Tasks
+1. **Bootstrap Vite configuration**
+   - Add `package.json`/`package-lock.json` in `frontend/` with Vite, eslint, and basic scripts (`dev`, `build`, `preview`).
+   - Create `vite.config.js` with an appropriate base path for GitHub Pages (e.g. `/Schedule_System/`).
+2. **Restructure entry points**
+   - Ensure `frontend/index.html` references scripts via Vite (e.g. `<script type="module" src="/js/main.js"></script>`).
+   - Move any remaining template-loader HTML fragments (such as the student page) into static markup or lightweight components so they can be bundled.
+3. **Module compatibility**
+   - Audit imports for alias compatibility; configure `resolve.alias` if needed (`@app`, `@pages`, etc.).
+   - Verify dynamic imports (`import('./pages/...')`) still work under Vite’s build output.
+4. **Asset pipeline**
+   - Relocate static assets (icons, fonts, mock data) into `public/` or import them directly so Vite can fingerprint/copy them.
+   - Confirm CSS is imported via JS or referenced from `index.html` with Vite-friendly paths.
+5. **Environment configuration**
+   - Define `.env`, `.env.development`, `.env.production` for API base URLs (Cloudflare Worker endpoints, D1).
+   - Update fetch helpers to read from `import.meta.env`.
+6. **Deployment workflow**
+   - Update docs/scripts to publish the Vite `dist/` directory to GitHub Pages.
+   - Adjust CI/CD (if any) to run `npm run build` and push artifacts.
+7. **Cleanup**
+   - Remove the old template-loader code path once all sections use the bundled markup.
+   - Retire references to `python -m http.server` in scripts once the Vite flow is stable.
+
+Until these steps are complete, the project still works with the legacy static-server approach; keep both sets of commands in README so collaborators can choose the appropriate workflow.
 
 ## Architecture & Key Concepts
 

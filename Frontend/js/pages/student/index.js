@@ -8,7 +8,7 @@ export {
   compareScheduleAcrossSemesters,
   showScheduleHistory,
   detectScheduleChanges
-} from './student/core.js';
+} from './core.js';
 
 export {
   generateScheduleTable,
@@ -19,7 +19,7 @@ export {
   renderScheduleTable,
   renderEmptyScheduleState,
   highlightCurrentPeriod
-} from './student/ui.js';
+} from './ui.js';
 
-export { exportSchedule } from './student/export.js';
-export { getPageState } from './student/state.js';
+export { exportSchedule } from './export.js';
+export { pageState, getPageState } from './state.js';
