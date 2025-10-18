@@ -1,0 +1,425 @@
+/* Admin Layout Override for Teacher Management */
+.admin-forms-grid {
+  display: block !important;
+  grid-template-columns: none !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Ensure admin section takes full width */
+#admin-data.admin-section {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Override any grid constraints */
+.page-content .container {
+  max-width: 100% !important;
+  width: 100% !important;
+  padding: 0 1rem !important;
+  box-sizing: border-box !important;
+}
+
+/* Admin Teacher Management Styles */
+.teacher-management-container {
+  display: flex !important;
+  gap: 1.5rem;
+  height: auto;
+  min-height: 500px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100% !important;
+  /* Strict overflow control */
+  overflow: hidden;
+  box-sizing: border-box;
+  contain: layout style;
+}
+
+.teacher-data-grid {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 350px); /* Reserve more space for form */
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  /* Essential: Ensure strict containment */
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.teacher-data-grid h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.grid-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.search-controls, .grid-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.table-container {
+  flex: 1;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  overflow-x: auto;
+  overflow-y: auto;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  max-height: 500px;
+  min-height: 300px;
+  /* Strict width control */
+  width: 100%;
+  max-width: 100%;
+  position: relative;
+  box-sizing: border-box;
+  /* Ensure content stays within bounds */
+  contain: layout style;
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin: 0;
+  table-layout: fixed;
+  position: relative;
+  /* Further reduced due to smaller subject column */
+  min-width: 720px;
+  max-width: none;
+  box-sizing: border-box;
+}
+
+.data-table thead {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.data-table th {
+  padding: 0.75rem 0.5rem;
+  font-weight: 600;
+  text-align: left;
+  border-bottom: 1px solid #dee2e6;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  background-color: #f8f9fa;
+  position: relative;
+  border-right: 1px solid #dee2e6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Sortable column styling */
+.data-table th[data-sortable] {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.data-table th[data-sortable]:hover {
+  background-color: #e9ecef;
+}
+
+/* Sort indicators - using pseudo-before to avoid conflict with resize handle */
+.data-table th[data-sortable]::before {
+  content: '⇅';
+  font-size: 0.7rem;
+  color: #6c757d;
+  margin-right: 0.5rem;
+  opacity: 0.5;
+}
+
+.data-table th.sort-asc::before {
+  content: '↑';
+  color: #007bff;
+  opacity: 1;
+}
+
+.data-table th.sort-desc::before {
+  content: '↓';
+  color: #007bff;
+  opacity: 1;
+}
+
+/* Resizable column handle - only for non-sortable columns or use different approach */
+.data-table th:not(:last-child):not([data-sortable])::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 5px;
+  height: 100%;
+  cursor: col-resize;
+  user-select: none;
+  background: transparent;
+  border-right: 2px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.data-table th:not(:last-child):not([data-sortable]):hover::after {
+  border-right-color: #007bff;
+}
+
+.data-table th.resizing::after {
+  border-right-color: #007bff;
+  background: rgba(0, 123, 255, 0.1);
+}
+
+/* Sort feedback styling */
+.sort-feedback {
+  background: linear-gradient(135deg, #e3f2fd, #bbdefb);
+  color: #1565c0;
+  padding: 0.5rem 1rem;
+  margin-bottom: 0.5rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border: 1px solid #90caf9;
+  display: none;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced column hover effects */
+.data-table th[data-sortable]:hover {
+  background-color: #e3f2fd;
+  color: #1565c0;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Enhanced table row effects */
+.data-table tbody tr:hover {
+  background-color: #f8f9fa !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+/* Enhanced tooltip for mobile devices */
+@media (max-width: 768px) {
+  .data-table td[title]:hover::after {
+    max-width: 250px;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+/* Loading state improvements */
+.loading-message {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  background: linear-gradient(90deg, #f8f9fa, #e9ecef, #f8f9fa);
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Shortcuts Modal Styling */
+.shortcuts-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(3px);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.shortcuts-modal-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease-out;
+  border: 1px solid #e0e0e0;
+}
+
+.shortcuts-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border-radius: 12px 12px 0 0;
+}
+
+.shortcuts-modal-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.shortcuts-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+}
+
+.shortcuts-close:hover {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.shortcuts-modal-body {
+  padding: 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.shortcuts-section {
+  margin-bottom: 1.5rem;
+}
+
+.shortcuts-section:last-child {
+  margin-bottom: 0;
+}
+
+.shortcuts-section h4 {
+  margin: 0 0 0.75rem 0;
+  color: #555;
+  font-size: 1rem;
+  font-weight: 600;
+  border-bottom: 2px solid #e3f2fd;
+  padding-bottom: 0.25rem;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.shortcut-item:last-child {
+  border-bottom: none;
+}
+
+kbd {
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  color: #495057;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  margin: 0 0.25rem;
+  min-width: 1.5rem;
+  text-align: center;
+  display: inline-block;
+}
+
+.shortcuts-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e0e0e0;
+  background: #f8f9fa;
+  border-radius: 0 0 12px 12px;
+  text-align: right;
+}
+
+/* Responsive design for modal */
+@media (max-width: 768px) {
+  .shortcuts-modal-content {
+    max-width: 95vw;
+    margin: 1rem;
+  }
+  
+  .shortcuts-modal-header,
+  .shortcuts-modal-body,
+  .shortcuts-modal-footer {
+    padding: 1rem;
+  }
+  
+  .shortcut-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}
+
+.data-table td {
+  padding: 0.5rem 0.3rem;
+  border-bottom: 1px solid #eee;
+  vertical-align: middle;
+  font-size: 0.8rem;
+  box-sizing: border-box;
+  position: relative;
+  /* Ensure consistent height for all cells */
+  height: auto;
+  min-height: 2.5rem;
+  /* Allow text wrapping only where appropriate */
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}

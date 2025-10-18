@@ -1,0 +1,301 @@
+/* =========================================
+   COMPONENTS.CSS — part 2/2
+   (ต่อจาก part 1/2)
+   ========================================= */
+
+/* ========== Sub Navigation: tab buttons (Teacher / Substitution / Admin) ========== */
+.sub-navigation { margin-top: .25rem; }
+.sub-nav-tabs {
+  display: flex; align-items: center; gap: .5rem; flex-wrap: wrap;
+  padding: .25rem 0;
+}
+.sub-nav-tab {
+  appearance: none; background: #fff; color: var(--color-dark-lighter);
+  border: 1px solid var(--color-gray-300); border-radius: var(--radius-md);
+  padding: .45rem .75rem; font-family: var(--font-family-secondary);
+  font-size: var(--font-size-sm); font-weight: var(--font-weight-medium);
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+.sub-nav-tab:hover { border-color: var(--color-primary); color: var(--color-primary-dark); transform: translateY(-1px); }
+.sub-nav-tab.active, .sub-nav-tab[aria-selected="true"] {
+  background: var(--color-primary); border-color: var(--color-primary); color: #fff;
+}
+
+/* ========== Export Bar (CSV/XLSX/GSheets) ========== */
+.export-bar {
+  display: flex; align-items: center; justify-content: space-between; gap: .75rem;
+  background: #fff; border: 1px solid var(--color-gray-200); border-radius: var(--radius-lg);
+  padding: .5rem .75rem; margin: .5rem 0 1rem;
+}
+.export-label { color: var(--color-dark-lighter); font-weight: var(--font-weight-medium); display: flex; align-items: center; gap: .35rem; }
+.export-buttons { display: flex; gap: .5rem; flex-wrap: wrap; }
+
+.btn {  /* base button (lightweight, components scope) */
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .55rem .9rem; border: 1px solid transparent; border-radius: var(--radius-md);
+  font-family: var(--font-family-secondary); font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium); cursor: pointer; background: var(--color-primary);
+  color: #fff; transition: transform var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast), border-color var(--transition-fast);
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); }
+.btn:active { transform: translateY(0); }
+
+.btn--primary { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.btn--outline {
+  background: #fff; color: var(--color-dark);
+  border-color: var(--color-gray-300);
+}
+.btn--outline:hover { border-color: var(--color-primary); color: var(--color-primary-dark); }
+.btn--ghost {
+  background: transparent; color: var(--color-dark-lighter);
+  border-color: transparent;
+}
+.btn--ghost:hover { color: var(--color-primary-dark); background: var(--color-gray-50); }
+.btn--success { background: var(--color-success); border-color: var(--color-success); color: #fff; }
+.btn--danger  { background: var(--color-danger); border-color: var(--color-danger); color: #fff; }
+.btn--sm { padding: .4rem .7rem; font-size: var(--font-size-xs); }
+.btn--gsheets { /* small green hint */
+  border-color: #21a366; color: #21a366; background: #fff;
+}
+.btn--gsheets:hover { background: #21a366; color: #fff; }
+
+/* ========== Loading / Empty / Error states ========== */
+.hidden { display: none !important; }
+
+.loading-state, .error-state, .empty-state {
+  background: #fff; border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg); padding: 1rem; margin: .75rem 0;
+}
+.loading-state { display: grid; place-items: center; gap: .5rem; color: var(--color-dark-lighter); }
+.loading-spinner,
+.loading-spinner-large {
+  width: 28px; height: 28px; border: 3px solid var(--color-gray-200); border-top: 3px solid var(--color-primary);
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+.loading-spinner-large { width: 40px; height: 40px; border-width: 4px; }
+
+.empty-state { text-align: center; color: var(--color-dark-lighter); }
+.empty-state p { margin: 0; }
+
+.error-state { border-left: 4px solid var(--color-danger); }
+.error-message {
+  background: var(--color-danger-light); color: var(--color-danger-dark);
+  border: 1px solid var(--color-danger); border-radius: var(--radius-md);
+  padding: .5rem .6rem; margin: 0 0 .6rem;
+}
+
+/* ========== Teacher Details layout (tabs/panels) ========== */
+.sub-page { display: none; }
+.sub-page.active { display: block; }
+.teacher-content { 
+  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  gap: .75rem; 
+}
+
+/* FIX: Teacher Info Container - จัดกึ่งกลางเต็มความกว้าง */
+#teacher-info {
+  width: 100% !important;
+  text-align: center !important;
+  display: block !important;
+}
+
+/* ========== FIX: Teacher Schedule Table - จัดกึ่งกลาง ========== */
+#teacher-details .schedule-table thead th {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+#teacher-details .schedule-table thead th:first-child {
+  text-align: center !important;
+}
+
+#teacher-details .schedule-table td {
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+#teacher-details .schedule-table td:first-child {
+  text-align: center !important;
+}
+
+#teacher-details .subject-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  min-height: 60px;
+  gap: .15rem;
+}
+
+#teacher-details .subject-name,
+#teacher-details .teacher-name,
+#teacher-details .class-name {
+  text-align: center !important;
+}
+
+/* ========== FIX: Teacher Info Card - จัดกึ่งกลาง ========== */
+.teacher-info-card {
+  text-align: center !important;
+}
+
+.teacher-info-card h4 {
+  text-align: center !important;
+}
+
+.teacher-details-grid {
+  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  text-align: center !important;
+}
+
+.detail-item {
+  display: block !important; /* FIX: เลิก grid แล้วใช้ block */
+  text-align: center !important;
+  margin-bottom: 0.5rem;
+}
+
+/* ========== FIX: Workload Summary Card - จัดกึ่งกลาง ========== */
+.workload-summary-card {
+  text-align: left !important; /* FIX: เปลี่ยนกลับเป็นชิดซ้าย */
+}
+
+.workload-summary-card h4 {
+  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+}
+
+/* FIX: เพิ่ม selector ที่เฉพาะเจาะจง */
+#teacher-workload h4 {
+  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+}
+
+.workload-details h4 {
+  text-align: center !important; /* FIX: หัวข้อกึ่งกลาง */
+}
+
+.subjects-list {
+  display: block !important;
+  text-align: center !important;
+  padding-left: 0;
+  max-width: 446px; /* FIX: ปรับตามความกว้างหน้าจอ */
+  margin: 0 auto;
+}
+.subject-workload-item {
+  display: grid !important;
+  grid-template-columns: 100px minmax(200px, 1fr) 150px 90px;
+  gap: 0.75rem 1rem;
+  text-align: left !important;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+  max-width: 700px;
+  margin-left: auto;
+  margin-right: auto;
+  align-items: center; /* FIX: จัดแนวตั้งให้อยู่แนวเดียวกัน */
+}
+
+/* จัดรูปแบบแต่ละคอลัมน์ */
+.subject-code {
+  text-align: left !important;
+  font-family: monospace;
+  font-weight: bold;
+  color: #666;
+  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+}
+
+.subject-workload-item .subject-name {
+  text-align: left !important;
+  font-weight: bold;
+  color: #333;
+  font-size: 1rem;
+}
+
+.subject-workload-item .class-names {
+  text-align: center !important;
+  color: #0066cc;
+  font-weight: medium;
+  font-size: 0.95rem;
+  line-height: 1.6; /* FIX: เพิ่มขนาดตัวอักษร */
+}
+
+.periods-count {
+  text-align: right !important;
+  font-weight: bold;
+  color: #007700;
+  font-size: 1rem; /* FIX: เพิ่มขนาดตัวอักษร */
+}
+
+.total-workload {
+  text-align: center !important; /* FIX: สรุปกึ่งกลาง */
+}
+
+/* ========== FIX: Teacher Info ใช้ class ที่มีอยู่แล้ว ========== */
+.teacher-info {
+  text-align: center !important;
+}
+
+.teacher-info h4 {
+  text-align: center !important;
+}
+
+.teacher-info .info-card {
+  text-align: center !important;
+}
+
+.teacher-info .info-title {
+  text-align: center !important;
+}
+
+.teacher-info .info-value {
+  text-align: center !important;
+}
+
+/* ========== FIX: Workload Details ใช้ class ที่มีอยู่แล้ว ========== */
+.workload-details {
+  text-align: center !important;
+  margin-bottom: 2rem; /* เพิ่มระยะห่างจาก footer */
+}
+
+.workload-details .work-card {
+  text-align: center !important;
+}
+
+/* ========== FIX: หัวข้อชื่อครู - จัดกึ่งกลาง ========== */
+#teacher-details h3 {
+  text-align: center !important;
+}
+
+#teacher-details h4 {
+  text-align: center !important;
+}
+
+/* สำหรับ element ที่มีชื่อครู */
+#teacher-details [class*="teacher"] {
+  text-align: center !important;
+}
+
+#teacher-details [id*="teacher"] {
+  text-align: center !important;
+}
+
+/* ========== FIX: Period Header - แยกบรรทัด ========== */
+.period-info {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 0.25rem;
+}
+
+.period-number {
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+
+.time-slot {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+/* ========== Substitution: date info header ========== */
+.date-info { margin-bottom: .5rem; }
+#substitution-date-title { margin: 0; }

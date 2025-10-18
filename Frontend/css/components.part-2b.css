@@ -1,0 +1,99 @@
+/* ========== Substitution Management: Modern Layout ========== */
+.substitute-management-container { display: flex; flex-direction: column; gap: 1.5rem; padding: 1rem; }
+
+/* Date input at top */
+.substitute-form { display: flex; flex-direction: column; gap: 1rem; }
+.substitute-form .form-group { display: flex; flex-direction: column; gap: .5rem; }
+.substitute-form .form-group label { font-weight: var(--font-weight-semibold); color: var(--color-dark); }
+.substitute-form #substitute-date { padding: .6rem .75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--font-size-base); max-width: 200px; }
+
+/* Teacher search */
+.teacher-search-container { margin-bottom: .75rem; }
+.teacher-search-input { width: 100%; max-width: 400px; padding: .6rem .75rem; border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: var(--font-size-base); transition: border-color var(--transition-fast); }
+.teacher-search-input:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 3px var(--color-primary-light); }
+
+/* Teacher toggle grid - responsive horizontal layout */
+.teacher-toggle-grid { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .75rem; }
+
+/* Toggle button styles */
+.teacher-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  padding: .5rem .75rem;
+  background: #fff;
+  border: 2px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  min-width: 140px;
+  flex: 0 1 auto;
+}
+
+.teacher-toggle-btn .teacher-name { font-weight: var(--font-weight-medium); color: var(--color-dark); }
+.teacher-toggle-btn .toggle-indicator { font-size: 1.2rem; color: var(--color-gray-400); transition: color var(--transition-fast); }
+
+.teacher-toggle-btn:hover:not(.active) {
+  border-color: var(--color-primary-light);
+  background: var(--color-gray-50);
+  transform: translateY(-1px);
+}
+
+.teacher-toggle-btn.active {
+  background: var(--color-success-light);
+  border-color: var(--color-success);
+}
+
+.teacher-toggle-btn.active .teacher-name { color: var(--color-success-dark); }
+.teacher-toggle-btn.active .toggle-indicator { color: var(--color-success); }
+
+/* Action buttons */
+.substitute-actions { display: flex; gap: .75rem; margin-top: 1rem; flex-wrap: wrap; }
+
+/* Recommendations */
+.recommendations { margin-top: 1.5rem; }
+.recommendations-list { display: flex; flex-direction: column; gap: 1rem; }
+
+.recommendation-card {
+  background: #fff;
+  border: 1px solid var(--color-gray-200);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,.05);
+}
+.recommendation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+  padding-bottom: .5rem;
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.recommendation-details { margin-bottom: .75rem; }
+.recommendation-details p { margin: .25rem 0; color: var(--color-dark); }
+
+.recommendation-candidates label {
+  display: block;
+  margin-bottom: .5rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-dark);
+}
+
+.substitute-teacher-select {
+  width: 100%;
+  padding: .6rem .75rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  background: #fff;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .teacher-toggle-btn { min-width: 120px; font-size: var(--font-size-xs); }
+  .substitute-actions { flex-direction: column; }
+}

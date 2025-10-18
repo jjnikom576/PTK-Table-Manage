@@ -1,0 +1,573 @@
+/* Dynamic cell behavior - Excel-like */
+.cell-dynamic {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* Content will adjust based on column width dynamically */
+}
+
+/* Full display cells */
+.cell-full {
+  white-space: normal;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Specific email column behavior */
+.cell-dynamic.col-email {
+  max-width: 100%; /* ใช้พื้นที่ทั้งหมดที่มี */
+}
+
+/* Specific phone column behavior */
+.cell-dynamic.col-phone {
+  max-width: 100%; /* ใช้พื้นที่ทั้งหมดที่มี */
+}
+
+/* Specific subject column behavior */
+.cell-dynamic.col-subject {
+  max-width: 100%; /* ใช้พื้นที่ทั้งหมดที่มี */
+}
+
+/* Enhanced Tooltip for truncated text */
+.data-table td[title]:hover::after {
+  content: attr(title);
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(5px);
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 1000;
+  max-width: 320px;
+  word-wrap: break-word;
+  white-space: normal;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  /* Animation */
+  opacity: 0;
+  animation: tooltipFadeIn 0.2s ease-out forwards;
+}
+
+/* Tooltip fade-in animation */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(0px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(5px);
+  }
+}
+
+/* Tooltip arrow */
+.data-table td[title]:hover::before {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: rgba(0, 0, 0, 0.9);
+  z-index: 1001;
+  pointer-events: none;
+  opacity: 0;
+  animation: tooltipFadeIn 0.2s ease-out forwards;
+}
+
+/* Make sure tooltip doesn't overflow table container - REMOVED conflicting overflow rule */
+
+.data-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.teacher-row {
+  transition: background-color 0.2s ease;
+}
+
+.teacher-row:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.teacher-row:hover {
+  background-color: #e3f2fd !important;
+}
+
+.loading-message {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+}
+
+.btn--sm {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.75rem;
+  margin: 0 0.1rem;
+  min-width: auto;
+  border-radius: 3px;
+}
+
+.grid-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.select-all-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.pagination {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+}
+
+.page-info {
+  margin: 0 0.5rem;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+/* Form styling improvements */
+.admin-form-section {
+  flex: 0 0 300px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  height: auto;
+  max-height: none;
+  overflow-y: visible;
+  min-height: fit-content;
+}
+
+.admin-form-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.radio-group label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.radio-group input[type="radio"] {
+  margin: 0;
+  width: auto;
+}
+
+/* Button improvements */
+.btn {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  margin: 0.25rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.btn--primary {
+  background-color: #007bff;
+  border-color: #007bff;
+  color: white;
+}
+
+.btn--outline {
+  background-color: transparent;
+  border-color: #6c757d;
+  color: #6c757d;
+}
+
+.btn--danger {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+/* Teacher management container adjustments */
+.teacher-management-container {
+  align-items: stretch;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .teacher-management-container {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .admin-form-section {
+    flex: none;
+    max-width: 100%;
+    order: 1;
+  }
+  
+  .teacher-data-grid {
+    order: 2;
+    flex: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .teacher-management-container {
+    gap: 1rem;
+    padding: 0.5rem;
+  }
+  
+  .admin-form-section {
+    padding: 1rem;
+  }
+  
+  .teacher-data-grid {
+    padding: 1rem;
+  }
+  
+  .data-table {
+    font-size: 0.8rem;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: 0.4rem 0.3rem;
+  }
+  
+  .grid-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-controls, .grid-actions {
+    justify-content: center;
+  }
+  
+  .grid-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .bulk-actions, .pagination {
+    justify-content: center;
+  }
+}
+
+/* Loading state */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Success/Error states */
+.alert {
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid;
+  border-radius: 4px;
+}
+
+.alert--success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+
+.alert--error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
+}
+
+.alert--info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+}
+
+/* Button states for actions */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background-color: #c82333;
+  border-color: #bd2130;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background-color: #0056b3;
+  border-color: #004085;
+}
+
+.btn--outline:hover:not(:disabled) {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+  margin: 0;
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+input[type="checkbox"]:checked {
+  accent-color: #007bff;
+}
+
+/* Search input styling */
+#teacher-search {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  width: 200px;
+}
+
+#teacher-search:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Select styling */
+select {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+  background-color: white;
+  cursor: pointer;
+}
+
+select:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Empty state styling */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: #6c757d;
+}
+
+/* Force visibility for table elements */
+#teachers-table {
+  display: table !important;
+  visibility: visible !important;
+}
+
+#teachers-table thead {
+  display: table-header-group !important;
+}
+
+#teachers-table tbody {
+  display: table-row-group !important;
+}
+
+#teachers-table tbody tr {
+  display: table-row !important;
+}
+
+#teachers-table tbody td {
+  display: table-cell !important;
+}
+
+#teachers-table thead tr {
+  display: table-row !important;
+}
+
+#teachers-table thead th {
+  display: table-cell !important;
+}
+
+/* Ensure table visibility */
+#teachers-table-body {
+  display: table-row-group !important;
+}
+
+#teachers-table-body tr {
+  display: table-row !important;
+}
+
+#teachers-table-body td {
+  display: table-cell !important;
+}
+
+/* Column specific widths - Fixed pixel widths for consistency */
+.col-checkbox { 
+  width: 50px;
+  text-align: center; 
+  min-width: 50px; 
+}
+
+.col-id { 
+  width: 60px;
+  text-align: center; 
+  min-width: 60px; 
+}
+
+.col-fname { 
+  width: 120px;
+  min-width: 120px; 
+}
+
+.col-lname { 
+  width: 120px;
+  min-width: 120px; 
+}
+
+.col-email { 
+  width: 100px;  /* เริ่มต้นเล็กลง */
+  min-width: 80px; 
+}
+
+.col-phone { 
+  width: 80px;   /* เริ่มต้นเล็กลง */
+  min-width: 70px; 
+}
+
+.col-subject { 
+  width: 110px;  /* เริ่มต้นเล็กลง */
+  min-width: 90px; 
+}
+
+/* Enhanced Actions Column - Fixed alignment */
+.col-actions { 
+  width: 180px;
+  text-align: center; 
+  min-width: 180px;
+  white-space: nowrap;
+  padding: 0.4rem !important;
+  vertical-align: middle;
+}
+
+/* Action buttons - ensure single line */
+.col-actions .btn {
+  margin: 0 0.05rem;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.75rem;
+  min-width: auto;
+  border-radius: 3px;
+  display: inline-block; /* Changed from inline-flex */
+  vertical-align: middle;
+  transition: all 0.2s ease;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* Specific styling for actions cell content */
+.col-actions td {
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  line-height: 1.2 !important;
+}
+
+/* Ensure buttons stay in one line */
+.actions-container {
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.col-actions .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Ensure action buttons don't wrap */
+.col-actions {
+  overflow: visible;
+}
+
+/* Enhanced Scrollbar Styling */
+.table-container::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #007bff;
+}
+
+.table-container::-webkit-scrollbar-corner {
+  background: #f1f1f1;
+}

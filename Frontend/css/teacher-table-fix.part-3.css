@@ -1,0 +1,368 @@
+/* ===== CLASSES MANAGEMENT STYLES ===== */
+
+/* Class Management Container - same structure as Teacher */
+.class-management-container {
+  display: flex !important;
+  gap: 1.5rem;
+  height: auto;
+  min-height: 500px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100% !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.class-data-grid {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 350px);
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.class-data-grid h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+/* Classes Table Columns */
+.col-class-name { 
+  width: 150px;
+  min-width: 120px; 
+}
+
+.col-created { 
+  width: 120px;
+  min-width: 100px; 
+}
+
+/* Classes table specific - smaller min-width */
+#classes-table {
+  min-width: 550px; /* Much smaller than teachers table */
+}
+
+/* Form hint styling */
+.form-hint {
+  display: block;
+  font-size: 0.75rem;
+  color: #666;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+/* Validation styling for classes */
+.form-group input.valid {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-group input.invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.validation-message {
+  display: block;
+  font-size: 0.75rem;
+  margin-top: 0.25rem;
+}
+
+.validation-message.success {
+  color: #28a745;
+}
+
+.validation-message.error {
+  color: #dc3545;
+}
+
+/* ===== ROOMS MANAGEMENT STYLES ===== */
+
+/* Room Management Container - same structure as Teacher and Class */
+.room-management-container {
+  display: flex !important;
+  gap: 1.5rem;
+  height: auto;
+  min-height: 500px;
+  align-items: flex-start;
+  width: 100%;
+  max-width: 100% !important;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.room-data-grid {
+  flex: 1;
+  min-width: 0;
+  max-width: calc(100% - 350px);
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.room-data-grid h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+/* Rooms Table Columns */
+.col-room-name { 
+  width: 180px;
+  min-width: 150px; 
+}
+
+.col-room-type { 
+  width: 120px;
+  min-width: 100px; 
+}
+
+/* Rooms table specific - smaller min-width */
+#rooms-table {
+  min-width: 650px; /* Slightly larger than classes table due to room names */
+}
+
+/* Room search input styling */
+#room-search {
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  width: 200px;
+}
+
+#room-search:focus {
+  outline: none;
+  border-color: #80bdff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Room row styling */
+.room-row {
+  transition: background-color 0.2s ease;
+}
+
+.room-row:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.room-row:hover {
+  background-color: #e3f2fd !important;
+}
+
+/* Room validation styling */
+.form-group input.valid {
+  border-color: #28a745;
+  box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.form-group input.invalid {
+  border-color: #dc3545;
+  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Room checkbox styling */
+.room-row-checkbox {
+  margin: 0;
+  transform: scale(1.1);
+  cursor: pointer;
+}
+
+/* ===== SUBJECTS MANAGEMENT STYLES ===== */
+
+/* Subject Management Container - Full Width Layout */
+.subject-management-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+
+/* Full Width Form Section */
+.admin-form-section-fullwidth {
+  width: 100%;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-sizing: border-box;
+}
+
+.admin-form-section-fullwidth h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+/* Horizontal Form Layout */
+.admin-form-horizontal {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start; /* Change from flex-end to flex-start for label alignment */
+}
+
+.form-row .form-group {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.form-row .form-group-wide {
+  flex: 2; /* Wider for requirements textarea */
+}
+
+.form-row .form-group-transfer {
+  flex: 3; /* Even wider for grid transfer */
+}
+
+.form-group-fullwidth {
+  width: 100%;
+}
+
+/* Class Transfer Section */
+.class-transfer-section {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.transfer-header {
+  text-align: center;
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #333;
+  font-weight: 600;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid #e3f2fd;
+}
+
+/* Main Class Selection Grid */
+.class-selection-grid {
+  display: flex;
+  gap: 1rem;
+  align-items: stretch;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1rem;
+  background: #f8f9fa;
+  min-height: 200px;
+}
+
+.available-classes,
+.selected-classes {
+  flex: 1;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.75rem;
+  min-width: 0;
+}
+
+.available-classes h5,
+.selected-classes h5 {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.9rem;
+  color: #666;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.classes-list {
+  max-height: 120px; /* Height for ~10 items */
+  overflow-y: auto;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 0.5rem;
+  background: #fdfdfd;
+}
+
+.class-item {
+  display: flex;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  margin-bottom: 0.3rem;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 0.85rem;
+  user-select: none;
+}
+
+.class-item:hover {
+  background: #e3f2fd;
+  border-color: #007bff;
+  transform: translateY(-1px);
+}
+
+.class-item.selected {
+  background: #007bff;
+  color: white;
+  border-color: #0056b3;
+}
+
+.class-item.selected:hover {
+  background: #0056b3;
+}
+
+.class-controls {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 0.5rem;
+}
+
+.class-controls .btn {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  min-width: 60px;
+}
+
+/* Empty state for class lists */
+.classes-list:empty::after {
+  content: "ไม่มีรายการ";
+  display: block;
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 1rem;
+}
+
+.available-classes .classes-list:empty::after {
+  content: "ไม่มีห้องเรียน";
+}
+
+.selected-classes .classes-list:empty::after {
+  content: "ยังไม่ได้เลือก";
+}
