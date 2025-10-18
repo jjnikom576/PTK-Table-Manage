@@ -124,19 +124,24 @@ export async function refreshClassSelector(
         uniqueClasses.set(cls.class_name, cls);
       }
     });
-    classes = Array.from(uniqueClasses.values()).sort((a, b) =>
-      a.class_name.localeCompare(b.class_name, 'th')
-    );
+    classes = Array.from(uniqueClasses.values()).sort(compareClasses);
   } else {
     console.warn('[StudentSchedule] Failed to load classes for selector:', classesResponse.error);
   }
 
   setPageState({ availableClasses: classes });
 
-  const savedSelection =
-    preserveSelection ||
-    pageState.selectedClass ||
-    getSavedSelectedClass();
+  const userDrivenSelection =
+    preserveSelection ??
+    (pageState.hasUserSelection ? pageState.selectedClass : null);
+
+  if (preserveSelection !== null && preserveSelection !== undefined) {
+    setPageState({ hasUserSelection: true });
+  }
+
+  const storedSelection = pageState.hasUserSelection
+    ? getSavedSelectedClass()
+    : null;
 
   const selector =
     document.getElementById('class-dropdown') ||
@@ -148,17 +153,19 @@ export async function refreshClassSelector(
     return;
   }
 
-  renderClassSelector(classes, savedSelection);
-  bindClassSelector(activeContext);
-
-  let targetValue = savedSelection;
+  let targetValue = userDrivenSelection ?? storedSelection;
   if (!targetValue && classes.length) {
     targetValue = classes[0].id;
   }
 
-  if (targetValue) {
-    selector.value = String(targetValue);
-    await loadScheduleForContext(targetValue, activeContext);
+  const targetValueString = targetValue != null ? String(targetValue) : null;
+
+  renderClassSelector(classes, targetValueString);
+  bindClassSelector(activeContext);
+
+  if (targetValueString) {
+    selector.value = targetValueString;
+    await loadScheduleForContext(targetValueString, activeContext);
   } else {
     clearScheduleDisplay();
   }
@@ -232,7 +239,7 @@ export async function loadScheduleForContext(classRef, suppliedContext = null) {
     }
 
     const scheduleResult = await dataService.getStudentSchedule(classId);
-      if (!scheduleResult.ok) {
+    if (!scheduleResult.ok) {
       const fallbackSchedule = await buildFallbackScheduleFromTimetable(
         classId,
         classRef,
@@ -258,7 +265,9 @@ export async function loadScheduleForContext(classRef, suppliedContext = null) {
           context
         );
 
-        saveSelectedClass(String(classId));
+        if (pageState.hasUserSelection) {
+          saveSelectedClass(String(classId));
+        }
 
         if (context.currentSemester && context.currentYear) {
           highlightCurrentPeriod(context);
@@ -284,7 +293,9 @@ export async function loadScheduleForContext(classRef, suppliedContext = null) {
       context
     );
 
-    saveSelectedClass(String(classId));
+    if (pageState.hasUserSelection) {
+      saveSelectedClass(String(classId));
+    }
 
     if (context.currentSemester && context.currentYear) {
       highlightCurrentPeriod(context);
@@ -699,9 +710,11 @@ function bindClassSelector(context) {
     if (!value) {
       clearSavedSelectedClass();
       clearScheduleDisplay();
+      setPageState({ hasUserSelection: false, selectedClass: null });
       return;
     }
 
+    setPageState({ hasUserSelection: true });
     await loadScheduleForContext(value, context);
   });
 
@@ -747,3 +760,56 @@ export {
   renderEmptyScheduleState,
   highlightCurrentPeriod
 } from './student/ui.js';
+
+function compareClasses(a, b) {
+  const aKey = buildClassSortKey(a);
+  const bKey = buildClassSortKey(b);
+
+  if (aKey.levelRank !== bKey.levelRank) {
+    return aKey.levelRank - bKey.levelRank;
+  }
+  if (aKey.grade !== bKey.grade) {
+    return aKey.grade - bKey.grade;
+  }
+  if (aKey.section !== bKey.section) {
+    return aKey.section - bKey.section;
+  }
+  return aKey.name.localeCompare(bKey.name, 'th');
+}
+
+function buildClassSortKey(cls) {
+  const name = cls.class_name || '';
+  const gradeText = cls.grade_level || name.split('/')[0] || '';
+  const gradeMatch = gradeText.match(/(\d+)/);
+  const grade = gradeMatch ? Number.parseInt(gradeMatch[1], 10) : Number.MAX_SAFE_INTEGER;
+
+  const sectionValue =
+    cls.section ??
+    (() => {
+      const [, sectionPart] = name.split('/');
+      const sectionNum = Number.parseInt(sectionPart, 10);
+      return Number.isFinite(sectionNum) ? sectionNum : Number.MAX_SAFE_INTEGER;
+    })();
+
+  const section = Number.isFinite(sectionValue)
+    ? Number(sectionValue)
+    : Number.MAX_SAFE_INTEGER;
+
+  const levelRank = determineLevelRank(gradeText);
+
+  return {
+    levelRank,
+    grade,
+    section,
+    name
+  };
+}
+
+function determineLevelRank(label) {
+  if (!label) return Number.MAX_SAFE_INTEGER;
+  const normalized = label.trim();
+  if (/^ม\./i.test(normalized)) return 1;
+  if (/^ป\./i.test(normalized)) return 0;
+  if (/^อาชีว/i.test(normalized)) return 2;
+  return Number.MAX_SAFE_INTEGER;
+}

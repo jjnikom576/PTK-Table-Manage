@@ -2,6 +2,7 @@ const initialState = {
   currentSchedule: null,
   cachedTimetable: null,
   selectedClass: null,
+  hasUserSelection: false,
   availableClasses: [],
   isLoading: false,
   error: null
