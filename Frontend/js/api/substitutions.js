@@ -1,52 +1,57 @@
-/**
- * Substitutions API Service - Simple Mock Version
- */
+import scheduleAPI from './schedule-api.js';
 
-import { getYearBasedEndpoint, getTableName, apiError } from './config.js';
+const today = () => new Date().toISOString().slice(0, 10);
 
-// Simple mock data
-const mockSubstitutions = [
-  { id: 1, absent_teacher_id: 1, absent_date: '2024-12-01', reason: 'ลาป่วย', status: 'ACTIVE' },
-  { id: 2, absent_teacher_id: 4, absent_date: '2024-12-02', reason: 'ลากิจ', status: 'ACTIVE' }
-];
-
-const mockSubstitutionSchedules = [
-  { id: 1, substitution_id: 1, substitute_teacher_id: 2, original_schedule_id: 1, periods_count: 2 },
-  { id: 2, substitution_id: 2, substitute_teacher_id: 7, original_schedule_id: 2, periods_count: 1 }
-];
-
-/**
- * Get all substitutions for a specific year
- */
-export async function getSubstitutions(year) {
+export async function getSubstitutions() {
   try {
-    return { ok: true, data: mockSubstitutions };
+    const result = await scheduleAPI.getSubstitutionsByDate(today());
+    if (result.success) {
+      const data = Array.isArray(result.data?.absent_teachers) ? result.data.absent_teachers : [];
+      return { ok: true, data };
+    }
+    return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลการสอนแทนได้' };
   } catch (error) {
-    return apiError(`Failed to fetch substitutions for year ${year}`, 500, error);
+    console.error('[SubstitutionsAPI] Failed to load substitutions:', error);
+    return { ok: false, error: error.message };
   }
 }
 
-/**
- * Get all substitution schedules for a specific year
- */
-export async function getSubstitutionSchedules(year) {
+export async function getSubstitutionSchedules() {
   try {
-    return { ok: true, data: mockSubstitutionSchedules };
+    const result = await scheduleAPI.getSubstitutionsByDate(today());
+    if (result.success) {
+      const schedules = Array.isArray(result.data?.absent_teachers)
+        ? result.data.absent_teachers.flatMap((teacher) => teacher.periods || [])
+        : [];
+      return { ok: true, data: schedules };
+    }
+    return { ok: false, error: result.error || 'ไม่สามารถโหลดข้อมูลตารางสอนแทนได้' };
   } catch (error) {
-    return apiError(`Failed to fetch substitution schedules for year ${year}`, 500, error);
+    console.error('[SubstitutionsAPI] Failed to load substitution schedules:', error);
+    return { ok: false, error: error.message };
   }
 }
 
-/**
- * Get substitutions by date range
- */
-export async function getSubstitutionsByDateRange(year, startDate, endDate) {
+export async function getSubstitutionsByDateRange(_year, startDate, endDate) {
   try {
-    const filtered = mockSubstitutions.filter(sub => 
-      sub.absent_date >= startDate && sub.absent_date <= endDate
-    );
-    return { ok: true, data: filtered };
+    const cursor = new Date(startDate);
+    const end = new Date(endDate);
+    const aggregated = [];
+
+    while (cursor <= end) {
+      const dateStr = cursor.toISOString().slice(0, 10);
+      const result = await scheduleAPI.getSubstitutionsByDate(dateStr);
+      if (result.success && Array.isArray(result.data?.absent_teachers)) {
+        aggregated.push(
+          ...result.data.absent_teachers.map((entry) => ({ date: dateStr, ...entry }))
+        );
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return { ok: true, data: aggregated };
   } catch (error) {
-    return apiError(`Failed to fetch substitutions for date range`, 500, error);
+    console.error('[SubstitutionsAPI] Failed to load substitutions by date range:', error);
+    return { ok: false, error: error.message };
   }
 }

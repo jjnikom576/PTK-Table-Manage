@@ -1,1219 +1,322 @@
-/**
- * Enhanced Student Schedule Page for Multi-Year School Schedule System
- * Features: Context-aware loading, Room information, Export functionality
- */
-
 import * as dataService from '../services/dataService.js';
 import * as globalContext from '../context/globalContext.js';
 import coreAPI from '../api/core-api.js';
-import { exportTableToCSV, exportTableToXLSX, exportTableToGoogleSheets } from '../utils/export.js';
-import { formatRoomName, getRoomTypeBadgeClass, getThaiDayName, getDisplayPeriods, getDisplayPeriodsAsync, getLunchSlot, getLunchSlotAsync, isActiveSemester } from '../utils.js';
+import {
+  renderContextControls,
+  renderClassSelector,
+  renderScheduleHeader,
+  renderScheduleTable,
+  renderEmptyScheduleState,
+  highlightCurrentPeriod,
+  setLoading,
+  showError,
+  clearScheduleDisplay,
+  generateScheduleTable,
+  formatScheduleCell
+} from './student/ui.js';
+import {
+  renderExportBar,
+  setupStudentExportHandlers,
+  exportSchedule as exportScheduleModule
+} from './student/export.js';
+import {
+  pageState,
+  setPageState,
+  resetPageState,
+  getPageState as getPageStateModule
+} from './student/state.js';
+import {
+  saveSelectedClass,
+  getSavedSelectedClass,
+  clearSavedSelectedClass
+} from './student/storage.js';
 
-// =============================================================================
-// EXPORT FUNCTIONS (NEW)
-// =============================================================================
+const WAIT_INTERVAL_MS = 50;
+const WAIT_TIMEOUT_MS = 3000;
 
-/**
- * Refresh page data without resetting UI (NEW)
- */
-export async function refreshPage(newContext, preserveSelection = null) {
-  console.log('[StudentSchedule] Refreshing page data with context:', newContext);
-  
-  try {
-    // ⭐ FIX: ลด cache clearing - เพียง clear 1 ครั้ง
-    console.log('[StudentSchedule] Refreshing page data with context:', newContext);
-    
-    // Refresh class selector while preserving selection
-    await refreshClassSelector(newContext, preserveSelection);
-    
-    // If there was a selection, reload that schedule
-    if (preserveSelection) {
-      console.log('[StudentSchedule] Reloading schedule for preserved selection:', preserveSelection);
-      // ⭐ FIX: Use correct function name
-      const classDropdown = document.querySelector('#class-dropdown');
-      if (classDropdown && preserveSelection) {
-        classDropdown.value = preserveSelection;
-        const changeEvent = new Event('change', { bubbles: true });
-        classDropdown.dispatchEvent(changeEvent);
-      }
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function waitForElement(
+  selector,
+  { timeout = WAIT_TIMEOUT_MS, interval = WAIT_INTERVAL_MS } = {}
+) {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    const element = document.querySelector(selector);
+    if (element) {
+      return element;
     }
-    
-    console.log('[StudentSchedule] Page refresh completed successfully');
-    
-  } catch (error) {
-    console.error('[StudentSchedule] Error refreshing page:', error);
+    await delay(interval);
+  }
+  return null;
+}
+
+async function ensureStudentDom() {
+  await waitForElement('#page-student');
+  await waitForElement('#class-dropdown');
+  await waitForElement('#student-schedule-header');
+  await waitForElement('#export-bar-student');
+}
+
+function resolveContext(inputContext) {
+  return inputContext || globalContext.getContext();
+}
+
+function resolveSemesterId(context) {
+  return (
+    context.currentSemester?.id ||
+    context.semester?.id ||
+    context.semesterId ||
+    null
+  );
+}
+
+export async function refreshPage(newContext, preserveSelection = null) {
+  const context = resolveContext(newContext);
+  await refreshClassSelector(context, preserveSelection);
+
+  const targetClass =
+    preserveSelection ||
+    pageState.selectedClass ||
+    getSavedSelectedClass() ||
+    null;
+
+  if (targetClass) {
+    await loadScheduleForContext(targetClass, context);
   }
 }
 
-/**
- * Refresh class selector (EXPORTED)
- */
-export async function refreshClassSelector(context = null, preserveSelection = null) {
-  console.log('[StudentSchedule] Refreshing class selector');
-  
-  const currentContext = context || globalContext.getContext();
-  
-  // Find class selector
-  const selectors = ['#class-dropdown', '#class-selector', '.class-selector', '[data-class-selector]'];
-  let classSelector = null;
-  
-  for (const sel of selectors) {
-    classSelector = document.querySelector(sel);
-    if (classSelector) {
-      console.log(`Found class selector with: ${sel}`);
-      break;
-    }
-  }
-  
-  if (!classSelector) {
-    console.warn('Class selector not found');
+export async function refreshClassSelector(
+  context = null,
+  preserveSelection = null
+) {
+  const activeContext = resolveContext(context);
+  const year = activeContext.currentYear || activeContext.year;
+  const semesterId = resolveSemesterId(activeContext);
+
+  if (!year || !semesterId) {
+    renderClassSelector([], null);
+    clearScheduleDisplay();
     return;
   }
-  // Bind change event to use renderer (avoid external bindings)
-  if (!classSelector.dataset.bound) {
-    classSelector.addEventListener('change', async (e) => {
-      const val = e.target.value;
-      console.log('[StudentSchedule] Class changed:', val);
-      // Hide empty state immediately when a class is chosen
-      if (val) {
-        const emptyState = document.getElementById('student-empty-state');
-        if (emptyState) emptyState.style.display = 'none';
-      }
-      // ⭐ FIX: Use the same context as the class selector
-      await loadScheduleForContext(val, currentContext);
-    });
-    classSelector.dataset.bound = 'true';
-  }
-  
-  // Get fresh classes data with current context
-  const result = await dataService.getClasses(currentContext.currentYear, currentContext.currentSemester?.id || currentContext.semester?.id || currentContext.semesterId);
-  
-  let classes = [];
-  if (result.ok && result.data.length > 0) {
-    // ⭐ FIX: แสดงทุกระดับชั้น (ม.1–ม.6) และลบ duplicate ตาม class_name
-    const uniqueClasses = new Map();
-    result.data.forEach(cls => {
-      const key = cls.class_name;
-      if (!uniqueClasses.has(key)) {
-        uniqueClasses.set(key, cls);
-      }
-    });
-    classes = Array.from(uniqueClasses.values())
-      .sort((a, b) => a.class_name.localeCompare(b.class_name, 'th'));
-    console.log('[StudentSchedule] ✅ Filtered unique classes from dataService:', classes.map(c => `${c.grade_level} ${c.class_name}`));
-  } else {
-    // Fallback: ใช้ mock data โดยตรงเหมือน navigation.js
-    console.warn('[StudentSchedule] No classes from service, using mock data fallback');
-    const { mockData } = await import('../data/index.js');
-    
-    let allClasses = [];
-    [2566, 2567, 2568].forEach(year => {
-      if (mockData[year] && mockData[year].classes) {
-        allClasses = allClasses.concat(mockData[year].classes);
-      }
-    });
-    
-    // กรองเฉพาะ ม.1 และลบ duplicate
-    const uniqueClasses = new Map();
-    
-    allClasses.forEach(cls => {
-      const key = cls.class_name;
-      if (!uniqueClasses.has(key)) {
-        uniqueClasses.set(key, cls);
-      }
-    });
-    
-    classes = Array.from(uniqueClasses.values())
-      .sort((a, b) => a.class_name.localeCompare(b.class_name));
-  }
-  console.log('Got classes for refresh:', classes.map(c => c.class_name));
-  
-  // Update selector options
-  const currentSelection = preserveSelection || classSelector.value;
-  classSelector.innerHTML = '<option value="">-- เลือกห้องเรียน --</option>';
-  
-  classes.forEach(cls => {
-    const option = document.createElement('option');
-    option.value = cls.id; // ใช้ id เป็นค่าอ้างอิงหลัก
-    // option.textContent = `${cls.class_name} (${cls.student_count || 0} คน)`;
-    option.textContent = `${cls.class_name}`;
-    classSelector.appendChild(option);
-  });
-  
-  // ⭐ FIX: Auto-select first class เมื่อ page load ครั้งแรก
-  // Restore selection if possible
-  if (currentSelection && classSelector.querySelector(`option[value="${currentSelection}"]`)) {
-    classSelector.value = currentSelection;
-    console.log('Restored class selection:', currentSelection);
-    
-    // เฉพาะตอนที่ restore selection จึง trigger event
-    setTimeout(() => {
-      const changeEvent = new Event('change', { bubbles: true });
-      classSelector.dispatchEvent(changeEvent);
-      
-      // ⭐ FIX: Force load schedule if event doesn't work for restored selection
-      setTimeout(async () => {
-        const selectedClassId = classSelector.value;
-        if (selectedClassId && selectedClassId !== '') {
-          console.log('Force loading restored schedule for class:', selectedClassId);
-          await loadScheduleForContext(selectedClassId, currentContext);
-        }
-      }, 200);
-    }, 100);
-  } else if (!preserveSelection && classes.length > 0) {
-    // ⭐ FIX: Auto-select first class เมื่อไม่มี selection เดิม
-    const firstClass = classes[0];
-    classSelector.value = String(firstClass.id);
-    console.log('[StudentSchedule] ✅ Auto-selected first class (by id):', firstClass.class_name, firstClass.id);
-    
-    // Trigger change event เพื่อโหลด schedule
-    setTimeout(() => {
-      const changeEvent = new Event('change', { bubbles: true });
-      classSelector.dispatchEvent(changeEvent);
-      
-      // ⭐ FIX: Force load schedule if event doesn't trigger properly
-      setTimeout(async () => {
-        const selectedClassId = classSelector.value;
-        if (selectedClassId && selectedClassId !== '') {
-          console.log('Force loading schedule for class:', selectedClassId);
-          // ใช้ loadScheduleForContext แทน window.loadScheduleForClass เพื่อป้องกัน DOM replace
-          await loadScheduleForContext(selectedClassId, currentContext);
-        }
-      }, 200);
-    }, 100);
-  } else {
-    // กรณีอื่นๆ ไม่ auto-select
-    console.log('No previous selection, staying at default option');
-  }
-  
-  console.log('Class selector refreshed with', classes.length, 'classes');
-}
 
-// =============================================================================
-// PAGE STATE
-// =============================================================================
-
-let pageState = {
-  currentSchedule: null,
-  selectedClass: null,
-  availableClasses: [],
-  isLoading: false,
-  error: null
-};
-
-// =============================================================================
-// CONTEXT INTEGRATION
-// =============================================================================
-
-/**
- * Initialize Student Schedule Page
- */
-export async function initStudentSchedulePage(context) {
-  console.log('[StudentSchedule] Initializing page with context:', context);
-  
   try {
-    // ⭐ FIX: Use context directly without extra validation
-    const currentContext = context || globalContext.getContext();
-    
-    // ⭐ FIX: Ensure consistent context - use the latest global context
-    if (!currentContext.year || !currentContext.semesterId) {
-      console.warn('Context missing year/semesterId, using latest global context');
-      const latestContext = globalContext.getContext();
-      currentContext.year = latestContext.currentYear;
-      currentContext.currentYear = latestContext.currentYear; 
-      currentContext.semesterId = latestContext.currentSemester?.id;
-      currentContext.currentSemester = latestContext.currentSemester;
-      console.log('[StudentSchedule] Updated context:', currentContext);
-    }
-    
-    // ⭐ FIX: Set DataService context to match student schedule context (if function exists)
-    if (typeof dataService.setGlobalContext === 'function') {
-      await dataService.setGlobalContext(
-        currentContext.currentYear || currentContext.year,
-        currentContext.currentSemester?.id || currentContext.semesterId
+    const contextSync = await dataService.setGlobalContext(year, semesterId);
+    if (!contextSync.ok) {
+      console.warn(
+        '[StudentSchedule] Failed to sync data context:',
+        contextSync.error
       );
-      console.log('[StudentSchedule] Set DataService context for initialization');
-    } else {
-      console.warn('[StudentSchedule] dataService.setGlobalContext not available');
     }
-    
-    console.log('[StudentSchedule] Final context for initialization:', currentContext);
-    
-    // Render page components
-    await renderContextControls(currentContext);
-
-// Load available classes
-    await loadAvailableClasses(currentContext);
-    
-    // ⭐ FIX: Move refresh to AFTER DOM setup
-    // setTimeout(async () => {
-    //   await refreshClassSelector(currentContext);
-    // }, 100);
-    
-    // Setup event listeners
-    setupEventListeners(currentContext);
-    
-    // Load initial schedule if class is selected
-    const savedClass = getSavedSelectedClass();
-    if (savedClass) {
-      pageState.selectedClass = savedClass;
-      await loadScheduleForContext(savedClass, context);
-    }
-    
-    // Setup export handlers
-    setupStudentExportHandlers(context);
-    
-    console.log('[StudentSchedule] Page initialized successfully');
-    
-    // ⭐ FIX: Re-setup event listeners + refresh selector after page clear
-    setTimeout(async () => {
-      console.log('Re-setting up event listeners...');
-      setupEventListeners(currentContext);  // Re-setup lost listeners
-      await refreshClassSelector(currentContext);  // Then refresh selector
-      
-      // ⭐ FIX: Force load schedule if auto-select doesn't trigger properly  
-      setTimeout(async () => {
-        const classSelector = document.querySelector('#class-selector') || document.querySelector('.class-selector');
-        const selectedClassId = classSelector?.value;
-        const hasScheduleTable = document.querySelector('.schedule-table') !== null;
-        
-        if (selectedClassId && selectedClassId !== '' && !hasScheduleTable) {
-          console.log('[StudentSchedule] 🔥 FORCE Loading schedule for class:', selectedClassId, '(auto-select failed)');
-          // ใช้ loadScheduleForContext แทน window.loadScheduleForClass กับ current context
-          await loadScheduleForContext(selectedClassId, currentContext);
-        } else if (selectedClassId && hasScheduleTable) {
-          console.log('[StudentSchedule] ✅ Auto-select worked, schedule already loaded for class:', selectedClassId);
-        } else {
-          console.log('[StudentSchedule] 👍 No class selected yet, waiting for user action');
-        }
-      }, 500);
-    }, 300);
-    
   } catch (error) {
-    console.error('[StudentSchedule] Failed to initialize page:', error);
-    showError(error.message);
+    console.warn('[StudentSchedule] setGlobalContext error:', error);
+  }
+
+  const classesResponse = await dataService.getClasses(year, semesterId);
+  let classes = [];
+
+  if (classesResponse.ok) {
+    const uniqueClasses = new Map();
+    (classesResponse.data || []).forEach((cls) => {
+      if (!uniqueClasses.has(cls.class_name)) {
+        uniqueClasses.set(cls.class_name, cls);
+      }
+    });
+    classes = Array.from(uniqueClasses.values()).sort((a, b) =>
+      a.class_name.localeCompare(b.class_name, 'th')
+    );
+  } else {
+    console.warn('[StudentSchedule] Failed to load classes for selector:', classesResponse.error);
+  }
+
+  setPageState({ availableClasses: classes });
+
+  const savedSelection =
+    preserveSelection ||
+    pageState.selectedClass ||
+    getSavedSelectedClass();
+
+  const selector =
+    document.getElementById('class-dropdown') ||
+    document.getElementById('class-selector') ||
+    (await waitForElement('#class-dropdown')) ||
+    (await waitForElement('#page-student select'));
+  if (!selector) {
+    clearScheduleDisplay();
+    return;
+  }
+
+  renderClassSelector(classes, savedSelection);
+  bindClassSelector(activeContext);
+
+  let targetValue = savedSelection;
+  if (!targetValue && classes.length) {
+    targetValue = classes[0].id;
+  }
+
+  if (targetValue) {
+    selector.value = String(targetValue);
+    await loadScheduleForContext(targetValue, activeContext);
+  } else {
+    clearScheduleDisplay();
   }
 }
 
-/**
- * Update Page For Context
- */
+export async function initStudentSchedulePage(initialContext) {
+  const context = resolveContext(initialContext);
+  resetPageState();
+
+  await ensureStudentDom();
+  renderContextControls(context);
+  renderExportBar(context);
+  setupStudentExportHandlers(context);
+
+  await refreshClassSelector(context);
+  ensureGlobalHooks();
+}
+
 export async function updatePageForContext(newContext) {
-  console.log('[StudentSchedule] Updating page for new context:', newContext);
-  
-  try {
-    // Update context controls
-    await renderContextControls(newContext);
-    
-    // Reload available classes
-    await loadAvailableClasses(newContext);
-    
-    // Reload current schedule if class is selected
-    if (pageState.selectedClass) {
-      await loadScheduleForContext(pageState.selectedClass, newContext);
-    }
-    
-  } catch (error) {
-    console.error('[StudentSchedule] Failed to update page:', error);
-    showError(error.message);
-  }
+  const context = resolveContext(newContext);
+  await ensureStudentDom();
+  renderContextControls(context);
+  renderExportBar(context);
+  setupStudentExportHandlers(context);
+
+  await refreshClassSelector(context);
 }
 
-/**
- * Load Schedule For Context
- */
-export async function loadScheduleForContext(classRef, context) {
-  // Prefer API timetable by selected context (public, no login required)
-  try {
-    const year = context?.currentYear;
-    const semesterId = context?.currentSemester?.id;
-    if (year && semesterId) {
-      const apiRes = await coreAPI.getTimetableBy(year, semesterId, true);
-      if (apiRes && apiRes.success) {
-        const cached = coreAPI.getCachedTimetable && coreAPI.getCachedTimetable();
-        if (cached) {
-          if (cached.list && Array.isArray(cached.list)) {
-            // Build matrix from list (mock-compatible)
-            const matrix = {};
-            for (let d = 1; d <= 7; d++) { matrix[d] = {}; for (let p = 1; p <= 12; p++) { matrix[d][p] = null; } }
-            cached.list.forEach(item => {
-              const day = item.day_of_week;
-              const period = item.period || item.period_no;
-              if (!day || !period) return;
-              matrix[day] = matrix[day] || {};
-              const cell = {
-                subject: { subject_name: item.subject_name || '' },
-                teacher: { name: item.teacher_name || '' },
-                room: { name: item.room_name || '' },
-                class: { name: item.class_name || '' },
-                raw: item
-              };
-              matrix[day][period] = cell;
-            });
-            pageState.currentSchedule = { matrix };
-          }
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('[StudentSchedule] Timetable API not available, fallback to existing data flow');
+export async function loadScheduleForContext(classRef, suppliedContext = null) {
+  const context = resolveContext(suppliedContext);
+  const validation = validateContextAccess(context);
+  if (!validation.ok) {
+    showError(validation.error);
+    return { ok: false, error: validation.error };
   }
-  if (!classRef) return;
+
+  if (!classRef) {
+    clearScheduleDisplay();
+    return { ok: false, error: 'กรุณาเลือกห้องเรียนก่อน' };
+  }
+
+  const year = context.currentYear || context.year;
+  const semesterId = resolveSemesterId(context);
+
+  if (year && semesterId) {
+    try {
+      const contextSync = await dataService.setGlobalContext(year, semesterId);
+      if (!contextSync.ok) {
+        console.warn(
+          '[StudentSchedule] Failed to sync data context before load:',
+          contextSync.error
+        );
+      }
+    } catch (error) {
+      console.warn(
+        '[StudentSchedule] Unexpected error syncing data context:',
+        error
+      );
+    }
+  }
+
+  setLoading(true);
 
   try {
-    setLoading(true);
+    const timetableData = await preloadTimetableFromAPI(context);
 
-    // Resolve class id (accept numeric ID or class name)
-    let classId = null;
-
-    // 1) If classRef is a number or numeric string, use it directly
-    if (typeof classRef === 'number' || (/^\d+$/.test(String(classRef)))) {
-      classId = parseInt(classRef, 10);
-    }
-
-    // 2) Try resolve by name from current cached classes
+    const classId = await resolveClassId(classRef, context);
     if (!classId) {
-      const byNameLocal = pageState.availableClasses.find(c => c.class_name === String(classRef));
-      if (byNameLocal) classId = byNameLocal.id;
-    }
-
-    // 3) Fallback: fetch classes for the context year and resolve by id or name
-    if (!classId) {
-      const year = context.currentYear || context.year;
-      const classesRes = await dataService.getClasses(year, context.currentSemester?.id || context.semester?.id || context.semesterId);
-      if (classesRes.ok && classesRes.data?.length) {
-        pageState.availableClasses = classesRes.data;
-
-        // Prefer ID match first (supports numeric dropdown values like "63")
-        const byId = classesRes.data.find(c => c.id === parseInt(String(classRef), 10));
-        if (byId) {
-          classId = byId.id;
-        } else {
-          const byName = classesRes.data.find(c => c.class_name === String(classRef));
-          if (byName) classId = byName.id;
-        }
-      }
-    }
-
-    if (!classId || Number.isNaN(classId)) throw new Error(`ไม่พบห้องเรียน: ${classRef}`);
-
-    // ⭐ FIX: Ensure DataService context matches before loading schedule
-    console.log('[StudentSchedule] 📊 About to load schedule for classId:', classId);
-    
-    // Set dataService context to current year/semester
-    const loadYear = context.currentYear || context.year;
-    const loadSemester = context.currentSemester?.id || context.semesterId;
-    console.log('[StudentSchedule] Setting DataService context for schedule load - Year:', loadYear, 'Semester:', loadSemester);
-    
-    // Set dataService context to current year/semester (if function exists)
-    if (typeof dataService.setGlobalContext === 'function') {
-      await dataService.setGlobalContext(loadYear, loadSemester);
-      console.log('[StudentSchedule] DataService context set for schedule loading');
-    } else {
-      console.warn('[StudentSchedule] dataService.setGlobalContext not available for schedule loading');
-    }
-    
-    // Load schedule (matrix-based) from dataService
-    const result = await dataService.getStudentSchedule(classId);
-    console.log('[StudentSchedule] Schedule load result:', result?.ok ? '✅ Success' : '❌ Failed', result);
-    if (result && result.ok && result.data?.matrix) {
-      pageState.currentSchedule = result.data;
-      pageState.selectedClass = classId;
-
-      // Render schedule
-      renderScheduleHeader(result.data.classInfo?.class_name || String(classId), context);
-      await renderScheduleTable(result.data, context);
-
-      // Setup export functionality
-      renderExportBar(context);
-      setupExportHandlers(result.data.classInfo?.class_name || String(classId), context);
-
-      // Highlight current period if active semester
-      if (isActiveSemester(context.currentSemester)) {
-        highlightCurrentPeriod(context);
-      }
-    } else {
       renderEmptyScheduleState(String(classRef), context);
+      return { ok: false, error: 'ไม่พบห้องเรียนที่เลือก' };
     }
 
-    // Save selected class
-    saveSelectedClass(String(classRef));
+    const scheduleResult = await dataService.getStudentSchedule(classId);
+      if (!scheduleResult.ok) {
+      const fallbackSchedule = await buildFallbackScheduleFromTimetable(
+        classId,
+        classRef,
+        context,
+        timetableData
+      );
 
+      if (fallbackSchedule) {
+        console.warn(
+          '[StudentSchedule] Using timetable fallback for class:',
+          classId,
+          scheduleResult.error
+        );
+        const fallbackClassName =
+          fallbackSchedule.classInfo?.class_name ||
+          findClassNameById(classId) ||
+          String(classRef);
+
+        await presentScheduleResult(
+          classId,
+          fallbackClassName,
+          fallbackSchedule,
+          context
+        );
+
+        saveSelectedClass(String(classId));
+
+        if (context.currentSemester && context.currentYear) {
+          highlightCurrentPeriod(context);
+        }
+
+        return { ok: true, data: fallbackSchedule, fallback: true };
+      }
+
+      showError(scheduleResult.error || 'ไม่สามารถโหลดตารางเรียนได้');
+      renderEmptyScheduleState(String(classRef), context);
+      return scheduleResult;
+    }
+
+    const renderedClassName =
+      scheduleResult.data?.classInfo?.class_name ||
+      findClassNameById(classId) ||
+      String(classRef);
+
+    await presentScheduleResult(
+      classId,
+      renderedClassName,
+      scheduleResult.data,
+      context
+    );
+
+    saveSelectedClass(String(classId));
+
+    if (context.currentSemester && context.currentYear) {
+      highlightCurrentPeriod(context);
+    }
+
+    return scheduleResult;
   } catch (error) {
     console.error('[StudentSchedule] Failed to load schedule:', error);
-    showError(`โหลดตารางเรียนล้มเหลว: ${error.message}`);
+    showError(error.message || 'เกิดข้อผิดพลาดระหว่างโหลดตารางเรียน');
+    renderEmptyScheduleState(String(classRef), context);
+    return { ok: false, error: error.message };
   } finally {
     setLoading(false);
   }
 }
 
-/**
- * Validate Context Access
- */
 export function validateContextAccess(context) {
   if (!context.currentYear) {
-    return { ok: false, error: 'ไม่ได้เลือกปีการศึกษา' };
+    return { ok: false, error: 'กรุณาเลือกปีการศึกษา' };
   }
-  
-  if (!context.currentSemester) {
-    return { ok: false, error: 'ไม่ได้เลือกภาคเรียน' };
+  if (!resolveSemesterId(context)) {
+    return { ok: false, error: 'กรุณาเลือกภาคเรียน' };
   }
-  
   return { ok: true };
 }
 
-// =============================================================================
-// UI COMPONENTS
-// =============================================================================
-
-/**
- * Render Context Controls
- */
-export async function renderContextControls(context) {
-  const controlsContainer = document.getElementById('student-context-controls');
-  if (!controlsContainer) return;
-  
-  controlsContainer.innerHTML = `
-    <div class="page-header">
-      <h2>📚 ตารางเรียน</h2>
-      <div class="context-info">
-        <span>ปีการศึกษา ${context.currentYear || 'ไม่ได้เลือก'}</span>
-        <span class="separator">|</span>
-        <span>${context.currentSemester?.semester_name || 'ไม่ได้เลือกภาคเรียน'}</span>
-      </div>
-    </div>
-    
-    <div class="class-selector-container">
-      <label for="class-selector">เลือกห้องเรียน:</label>
-      <select id="class-selector" class="class-selector">
-        <option value="">เลือกห้องเรียน</option>
-      </select>
-    </div>
-    
-    <div id="loading-indicator" class="loading-indicator" style="display: none;">
-      <div class="spinner"></div>
-      <span>กำลังโหลดตารางเรียน...</span>
-    </div>
-    
-    <div id="error-message" class="error-message" style="display: none;"></div>
-  `;
-}
-
-/**
- * Render Class Selector
- */
-export function renderClassSelector(availableClasses, selectedClass) {
-  const classSelector = document.getElementById('class-selector');
-  if (!classSelector) return;
-  
-  classSelector.innerHTML = '<option value="">เลือกห้องเรียน</option>';
-  
-  // Group classes by grade level
-  const groupedClasses = groupClassesByGrade(availableClasses);
-  
-  Object.entries(groupedClasses).forEach(([grade, classes]) => {
-    const optgroup = document.createElement('optgroup');
-    optgroup.label = grade;
-    
-    classes.forEach(cls => {
-      const option = document.createElement('option');
-      option.value = cls.id;
-      // option.textContent = `${cls.class_name} (${cls.student_count || 'ไม่ระบุ'} คน)`;
-      option.textContent = `${cls.class_name}`;
-      option.selected = String(cls.id) === String(selectedClass);
-      optgroup.appendChild(option);
-    });
-    
-    classSelector.appendChild(optgroup);
-  });
-}
-
-/**
- * Render Schedule Header
- */
-export function renderScheduleHeader(className, context) {
-  // Use the actual header element id from index.html
-  const headerContainer = document.getElementById('student-schedule-header');
-  if (!headerContainer) return;
-  
-  // Show only class title; term/year already shown in the main header
-  headerContainer.innerHTML = `
-    <h3 class="schedule-title centered">ตารางเรียน ${className}</h3>
-  `;
-
-  // Ensure header is visible and empty state is hidden
-  headerContainer.classList.remove('hidden');
-  const emptyState = document.getElementById('student-empty-state');
-  if (emptyState) emptyState.style.display = 'none';
-}
-
-/**
- * Render Schedule Table
- */
-export async function renderScheduleTable(resultData, context) {
-  const tableContainer = getScheduleContainer();
-  if (!tableContainer) return;
-
-  const matrix = resultData?.matrix;
-  if (!matrix) {
-    tableContainer.innerHTML = '<p class="no-schedule">ไม่มีตารางเรียนสำหรับห้องนี้</p>';
-    return;
-  }
-
-  const year = context?.currentYear || context?.year;
-  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
-  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
-  const lunchSlot = await getLunchSlotAsync(year, semesterId);
-  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
-
-  // Build header: วัน/เวลา | คาบ 1 | คาบ 2 | ...
-  let html = '<div class="schedule-table-wrapper">';
-  html += '<table class="schedule-table">';
-  html += '<thead><tr>';
-  html += '<th class="day-header">วัน/เวลา</th>';
-  displayPeriods.forEach(({ display, actual, label }) => {
-    html += `<th class="period-header"><div class="period-info"><span class="period-number">คาบ ${display}</span><span class="time-slot">${label}</span></div></th>`;
-    if (actual === 4) {
-      html += `<th class="lunch-header lunch-column"><div class="lunch-info">${lunchSlot.label}<br><small>${lunchSlot.time}</small></div></th>`;
-    }
-  });
-  html += '</tr></thead>';
-
-  // Rows: each day on its own row, columns for periods 1..8 with a lunch column between 4 and 5
-  html += '<tbody>';
-  days.forEach((dayName, dayIndex) => {
-    const day = dayIndex + 1;
-    html += `<tr class="day-row" data-day="${day}">`;
-    html += `<td class="day-cell">${dayName}</td>`;
-
-    displayPeriods.forEach(({ display, actual }) => {
-      const period = actual;
-      const cell = matrix[day]?.[period];
-      if (cell) {
-        const subjectCode = cell.subject?.subject_code || cell.subject?.subject_name?.substring(0, 6) || '-';
-        const teacherName = cell.teacher?.name || '';
-        const roomName = String(cell.room?.name || '');
-
-        html += `<td class="schedule-cell has-subject" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
-                `<div class="schedule-cell-content">` +
-                `<div class="subject-code">${subjectCode}</div>` +
-                `<div class="teacher-name">${teacherName}</div>` +
-                `<div class="room-info">${roomName}</div>` +
-                `</div>` +
-                `</td>`;
-      } else {
-        const emptyText = '-';
-        html += `<td class="schedule-cell empty" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
-                `<div class="empty-cell">${emptyText}</div>` +
-                `</td>`;
-      }
-
-      // Insert lunch column right after period 4 (merged across all day rows)
-      if (period === 4) {
-        if (dayIndex === 0) {
-          // Only render once with rowspan to merge Mon-Fri
-          html += `<td class="lunch-cell lunch-column" aria-label="${lunchSlot.label} ${lunchSlot.time}" rowspan="${days.length}">${lunchSlot.label}<br><small>${lunchSlot.time}</small></td>`;
-        }
-        // For other days, no extra cell so the rowspan cell spans over them
-      }
-    });
-    html += '</tr>';
-  });
-  html += '</tbody>';
-  html += '</table></div>';
-  tableContainer.innerHTML = html;
-  try { fitStudentTableFonts(tableContainer); } catch (e) { console.warn('[StudentSchedule] font fit failed:', e); }
-
-  // Render subject legend below table
-  renderSubjectLegend(resultData, context);
-
-  // Hide empty state when table is rendered
-  const emptyState = document.getElementById('student-empty-state');
-  if (emptyState) emptyState.style.display = 'none';
-}
-
-/**
- * Render Subject Legend (คำอธิบายรหัสวิชา)
- */
-function renderSubjectLegend(resultData, context) {
-  const legendContainer = document.getElementById('student-subject-legend') || createLegendContainer();
-  if (!legendContainer) return;
-
-  const matrix = resultData?.matrix;
-  if (!matrix) {
-    legendContainer.innerHTML = '';
-    return;
-  }
-
-  // Collect all unique subjects from matrix
-  const subjectsMap = new Map();
-
-  Object.values(matrix).forEach(daySchedule => {
-    Object.values(daySchedule).forEach(cell => {
-      if (cell && cell.subject) {
-        const subjectCode = cell.subject.subject_code || cell.subject.subject_name?.substring(0, 6) || '';
-        const subjectName = cell.subject.subject_name || '';
-
-        if (subjectCode && !subjectsMap.has(subjectCode)) {
-          subjectsMap.set(subjectCode, {
-            code: subjectCode,
-            name: subjectName
-          });
-        }
-      }
-    });
-  });
-
-  // Sort by subject code
-  const subjects = Array.from(subjectsMap.values()).sort((a, b) =>
-    a.code.localeCompare(b.code, 'th')
-  );
-
-  if (subjects.length === 0) {
-    legendContainer.innerHTML = '';
-    return;
-  }
-
-  // Render legend (compact 3-column layout)
-  legendContainer.innerHTML = `
-    <div class="student-legend-card">
-      <h4 style="text-align: center !important;">📚 คำอธิบายรหัสวิชา</h4>
-      <div class="student-legend-grid">
-        ${subjects.map(subject => `
-          <div class="student-legend-item">
-            <span class="subject-code">${subject.code}</span>
-            <span class="subject-name">${subject.name}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Create Legend Container if not exists
- */
-function createLegendContainer() {
-  const tableContainer = getScheduleContainer();
-  if (!tableContainer || !tableContainer.parentElement) return null;
-
-  let legendContainer = document.getElementById('student-subject-legend');
-  if (!legendContainer) {
-    legendContainer = document.createElement('div');
-    legendContainer.id = 'student-subject-legend';
-    legendContainer.className = 'subject-legend-container';
-    tableContainer.parentElement.insertBefore(legendContainer, tableContainer.nextSibling);
-  }
-
-  return legendContainer;
-}
-
-// Determine a global font size that makes all cells fit, then apply uniformly
-function fitStudentTableFonts(container) {
-  const subjects = container.querySelectorAll('.schedule-cell .subject-code');
-  const teachers = container.querySelectorAll('.schedule-cell .teacher-name');
-  const rooms = container.querySelectorAll('.schedule-cell .room-info');
-  const contents = container.querySelectorAll('.schedule-cell .schedule-cell-content');
-  if (!subjects.length || !contents.length) return;
-
-  const textElements = [...subjects, ...teachers, ...rooms];
-
-  // Helper: do all subject names fit in one line at a given font size?
-  const subjectsFitAt = (px) => {
-    const metaPx = Math.max(Math.round(px * 0.85), px - 2, 8);
-    container.style.setProperty('--subject-font', px + 'px');
-    container.style.setProperty('--schedule-meta-font', metaPx + 'px');
-    // Force reflow
-    void container.offsetHeight;
-    let ok = true;
-    textElements.forEach(el => {
-      if (!ok) return;
-      // Compare content width vs available width of the text line
-      const margin = 4; // leave slightly larger safety margin due to padding
-      const available = (el.clientWidth || (el.parentElement?.clientWidth || 0)) - margin;
-      const needed = el.scrollWidth;
-      if (needed - available > 1) ok = false;
-    });
-    // Also ensure total content height fits inside the cell height (prevents slight overlaps)
-    if (ok) {
-      contents.forEach(content => {
-        if (!ok) return;
-        const cell = content.closest('td');
-        const maxH = (cell?.clientHeight || 64) - 4; // leave small breathing room
-        if (content.scrollHeight > maxH) ok = false;
-      });
-    }
-    return ok;
-  };
-
-  const maxPx = 18; // upper bound
-  const minPx = 6;  // lower bound (allow smaller to avoid overlap)
-  let chosen = 12;
-
-  // Find the largest size between min..max that still fits one-line for all subjects
-  for (let s = maxPx; s >= minPx; s--) {
-    if (subjectsFitAt(s)) {
-      chosen = s;
-      break;
-    }
-  }
-
-  // Apply final font values after best-fit search
-  const finalSubject = chosen;
-  container.style.setProperty('--subject-font', finalSubject + 'px');
-  // Ensure other lines use their defaults
-  container.style.removeProperty('--teacher-font');
-  container.style.setProperty('--schedule-meta-font', Math.max(Math.round(chosen * 0.85), chosen - 2, 8) + 'px');
-  container.style.removeProperty('--room-font');
-}
-
-function getScheduleContainer() {
-  return document.getElementById('student-schedule-table') ||
-         document.getElementById('schedule-table-container');
-}
-
-/**
- * Generate Schedule Table
- */
-export async function generateScheduleTable(scheduleData, className, context) {
-  const year = context?.currentYear || context?.year;
-  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
-  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
-  const lunchSlot = await getLunchSlotAsync(year, semesterId);
-  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
-  
-  // Create schedule matrix
-  const scheduleMatrix = createScheduleMatrix(scheduleData);
-  
-  let tableHTML = `
-    <div class="schedule-table-wrapper">
-      <table class="schedule-table">
-        <thead>
-          <tr>
-            <th class="time-header">เวลา</th>
-            ${days.map(day => `<th class="day-header">${day}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-  `;
-  
-  displayPeriods.forEach(({ display, actual, label }) => {
-    const period = actual;
-    tableHTML += `
-      <tr class="period-row" data-period="${period}" data-display-period="${display}">
-        <td class="time-cell">
-          <div class="period-info">
-            <span class="period-number">คาบ ${display}</span>
-            <span class="time-slot">${label}</span>
-          </div>
-        </td>
-    `;
-    
-    days.forEach((day, dayIndex) => {
-      const dayNumber = dayIndex + 1;
-      const cellData = scheduleMatrix[dayNumber]?.[period];
-      
-      if (cellData) {
-        tableHTML += `
-          <td class="schedule-cell has-subject" data-day="${dayNumber}" data-period="${period}">
-            ${formatScheduleCell(cellData.subject, cellData.teacher, cellData.room, context)}
-          </td>
-        `;
-      } else {
-        const emptyText = '-';
-        tableHTML += `
-          <td class="schedule-cell empty" data-day="${dayNumber}" data-period="${period}">
-            <div class="empty-cell">${emptyText}</div>
-          </td>
-        `;
-      }
-    });
-
-    tableHTML += '</tr>';
-    if (period === 4) {
-      // Insert lunch row after period 4
-      tableHTML += `<tr class="lunch-row"><td colspan="6">${lunchSlot.label} ${lunchTimeDisplay}</td></tr>`;
-    }
-  });
-  
-  tableHTML += `
-        </tbody>
-      </table>
-    </div>
-  `;
-  
-  return tableHTML;
-}
-
-/**
- * Format Schedule Cell
- */
-export function formatScheduleCell(subject, teacher, room, context) {
-  return `
-    <div class="schedule-cell-content">
-      <div class="subject-name">${subject?.subject_name || 'ไม่ระบุวิชา'}</div>
-      <div class="teacher-name">${teacher?.name || 'ไม่ระบุครู'}</div>
-      <div class="room-info">
-        ${room ? `
-          ${room.name || ''}
-          <span class="badge ${getRoomTypeBadgeClass(room.room_type)}">
-            ${room.room_type}
-          </span>
-        ` : 'ไม่ระบุห้อง'}
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Render Empty Schedule State
- */
-export function renderEmptyScheduleState(className, context) {
-  const tableContainer = document.getElementById('schedule-table-container');
-  if (!tableContainer) return;
-  
-  tableContainer.innerHTML = `
-    <div class="empty-schedule-state">
-      <div class="empty-icon">📅</div>
-      <h3>ไม่มีตารางเรียน</h3>
-      <p>ไม่พบตารางเรียนสำหรับห้อง <strong>${className}</strong></p>
-      <p>ใน${context.currentSemester?.semester_name} ปีการศึกษา ${context.currentYear}</p>
-      <div class="empty-actions">
-        <button class="btn btn--outline" onclick="location.reload()">
-          🔄 รีเฟรช
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-// =============================================================================
-// ROBUST LOADER (override legacy duplicates)
-// =============================================================================
-
-async function robustLoadSchedule(classRef, context) {
-  try {
-    console.log('[StudentSchedule] robustLoadSchedule called with:', classRef);
-    setLoading(true);
-    const ctx = context || globalContext.getContext();
-    let classId = null;
-    // Resolve id
-    if (typeof classRef === 'number' || (/^\d+$/.test(String(classRef)))) {
-      classId = parseInt(classRef, 10);
-    } else {
-      const byName = pageState.availableClasses.find(c => c.class_name === String(classRef));
-      if (byName) classId = byName.id;
-      if (!classId) {
-        const clsRes = await dataService.getClasses(ctx.currentYear || ctx.year, ctx.currentSemester?.id || ctx.semester?.id || ctx.semesterId);
-        if (clsRes.ok) {
-          pageState.availableClasses = clsRes.data;
-          const found = clsRes.data.find(c => c.class_name === String(classRef));
-          if (found) classId = found.id;
-        }
-      }
-    }
-    if (!classId) throw new Error(`ไม่พบห้องเรียน: ${classRef}`);
-
-    const result = await dataService.getStudentSchedule(classId);
-    if (result?.ok && result.data?.matrix) {
-      pageState.currentSchedule = result.data;
-      pageState.selectedClass = classId;
-      renderScheduleHeader(result.data.classInfo?.class_name || String(classId), ctx);
-      await renderScheduleTable(result.data, ctx);
-    } else {
-      renderEmptyScheduleState(String(classRef), ctx);
-    }
-  } catch (e) {
-    console.error('[StudentSchedule] robustLoadSchedule failed:', e);
-    showError(e.message || 'โหลดตารางล้มเหลว');
-  } finally {
-    setLoading(false);
-  }
-}
-
-// Override global export to ensure our robust loader is used everywhere
-if (typeof window !== 'undefined') {
-  window.studentSchedulePage = window.studentSchedulePage || {};
-  window.studentSchedulePage.loadScheduleForContext = robustLoadSchedule;
-}
-
-/**
- * Highlight Current Period
- */
-export function highlightCurrentPeriod(context) {
-  if (!isActiveSemester(context.currentSemester)) return;
-  
-  const now = new Date();
-  const currentDay = now.getDay(); // 0=Sunday, 1=Monday, ...
-  const currentTime = now.getHours() * 100 + now.getMinutes(); // HHMM format
-  
-  // Skip weekends
-  if (currentDay === 0 || currentDay === 6) return;
-  
-  // Time periods mapping
-  const timePeriods = [
-    { start: 820, end: 930, period: 1 },
-    { start: 930, end: 1020, period: 2 },
-    { start: 1020, end: 1110, period: 3 },
-    { start: 1110, end: 1200, period: 4 },
-    { start: 1300, end: 1350, period: 6 },
-    { start: 1350, end: 1440, period: 7 },
-    { start: 1440, end: 1530, period: 8 }
-  ];
-  
-  // Find current period
-  const currentPeriod = timePeriods.find(tp => 
-    currentTime >= tp.start && currentTime <= tp.end
-  );
-  
-  if (currentPeriod) {
-    const cell = document.querySelector(`[data-day="${currentDay}"][data-period="${currentPeriod.period}"]`);
-    if (cell) {
-      cell.classList.add('current-period');
-      
-      // Add pulse animation for current period
-      cell.style.animation = 'pulse 2s infinite';
-    }
-  }
-}
-
-// =============================================================================
-// EXPORT FUNCTIONALITY
-// =============================================================================
-
-/**
- * Render Export Bar
- */
-export function renderExportBar(context) {
-  const exportContainer = document.getElementById('student-export-bar');
-  if (!exportContainer) return;
-  
-  const isHistorical = !isActiveSemester(context.currentSemester);
-  
-  exportContainer.innerHTML = `
-    <div class="export-bar">
-      <h4>📤 Export ตารางเรียน</h4>
-      <div class="export-buttons">
-        <button class="btn btn--sm btn--export" data-export-type="csv">
-          📄 Export CSV
-        </button>
-        <button class="btn btn--sm btn--export" data-export-type="xlsx">
-          📊 Export Excel
-        </button>
-        ${!isHistorical ? `
-          <button class="btn btn--sm btn--export btn--gsheets" data-export-type="gsheets">
-            📋 Google Sheets
-          </button>
-        ` : ''}
-      </div>
-      <div class="export-status" id="export-status" style="display: none;"></div>
-    </div>
-  `;
-}
-
-/**
- * Export Schedule
- */
-export async function exportSchedule(format, className, context) {
-  if (!className || !context.currentSemester) {
-    throw new Error('ไม่สามารถ Export ได้: ข้อมูลไม่ครบถ้วน');
-  }
-  
-  try {
-    const classId = getClassIdByName(className);
-    if (!classId) {
-      throw new Error(`ไม่พบห้องเรียน: ${className}`);
-    }
-    
-    const scheduleData = await dataService.normalizeStudentScheduleForExport({
-      classId,
-      semesterId: context.currentSemester.id
-    });
-    
-    if (!scheduleData || scheduleData.length === 0) {
-      throw new Error('ไม่มีข้อมูลตารางเรียนสำหรับ Export');
-    }
-    
-    const filename = generateExportFilename(`ตารางเรียน-${className}`, context);
-    
-    switch(format) {
-      case 'csv': 
-        return await exportTableToCSV(scheduleData, filename);
-      case 'xlsx': 
-        return await exportTableToXLSX(scheduleData, filename);
-      case 'gsheets': 
-        return await exportTableToGoogleSheets(scheduleData, filename);
-      default:
-        throw new Error('รูปแบบ Export ไม่ถูกต้อง');
-    }
-    
-  } catch (error) {
-    console.error('[StudentSchedule] Export failed:', error);
-    throw error;
-  }
-}
-
-// =============================================================================
-// HELPER FUNCTIONS
-// =============================================================================
-
-/**
- * Create Schedule Matrix from schedule data
- */
-function createScheduleMatrix(scheduleData) {
-  const matrix = {};
-  
-  scheduleData.forEach(item => {
-    const day = item.day || item.day_of_week;
-    const period = item.period;
-    
-    if (!matrix[day]) {
-      matrix[day] = {};
-    }
-    
-    matrix[day][period] = {
-      subject: {
-        subject_name: item['วิชา'] || item.subject_name,
-        subject_code: item['รหัสวิชา'] || item.subject_code
-      },
-      teacher: {
-        name: item['ครู'] || item.teacher_name
-      },
-      room: {
-        name: item['ห้อง'] ? item['ห้อง'].split(' (')[0] : (item.room_name || ''),
-        room_type: item.room_type || extractRoomType(item['ห้อง'])
-      }
-    };
-  });
-  
-  return matrix;
-}
-
-/**
- * Extract room type from room string
- */
-function extractRoomType(roomString) {
-  if (!roomString) return 'CLASS';
-  
-  if (roomString.includes('TECH')) return 'TECH';
-  if (roomString.includes('เทค')) return 'TECH';
-  if (roomString.includes('คอม')) return 'TECH';
-  
-  return 'CLASS';
-}
-
-/**
- * Load Available Classes
- */
-async function loadAvailableClasses(context) {
-  try {
-    const classes = await dataService.getClasses(context?.currentYear || context?.year, context?.currentSemester?.id || context?.semester?.id || context?.semesterId);
-    if (classes.ok) {
-      pageState.availableClasses = classes.data;
-      renderClassSelector(classes.data, pageState.selectedClass);
-    }
-  } catch (error) {
-    console.error('[StudentSchedule] Failed to load classes:', error);
-  }
-}
-
-/**
- * Group Classes By Grade
- */
-function groupClassesByGrade(classes) {
-  return classes.reduce((grouped, cls) => {
-    const grade = cls.grade_level || cls.class_name.split('/')[0];
-    if (!grouped[grade]) {
-      grouped[grade] = [];
-    }
-    grouped[grade].push(cls);
-    return grouped;
-  }, {});
-}
-
-/**
- * Get Class ID by Name
- */
-function getClassIdByName(className) {
-  const cls = pageState.availableClasses.find(c => c.class_name === className);
-  return cls?.id || null;
-}
-
-/**
- * Generate Export Filename
- */
-function generateExportFilename(baseName, context) {
-  const year = context.currentYear || 'unknown';
-  const semester = context.currentSemester?.semester_number || 'unknown';
-  const date = new Date().toISOString().slice(0, 10);
-  
-  return `${baseName}_${year}_ภาค${semester}_${date}`;
-}
-
-/**
- * Setup Event Listeners
- */
-function setupEventListeners(context) {
-  // Class selector change
-  const classSelector = document.getElementById('class-selector');
-  if (classSelector) {
-    classSelector.addEventListener('change', async (e) => {
-      const selectedClass = e.target.value;
-      if (selectedClass) {
-        await loadScheduleForContext(selectedClass, context);
-      } else {
-        clearScheduleDisplay();
-      }
-    });
-  }
-}
-
-/**
- * Setup Export Handlers
- */
-function setupExportHandlers(className, context) {
-  const exportButtons = document.querySelectorAll('.btn--export');
-  
-  exportButtons.forEach(button => {
-    button.addEventListener('click', async () => {
-      const format = button.dataset.exportType;
-      await handleExport(format, className, context, button);
-    });
-  });
-}
-
-/**
- * Handle Export
- */
-async function handleExport(format, className, context, button) {
-  try {
-    showExportProgress(button);
-    
-    await exportSchedule(format, className, context);
-    
-    showExportSuccess('Export สำเร็จ!');
-    
-  } catch (error) {
-    console.error('[StudentSchedule] Export failed:', error);
-    showExportError(error.message);
-  } finally {
-    hideExportProgress(button);
-  }
-}
-
-// =============================================================================
-// MULTI-YEAR FEATURES
-// =============================================================================
-
-/**
- * Compare Schedule Across Semesters
- */
 export function compareScheduleAcrossSemesters(className, semester1, semester2) {
-  // Implementation for comparing schedules between semesters
-  console.log(`Comparing ${className} schedule between semesters:`, semester1, semester2);
-  
-  // This would load schedules from both semesters and show differences
-  // For now, return a placeholder
+  console.log(
+    `Comparing ${className} schedule between semesters:`,
+    semester1,
+    semester2
+  );
   return {
     changes: [],
     additions: [],
@@ -1222,891 +325,425 @@ export function compareScheduleAcrossSemesters(className, semester1, semester2) 
   };
 }
 
-/**
- * Show Schedule History
- */
 export function showScheduleHistory(className, yearRange) {
-  console.log(`Showing schedule history for ${className} across years:`, yearRange);
-  
-  // Implementation for showing historical schedule data
   const historyContainer = document.getElementById('schedule-history');
-  if (historyContainer) {
-    historyContainer.innerHTML = `
-      <div class="schedule-history">
-        <h3>ประวัติตารางเรียน ${className}</h3>
-        <p>แสดงข้อมูลในช่วงปีการศึกษา ${yearRange.join(' - ')}</p>
-        <div class="history-placeholder">
-          <p>ฟีเจอร์นี้จะพัฒนาในเวอร์ชันถัดไป</p>
-        </div>
+  if (!historyContainer) return;
+
+  historyContainer.innerHTML = `
+    <div class="schedule-history">
+      <h3>ประวัติตารางเรียน ${className}</h3>
+      <p>แสดงข้อมูลในช่วงปีการศึกษา ${yearRange.join(' - ')}</p>
+      <div class="history-placeholder">
+        <p>ฟีเจอร์นี้จะพัฒนาในเวอร์ชันถัดไป</p>
       </div>
-    `;
-  }
+    </div>
+  `;
 }
 
-/**
- * Detect Schedule Changes
- */
 export function detectScheduleChanges(oldSchedule, newSchedule) {
   const changes = {
     added: [],
     removed: [],
     modified: []
   };
-  
-  // Compare schedules and detect changes
-  // This is a simplified implementation
+
   const oldMap = createScheduleMap(oldSchedule);
   const newMap = createScheduleMap(newSchedule);
-  
-  // Find additions and modifications
-  Object.keys(newMap).forEach(key => {
+
+  Object.keys(newMap).forEach((key) => {
     if (!oldMap[key]) {
       changes.added.push(newMap[key]);
     } else if (JSON.stringify(oldMap[key]) !== JSON.stringify(newMap[key])) {
       changes.modified.push({ old: oldMap[key], new: newMap[key] });
     }
   });
-  
-  // Find removals
-  Object.keys(oldMap).forEach(key => {
+
+  Object.keys(oldMap).forEach((key) => {
     if (!newMap[key]) {
       changes.removed.push(oldMap[key]);
     }
   });
-  
+
   return changes;
 }
 
-/**
- * Create Schedule Map for comparison
- */
 function createScheduleMap(schedule) {
   const map = {};
-  
-  schedule.forEach(item => {
+  (schedule || []).forEach((item) => {
     const key = `${item.day}-${item.period}`;
     map[key] = item;
   });
-  
   return map;
 }
 
-// =============================================================================
-// UI STATE MANAGEMENT
-// =============================================================================
-
-/**
- * Set Loading State
- */
-function setLoading(isLoading) {
-  pageState.isLoading = isLoading;
-  
-  const loadingIndicator = document.getElementById('loading-indicator');
-  if (loadingIndicator) {
-    loadingIndicator.style.display = isLoading ? 'flex' : 'none';
-  }
-}
-
-/**
- * Show Error
- */
-function showError(message) {
-  pageState.error = message;
-  
-  const errorElement = document.getElementById('error-message');
-  if (errorElement) {
-    errorElement.textContent = message;
-    errorElement.style.display = 'block';
-    
-    setTimeout(() => {
-      errorElement.style.display = 'none';
-    }, 5000);
-  }
-}
-
-/**
- * Clear Schedule Display
- */
-function clearScheduleDisplay() {
-  const tableContainer = document.getElementById('schedule-table-container');
-  const headerContainer = document.getElementById('schedule-header');
-  const exportContainer = document.getElementById('student-export-bar');
-  
-  if (tableContainer) tableContainer.innerHTML = '';
-  if (headerContainer) headerContainer.innerHTML = '';
-  if (exportContainer) exportContainer.innerHTML = '';
-  
-  pageState.currentSchedule = null;
-  pageState.selectedClass = null;
-  
-  clearSavedSelectedClass();
-}
-
-/**
- * Export Progress Functions
- */
-function showExportProgress(button) {
-  button.disabled = true;
-  button.innerHTML = '⏳ กำลัง Export...';
-}
-
-function hideExportProgress(button) {
-  button.disabled = false;
-  const format = button.dataset.exportType;
-  const texts = {
-    'html': '🌐 HTML',
-    'csv': '📄 CSV',
-    'xlsx': '📊 Excel',
-    'gsheets': '📋 Google Sheets'
-  };
-  button.innerHTML = texts[format] || 'Export';
-}
-
-function showExportSuccess(message) {
-  const statusElement = document.getElementById('export-status');
-  if (statusElement) {
-    statusElement.textContent = `✅ ${message}`;
-    statusElement.className = 'export-status export-status--success';
-    statusElement.style.display = 'block';
-    
-    setTimeout(() => statusElement.style.display = 'none', 3000);
-  }
-}
-
-function showExportError(message) {
-  const statusElement = document.getElementById('export-status');
-  if (statusElement) {
-    statusElement.textContent = `❌ Export ล้มเหลว: ${message}`;
-    statusElement.className = 'export-status export-status--error';
-    statusElement.style.display = 'block';
-    
-    setTimeout(() => statusElement.style.display = 'none', 5000);
-  }
-}
-
-// =============================================================================
-// LOCAL STORAGE HELPERS
-// =============================================================================
-
-function saveSelectedClass(className) {
+async function preloadTimetableFromAPI(context) {
   try {
-    localStorage.setItem('student-schedule-selected-class', className);
-  } catch (error) {
-    console.warn('[StudentSchedule] Failed to save selected class:', error);
-  }
-}
+    const year = context.currentYear;
+    const semesterId = resolveSemesterId(context);
 
-function getSavedSelectedClass() {
-  try {
-    return localStorage.getItem('student-schedule-selected-class');
+    if (!year || !semesterId) {
+      return null;
+    }
+
+    const response = await coreAPI.getTimetableBy(year, semesterId, true);
+    if (!response?.success) {
+      return null;
+    }
+
+    const cached =
+      typeof coreAPI.getCachedTimetable === 'function'
+        ? coreAPI.getCachedTimetable()
+        : null;
+
+    const timetableList = Array.isArray(response?.data?.list)
+      ? response.data.list
+      : Array.isArray(cached?.list)
+        ? cached.list
+        : Array.isArray(response?.data)
+          ? response.data
+          : Array.isArray(cached)
+            ? cached
+            : [];
+
+    if (!timetableList.length) {
+      return null;
+    }
+
+    const matrix = {};
+    for (let day = 1; day <= 7; day += 1) {
+      matrix[day] = {};
+      for (let period = 1; period <= 12; period += 1) {
+        matrix[day][period] = null;
+      }
+    }
+
+    timetableList.forEach((item) => {
+      const day = Number(item.day_of_week ?? item.day);
+      const period = Number(item.period ?? item.period_no);
+      if (!day || !period) return;
+
+      matrix[day] = matrix[day] || {};
+      matrix[day][period] = {
+        subject: {
+          subject_name: item.subject_name || '',
+          subject_code: item.subject_code || ''
+        },
+        teacher: { name: item.teacher_name || '' },
+        room: { name: item.room_name || '' },
+        schedule: item,
+        raw: item
+      };
+    });
+
+    setPageState({
+      currentSchedule: { matrix },
+      cachedTimetable: timetableList
+    });
+
+    return timetableList;
   } catch (error) {
-    console.warn('[StudentSchedule] Failed to get saved selected class:', error);
+    console.warn('[StudentSchedule] Timetable API preload failed:', error);
     return null;
   }
 }
 
-function clearSavedSelectedClass() {
-  try {
-    localStorage.removeItem('student-schedule-selected-class');
-  } catch (error) {
-    console.warn('[StudentSchedule] Failed to clear saved selected class:', error);
+function normalizeIdList(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => Number(item))
+      .filter(Number.isFinite);
+  }
+
+  if (typeof value === 'string' && value.trim().length > 0) {
+    let source = value.trim();
+    try {
+      const parsed = JSON.parse(source);
+      if (Array.isArray(parsed)) {
+        return parsed
+          .map((item) => Number(item))
+          .filter(Number.isFinite);
+      }
+      source = String(parsed);
+    } catch {
+      // ignore parse errors
+    }
+    return source
+      .split(',')
+      .map((item) => Number(item.trim()))
+      .filter(Number.isFinite);
+  }
+
+  if (value !== null && value !== undefined) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? [numeric] : [];
+  }
+
+  return [];
+}
+
+async function buildFallbackScheduleFromTimetable(
+  classId,
+  originalClassRef,
+  context,
+  timetableEntries = null
+) {
+  const year = context.currentYear || context.year;
+  const semesterId = resolveSemesterId(context);
+
+  if (!year || !semesterId) {
+    return null;
+  }
+
+  let entries = Array.isArray(timetableEntries) ? timetableEntries : null;
+
+  if (!entries || !entries.length) {
+    const response = await coreAPI.getTimetableBy(year, semesterId, true);
+    if (response?.success) {
+      if (Array.isArray(response.data?.list)) {
+        entries = response.data.list;
+      } else if (Array.isArray(response.data)) {
+        entries = response.data;
+      }
+    }
+
+    if ((!entries || !entries.length) && typeof coreAPI.getCachedTimetable === 'function') {
+      const cached = coreAPI.getCachedTimetable();
+      if (Array.isArray(cached?.list)) {
+        entries = cached.list;
+      } else if (Array.isArray(cached)) {
+        entries = cached;
+      }
+    }
+  }
+
+  if (!entries || !entries.length) {
+    return null;
+  }
+
+  const numericClassId = Number(classId);
+  const resolvedClassName =
+    findClassNameById(classId) ||
+    entries.find(
+      (item) => Number(item.class_id ?? item.classId) === numericClassId
+    )?.class_name ||
+    entries.find(
+      (item) => Number(item.classId ?? item.class_id) === numericClassId
+    )?.className ||
+    (typeof originalClassRef === 'string' ? originalClassRef : null) ||
+    String(classId);
+
+  const filteredEntries = entries.filter((item) => {
+    const entryNumericId = Number(item.class_id ?? item.classId);
+    if (
+      Number.isFinite(entryNumericId) &&
+      Number.isFinite(numericClassId) &&
+      entryNumericId === numericClassId
+    ) {
+      return true;
+    }
+
+    const candidateIds = new Set([
+      ...normalizeIdList(item.class_ids),
+      ...normalizeIdList(item.classIds)
+    ]);
+    if (Number.isFinite(numericClassId) && candidateIds.has(numericClassId)) {
+      return true;
+    }
+
+    const entryClassName = item.class_name || item.className || '';
+    if (resolvedClassName && entryClassName === resolvedClassName) {
+      return true;
+    }
+
+    if (
+      typeof originalClassRef === 'string' &&
+      originalClassRef &&
+      entryClassName === originalClassRef
+    ) {
+      return true;
+    }
+
+    return false;
+  });
+
+  if (!filteredEntries.length) {
+    return null;
+  }
+
+  const matrix = {};
+  filteredEntries.forEach((item) => {
+    const day = Number(item.day_of_week ?? item.day);
+    const period = Number(item.period ?? item.period_no);
+    if (!day || !period) {
+      return;
+    }
+
+    if (!matrix[day]) {
+      matrix[day] = {};
+    }
+
+    matrix[day][period] = {
+      schedule: item,
+      subject: {
+        subject_name: item.subject_name || '',
+        subject_code: item.subject_code || ''
+      },
+      teacher: {
+        name: item.teacher_name || ''
+      },
+      room: {
+        name: item.room_name || ''
+      }
+    };
+  });
+
+  const subjectsMap = new Map();
+  filteredEntries.forEach((item) => {
+    const code = item.subject_code || item.subject_name || '';
+    if (!code || subjectsMap.has(code)) {
+      return;
+    }
+    subjectsMap.set(code, {
+      subject_code: item.subject_code || '',
+      subject_name: item.subject_name || ''
+    });
+  });
+
+  return {
+    fallback: true,
+    classInfo: {
+      id: Number.isFinite(numericClassId) ? numericClassId : classId,
+      class_name: resolvedClassName
+    },
+    schedules: filteredEntries,
+    matrix,
+    subjects: Array.from(subjectsMap.values()),
+    teachers: [],
+    rooms: [],
+    periods: [],
+    timetableEntries: filteredEntries
+  };
+}
+
+async function resolveClassId(classRef, context) {
+  if (typeof classRef === 'number' || /^\d+$/.test(String(classRef))) {
+    return Number(classRef);
+  }
+
+  const existing = pageState.availableClasses.find(
+    (cls) => cls.class_name === String(classRef)
+  );
+  if (existing) {
+    return existing.id;
+  }
+
+  const year = context.currentYear || context.year;
+  const semesterId = resolveSemesterId(context);
+  const classesResponse = await dataService.getClasses(year, semesterId);
+
+  if (!classesResponse.ok) {
+    return null;
+  }
+
+  const classes = classesResponse.data || [];
+  const byName = classes.find(
+    (cls) =>
+      cls.class_name === String(classRef) || String(cls.id) === String(classRef)
+  );
+
+  if (byName) {
+    setPageState({ availableClasses: classes });
+    return byName.id;
+  }
+
+  return null;
+}
+
+function findClassNameById(classId) {
+  const match = pageState.availableClasses.find(
+    (cls) => String(cls.id) === String(classId)
+  );
+  return match?.class_name || null;
+}
+
+async function presentScheduleResult(classId, className, scheduleData, context) {
+  setPageState({
+    currentSchedule: scheduleData,
+    selectedClass: String(classId)
+  });
+
+  const headerContainer = await waitForElement('#student-schedule-header');
+  if (headerContainer) {
+    renderScheduleHeader(className, context);
+  }
+
+  await renderScheduleTable(scheduleData, context);
+
+  const exportContainer = await waitForElement('#student-export-bar');
+  if (exportContainer) {
+    renderExportBar(context);
+    setupStudentExportHandlers(context);
   }
 }
 
-// Export page state for debugging
-export function getPageState() {
-  return { ...pageState };
-}
-
-// =============================================================================
-// EXPORT FUNCTIONALITY
-// =============================================================================
-
-/**
- * Setup Student Export Handlers
- */
-function setupStudentExportHandlers(context) {
-  console.log('[StudentSchedule] Setting up export handlers...');
-  
-  const exportButtons = document.querySelectorAll('#export-bar-student button[data-export-type]');
-  console.log('[StudentSchedule] Found export buttons:', exportButtons.length);
-  
-  if (exportButtons.length === 0) {
-    console.warn('[StudentSchedule] No export buttons found! Selector: #export-bar-student button[data-export-type]');
+function bindClassSelector(context) {
+  const selector =
+    document.getElementById('class-selector') ||
+    document.getElementById('class-dropdown');
+  if (!selector || selector.dataset.bound === 'true') {
     return;
   }
-  
-  exportButtons.forEach((button, index) => {
-    console.log(`[StudentSchedule] Setting up button ${index + 1}:`, button.dataset.exportType);
-    
-    const newButton = button.cloneNode(true);
-    button.parentNode.replaceChild(newButton, button);
-    
-    newButton.addEventListener('click', async (e) => {
-      console.log('[StudentSchedule] Export button clicked:', e.target.dataset.exportType);
-      e.preventDefault();
-      e.stopPropagation();
-      await handleStudentExport(newButton, context);
-    });
+
+  selector.addEventListener('change', async (event) => {
+    const value = event.target.value;
+    if (!value) {
+      clearSavedSelectedClass();
+      clearScheduleDisplay();
+      return;
+    }
+
+    await loadScheduleForContext(value, context);
   });
-  
-  console.log('[StudentSchedule] Export handlers setup completed');
+
+  selector.dataset.bound = 'true';
 }
 
-/**
- * Handle Student Export
- */
-async function handleStudentExport(button, context) {
-  if (button.disabled) return;
+function ensureGlobalHooks() {
+  if (typeof window === 'undefined') {
+    return;
+  }
 
+  if (!window.studentSchedulePage) {
+    window.studentSchedulePage = {};
+  }
+
+  window.studentSchedulePage.init = initStudentSchedulePage;
+  window.studentSchedulePage.updatePageForContext = updatePageForContext;
+  window.studentSchedulePage.loadScheduleForContext = robustLoadSchedule;
+  window.studentSchedulePage.exportSchedule = exportScheduleModule;
+  window.studentSchedulePage.getPageState = getPageStateModule;
+}
+
+async function robustLoadSchedule(classRef, context) {
   try {
-    if (!pageState.selectedClass) {
-      throw new Error('กรุณาเลือกห้องเรียนก่อน');
-    }
-
-    showExportProgress(button);
-
-    const format = button.dataset.exportType;
-    const filename = generateStudentExportFilename(pageState.selectedClass, context);
-
-    switch(format) {
-      case 'html':
-        await exportStudentScheduleToHTML(pageState.selectedClass, context, filename);
-        break;
-      case 'csv':
-        const csvData = await prepareStudentExportData(pageState.selectedClass, context);
-        await exportTableToCSV(csvData, filename);
-        break;
-      case 'xlsx':
-        const xlsxData = await prepareStudentExportData(pageState.selectedClass, context);
-        await exportTableToXLSX(xlsxData, filename);
-        break;
-      case 'gsheets':
-        const gsheetsData = await prepareStudentExportData(pageState.selectedClass, context);
-        await exportTableToGoogleSheets(gsheetsData, filename);
-        break;
-      default:
-        throw new Error('รูปแบบ Export ไม่ถูกต้อง');
-    }
-
-    showExportSuccess('Export สำเร็จ!');
-
+    await loadScheduleForContext(classRef, context);
   } catch (error) {
-    console.error('[StudentSchedule] Export failed:', error);
-    showExportError(error.message);
-  } finally {
-    hideExportProgress(button);
+    console.error('[StudentSchedule] robustLoadSchedule failed:', error);
+    showError(error.message || 'เกิดข้อผิดพลาดระหว่างโหลดตารางเรียน');
+    setLoading(false);
   }
 }
 
-/**
- * Export Student Schedule to HTML (matches the live page exactly)
- */
-async function exportStudentScheduleToHTML(classIdOrName, context, filename) {
-  try {
-    if (!pageState.currentSchedule) {
-      throw new Error('ไม่มีข้อมูลตารางเรียน');
-    }
-
-    const classInfo = pageState.currentSchedule.classInfo;
-    const className = classInfo?.class_name || classIdOrName;
-
-    // Debug context
-    console.log('[Export HTML] Context:', context);
-    console.log('[Export HTML] Current Year:', context.currentYear);
-    console.log('[Export HTML] Current Semester:', context.currentSemester);
-
-    // ดึงข้อมูลจาก context
-    const year = context.currentYear || context.year || globalContext.getContext()?.currentYear || 'N/A';
-    const semesterName = context.currentSemester?.semester_name ||
-                        context.semester?.semester_name ||
-                        globalContext.getContext()?.currentSemester?.semester_name || 'ไม่ระบุภาคเรียน';
-
-    console.log('[Export HTML] Resolved Year:', year);
-    console.log('[Export HTML] Resolved Semester:', semesterName);
-
-    // สร้าง schedule table HTML (ใช้ render function เดียวกับหน้าจริง)
-    const scheduleTableHTML = await generateStudentScheduleTableHTML(pageState.currentSchedule, context);
-
-    // สร้าง legend HTML
-    const legendHTML = generateStudentLegendHTML(pageState.currentSchedule);
-
-    // สร้าง HTML เต็มรูปแบบพร้อม CSS จากหน้าจริง
-    const fullHTML = `<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ตารางเรียน - ${className}</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        /* ===== CSS Variables ===== */
-        :root {
-            --font-family-primary: 'Sarabun', 'Noto Sans Thai', sans-serif;
-            --color-primary: #4299e1;
-            --color-primary-dark: #2b6cb0;
-            --color-primary-light: #ebf8ff;
-            --color-dark: #2d3748;
-            --color-dark-lighter: #718096;
-            --color-gray-50: #f7fafc;
-            --color-gray-100: #edf2f7;
-            --color-gray-200: #e2e8f0;
-            --color-gray-300: #cbd5e0;
-            --color-light-dark: #f5f5f5;
-            --font-weight-semibold: 600;
-            --font-weight-medium: 500;
-            --font-weight-bold: 700;
-            --font-size-xs: 0.75rem;
-            --font-size-sm: 0.875rem;
-            --font-size-base: 1rem;
-            --font-size-lg: 1.125rem;
-            --font-size-xl: 1.25rem;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: var(--font-family-primary);
-            font-size: var(--font-size-base);
-            line-height: 1.6;
-            color: var(--color-dark);
-            background-color: var(--color-gray-50);
-            padding: 2rem;
-        }
-
-        .print-button {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 0.75rem 1.5rem;
-            background-color: var(--color-primary);
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-family: var(--font-family-primary);
-            font-size: var(--font-size-base);
-            font-weight: var(--font-weight-semibold);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
-        }
-
-        .print-button:hover {
-            background-color: var(--color-primary-dark);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-        }
-
-        @media print {
-            .print-button {
-                display: none;
-            }
-            body {
-                padding: 0;
-                background-color: white;
-            }
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background-color: white;
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .schedule-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid var(--color-gray-200);
-        }
-
-        .schedule-header h2 {
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
-            color: var(--color-primary);
-            margin-bottom: 0.5rem;
-        }
-
-        .schedule-meta {
-            font-size: var(--font-size-base);
-            color: var(--color-dark-lighter);
-        }
-
-        .schedule-meta strong {
-            color: var(--color-dark);
-            font-weight: var(--font-weight-semibold);
-        }
-
-        /* ===== Table Styles ===== */
-        .schedule-table-wrapper {
-            overflow-x: auto;
-            margin-bottom: 2rem;
-        }
-
-        .schedule-table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: white;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-
-        .schedule-table th,
-        .schedule-table td {
-            border: 1px solid var(--color-gray-300);
-            padding: 0.75rem;
-            text-align: center;
-            vertical-align: middle;
-        }
-
-        .schedule-table thead th {
-            background-color: var(--color-primary);
-            color: white;
-            font-weight: var(--font-weight-semibold);
-            font-size: var(--font-size-sm);
-            padding: 1rem 0.5rem;
-        }
-
-        .day-header {
-            background-color: var(--color-primary);
-            color: white;
-            font-weight: var(--font-weight-bold);
-            min-width: 100px;
-        }
-
-        .period-header {
-            background-color: var(--color-primary);
-            color: white;
-            min-width: 120px;
-        }
-
-        .period-info {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .period-number {
-            font-weight: var(--font-weight-bold);
-            font-size: var(--font-size-base);
-        }
-
-        .time-slot {
-            font-size: var(--font-size-xs);
-            opacity: 0.9;
-        }
-
-        .lunch-header {
-            background-color: #f6ad55 !important;
-            color: white;
-            font-weight: var(--font-weight-bold);
-        }
-
-        .lunch-info {
-            font-size: var(--font-size-sm);
-        }
-
-        .day-cell {
-            background-color: var(--color-gray-100);
-            font-weight: var(--font-weight-semibold);
-            color: var(--color-dark);
-        }
-
-        .schedule-cell {
-            min-height: 80px;
-            position: relative;
-        }
-
-        .schedule-cell.has-subject {
-            background-color: var(--color-primary-light);
-        }
-
-        .schedule-cell.empty {
-            background-color: white;
-            color: var(--color-gray-300);
-        }
-
-        .schedule-cell-content {
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-            font-size: var(--font-size-sm);
-        }
-
-        .subject-code {
-            font-weight: var(--font-weight-bold);
-            color: var(--color-primary-dark);
-            font-size: var(--font-size-base);
-        }
-
-        .teacher-name {
-            color: var(--color-dark);
-            font-size: var(--font-size-sm);
-        }
-
-        .room-info {
-            color: var(--color-dark-lighter);
-            font-size: var(--font-size-xs);
-        }
-
-        .empty-cell {
-            color: var(--color-gray-300);
-            font-size: var(--font-size-lg);
-        }
-
-        .lunch-cell {
-            background-color: #fef5e7 !important;
-            color: #d68910;
-            font-weight: var(--font-weight-semibold);
-        }
-
-        /* ===== Legend Styles ===== */
-        .student-legend-card {
-            background-color: var(--color-gray-50);
-            border-radius: 8px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-        }
-
-        .student-legend-card h4 {
-            text-align: center;
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-bold);
-            color: var(--color-primary);
-            margin-bottom: 1rem;
-        }
-
-        .student-legend-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 0.75rem;
-        }
-
-        .student-legend-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem;
-            background-color: white;
-            border-radius: 4px;
-            border-left: 3px solid var(--color-primary);
-        }
-
-        .student-legend-item .subject-code {
-            font-weight: var(--font-weight-bold);
-            color: var(--color-primary-dark);
-            min-width: 60px;
-            font-size: var(--font-size-sm);
-        }
-
-        .student-legend-item .subject-name {
-            color: var(--color-dark);
-            font-size: var(--font-size-sm);
-        }
-
-        @media print {
-            body {
-                padding: 0;
-            }
-            .container {
-                box-shadow: none;
-            }
-            .schedule-table {
-                page-break-inside: avoid;
-            }
-        }
-    </style>
-</head>
-<body>
-    <button class="print-button" onclick="window.print()">🖨️ พิมพ์</button>
-
-    <div class="container">
-        <div class="schedule-header">
-            <h2>ตารางเรียน ${className}</h2>
-            <div class="schedule-meta">
-                <span><strong>${semesterName}</strong></span>
-                <span style="margin-left: 1.5rem;"><strong>ปีการศึกษา ${year}</strong></span>
-            </div>
-        </div>
-
-        <div class="schedule-section">
-            ${scheduleTableHTML}
-        </div>
-
-        <div class="legend-section">
-            ${legendHTML}
-        </div>
-    </div>
-</body>
-</html>`;
-
-    // ดาวน์โหลดไฟล์ HTML
-    const blob = new Blob([fullHTML], { type: 'text/html;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${filename}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    console.log('[Export] HTML export completed:', filename);
-  } catch (error) {
-    console.error('[Export] HTML export failed:', error);
-    throw error;
-  }
-}
-
-/**
- * Generate Student Schedule Table HTML (for export)
- */
-async function generateStudentScheduleTableHTML(scheduleData, context) {
-  const matrix = scheduleData?.matrix;
-  if (!matrix) {
-    return '<p class="no-schedule">ไม่มีตารางเรียนสำหรับห้องนี้</p>';
-  }
-
-  const year = context?.currentYear || context?.year;
-  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
-  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
-  const lunchSlot = await getLunchSlotAsync(year, semesterId);
-  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
-
-  let html = '<div class="schedule-table-wrapper">';
-  html += '<table class="schedule-table">';
-  html += '<thead><tr>';
-  html += '<th class="day-header">วัน/เวลา</th>';
-  displayPeriods.forEach(({ display, actual, label }) => {
-    html += `<th class="period-header"><div class="period-info"><span class="period-number">คาบ ${display}</span><span class="time-slot">${label}</span></div></th>`;
-    if (actual === 4) {
-      html += `<th class="lunch-header lunch-column"><div class="lunch-info">${lunchSlot.label}<br><small>${lunchSlot.time}</small></div></th>`;
-    }
-  });
-  html += '</tr></thead>';
-
-  html += '<tbody>';
-  days.forEach((dayName, dayIndex) => {
-    const day = dayIndex + 1;
-    html += `<tr class="day-row" data-day="${day}">`;
-    html += `<td class="day-cell">${dayName}</td>`;
-
-    displayPeriods.forEach(({ display, actual }) => {
-      const period = actual;
-      const cell = matrix[day]?.[period];
-      if (cell) {
-        const subjectCode = cell.subject?.subject_code || cell.subject?.subject_name?.substring(0, 6) || '-';
-        const teacherName = cell.teacher?.name || '';
-        const roomName = cell.room?.name || '';
-
-        html += `<td class="schedule-cell has-subject" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
-                `<div class="schedule-cell-content">` +
-                `<div class="subject-code">${subjectCode}</div>` +
-                `<div class="teacher-name">${teacherName}</div>` +
-                `<div class="room-info">${roomName}</div>` +
-                `</div>` +
-                `</td>`;
-      } else {
-        const emptyText = '-';
-        html += `<td class="schedule-cell empty" data-day="${day}" data-period="${period}" data-display-period="${display}">` +
-                `<div class="empty-cell">${emptyText}</div>` +
-                `</td>`;
-      }
-
-      if (period === 4) {
-        if (dayIndex === 0) {
-          html += `<td class="lunch-cell lunch-column" aria-label="${lunchSlot.label} ${lunchSlot.time}" rowspan="${days.length}">${lunchSlot.label}<br><small>${lunchSlot.time}</small></td>`;
-        }
-      }
-    });
-    html += '</tr>';
-  });
-  html += '</tbody>';
-  html += '</table></div>';
-
-  return html;
-}
-
-/**
- * Generate Student Legend HTML (for export)
- */
-function generateStudentLegendHTML(scheduleData) {
-  const matrix = scheduleData?.matrix;
-  if (!matrix) {
-    return '';
-  }
-
-  const subjectsMap = new Map();
-
-  Object.values(matrix).forEach(daySchedule => {
-    Object.values(daySchedule).forEach(cell => {
-      if (cell && cell.subject) {
-        const subjectCode = cell.subject.subject_code || cell.subject.subject_name?.substring(0, 6) || '';
-        const subjectName = cell.subject.subject_name || '';
-
-        if (subjectCode && !subjectsMap.has(subjectCode)) {
-          subjectsMap.set(subjectCode, {
-            code: subjectCode,
-            name: subjectName
-          });
-        }
-      }
-    });
-  });
-
-  const subjects = Array.from(subjectsMap.values()).sort((a, b) =>
-    a.code.localeCompare(b.code, 'th')
-  );
-
-  if (subjects.length === 0) {
-    return '';
-  }
-
-  let html = '<div class="student-legend-card">';
-  html += '<h4>📚 คำอธิบายรหัสวิชา</h4>';
-  html += '<div class="student-legend-grid">';
-  subjects.forEach(subject => {
-    html += `
-      <div class="student-legend-item">
-        <span class="subject-code">${subject.code}</span>
-        <span class="subject-name">${subject.name}</span>
-      </div>
-    `;
-  });
-  html += '</div>';
-  html += '</div>';
-
-  return html;
-}
-
-/**
- * Prepare Student Export Data
- */
-async function prepareStudentExportData(className, context) {
-  if (!pageState.currentSchedule) {
-    throw new Error('ไม่มีข้อมูลตารางเรียน');
-  }
-
-  const year = context?.currentYear || context?.year;
-  const semesterId = context?.currentSemester?.id || context?.semester?.id || context?.semesterId;
-  const displayPeriods = await getDisplayPeriodsAsync(year, semesterId);
-  const lunchSlot = await getLunchSlotAsync(year, semesterId);
-  const lunchKey = lunchSlot.label || 'พักเที่ยง'; // Use dynamic label from API
-  const days = ['จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์'];
-
-  const periodHeaders = [];
-  displayPeriods.forEach(period => {
-    periodHeaders.push(`คาบ ${period.display}`);
-    if (period.display === 4) {
-      periodHeaders.push(lunchKey);
-    }
-  });
-  const createEmptyRow = () => {
-    const row = { 'วัน/เวลา': '' };
-    periodHeaders.forEach(header => { row[header] = ''; });
-    return row;
-  };
-
-  const exportData = [];
-
-  const headerRow = createEmptyRow();
-  headerRow['คาบ 3'] = `ตารางเรียน - ${className}`;
-  exportData.push(headerRow);
-
-  const semesterRow = createEmptyRow();
-  semesterRow['คาบ 3'] = `ภาคเรียนที่ ${context.currentSemester?.semester_number || 1} ปีการศึกษา ${context.currentYear}`;
-  exportData.push(semesterRow);
-
-  exportData.push(createEmptyRow());
-
-  days.forEach((dayName, dayIndex) => {
-    const rowData = createEmptyRow();
-    const dayNumber = dayIndex + 1;
-    rowData['วัน/เวลา'] = dayName;
-
-    displayPeriods.forEach(({ display, actual }) => {
-      const key = `คาบ ${display}`;
-      const cellData = pageState.currentSchedule.matrix[dayNumber]?.[actual];
-
-      if (cellData) {
-        const subjectCode = cellData.subject.subject_code || cellData.subject.subject_name?.substring(0, 6) || '-';
-        const roomName = cellData.room.name || '';
-        rowData[key] = `${subjectCode}\n${cellData.teacher.name}\n${roomName}`;
-      } else {
-        rowData[key] = '-';
-      }
-
-      if (actual === 4 && lunchKey in rowData) {
-        rowData[lunchKey] = '';
-      }
-    });
-
-    exportData.push(rowData);
-  });
-
-  // เพิ่มแถวว่าง
-  exportData.push(createEmptyRow());
-
-  // เพิ่มคำอธิบายรหัสวิชา
-  const subjectsMap = new Map();
-  Object.values(pageState.currentSchedule.matrix).forEach(daySchedule => {
-    Object.values(daySchedule).forEach(cell => {
-      if (cell && cell.subject) {
-        const subjectCode = cell.subject.subject_code || cell.subject.subject_name?.substring(0, 6) || '';
-        const subjectName = cell.subject.subject_name || '';
-
-        if (subjectCode && !subjectsMap.has(subjectCode)) {
-          subjectsMap.set(subjectCode, { code: subjectCode, name: subjectName });
-        }
-      }
-    });
-  });
-
-  const subjects = Array.from(subjectsMap.values()).sort((a, b) =>
-    a.code.localeCompare(b.code, 'th')
-  );
-
-  if (subjects.length > 0) {
-    const legendHeaderRow = createEmptyRow();
-    legendHeaderRow['คาบ 3'] = '📚 คำอธิบายรหัสวิชา';
-    exportData.push(legendHeaderRow);
-
-    subjects.forEach(subject => {
-      const subjectRow = createEmptyRow();
-      subjectRow['คาบ 1'] = subject.code;
-      subjectRow['คาบ 2'] = subject.name;
-      exportData.push(subjectRow);
-    });
-  }
-
-  return exportData;
-}
-
-/**
- * Generate Student Export Filename
- */
-function generateStudentExportFilename(className, context) {
-  const year = context.currentYear || 'unknown';
-  const semester = context.currentSemester?.semester_number || 'unknown';
-  const date = new Date().toISOString().slice(0, 10);
-  
-  return `ตารางเรียน-${className}_${year}_ภาค${semester}_${date}`;
-}
-
-// Make functions available globally for HTML onclick handlers
-if (typeof window !== 'undefined') {
-  window.studentSchedulePage = {
-    init: initStudentSchedulePage,
-    updatePageForContext,
-    loadScheduleForContext,
-    exportSchedule,
-    getPageState
-  };
-}
+ensureGlobalHooks();
+
+export { generateScheduleTable, formatScheduleCell } from './student/ui.js';
+export { exportSchedule } from './student/export.js';
+export { getPageState } from './student/state.js';
+export {
+  renderContextControls,
+  renderClassSelector,
+  renderScheduleHeader,
+  renderScheduleTable,
+  renderEmptyScheduleState,
+  highlightCurrentPeriod
+} from './student/ui.js';

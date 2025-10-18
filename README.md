@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A school schedule management system for secondary schools built with Cloudflare Workers (Hono framework), D1 Database, and vanilla JavaScript frontend. The system supports multi-year academic data with a dynamic database architecture where tables are created per academic year (e.g., `teachers_2567`, `teachers_2568`).
 
+> **Status Note (2025-10-17):** Frontend refactor is mid-progress. The new `frontend/js/app/` and `frontend/js/context/global/` modules are only partially wired, and the legacy mock data under `frontend/js/data/` has been deleted. Expect runtime errors until the remaining imports/exports are reconnected. Either finish wiring the new modules or restore the previous structure before continuing work.
+
 **Key Feature**: The database uses a "dynamic table" pattern where entity tables (teachers, classes, rooms, subjects, schedules) are suffixed with the academic year, allowing complete isolation of data across years while maintaining a single database.
 
 ## Development Commands

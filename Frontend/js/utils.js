@@ -170,6 +170,7 @@ const BREAK_KEYWORDS = ['พัก', 'break', 'lunch', 'เบรก', 'หย�
 let cachedPeriods = null;
 let cachedPeriodsTimestamp = null;
 const PERIODS_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+let periodsUnauthorizedSince = null;
 
 const normalisePeriod = (period) => {
   if (!period) return null;
@@ -200,6 +201,15 @@ export async function fetchPeriodsFromAPI(year, semesterId) {
     return cachedPeriods;
   }
 
+  if (periodsUnauthorizedSince &&
+      (Date.now() - periodsUnauthorizedSince) < PERIODS_CACHE_DURATION) {
+    if (!cachedPeriods) {
+      cachedPeriods = DEFAULT_PERIODS.map(p => ({ ...p }));
+      cachedPeriodsTimestamp = Date.now();
+    }
+    return cachedPeriods;
+  }
+
   try {
     // Dynamically import schedule API
     const { default: scheduleAPI } = await import('./api/schedule-api.js');
@@ -210,16 +220,35 @@ export async function fetchPeriodsFromAPI(year, semesterId) {
       // Cache the result
       cachedPeriods = result.data;
       cachedPeriodsTimestamp = Date.now();
+      periodsUnauthorizedSince = null;
       return result.data;
+    }
+
+    const unauthorized =
+      result?.status === 401 ||
+      (typeof result?.error === 'string' && result.error.toLowerCase().includes('auth'));
+
+    if (unauthorized) {
+      if (!periodsUnauthorizedSince) {
+        console.warn('[Utils] Periods endpoint unauthorized. Using defaults until session available.');
+      }
+      periodsUnauthorizedSince = Date.now();
+      cachedPeriods = DEFAULT_PERIODS.map(p => ({ ...p }));
+      cachedPeriodsTimestamp = Date.now();
+      return cachedPeriods;
     }
 
     // Fallback to default if API returns empty
     console.warn('[Utils] API returned empty periods, using defaults');
-    return DEFAULT_PERIODS.map(p => ({ ...p }));
+    cachedPeriods = DEFAULT_PERIODS.map(p => ({ ...p }));
+    cachedPeriodsTimestamp = Date.now();
+    return cachedPeriods;
   } catch (error) {
     console.error('[Utils] Failed to fetch periods from API:', error);
     // Fallback to default
-    return DEFAULT_PERIODS.map(p => ({ ...p }));
+    cachedPeriods = DEFAULT_PERIODS.map(p => ({ ...p }));
+    cachedPeriodsTimestamp = Date.now();
+    return cachedPeriods;
   }
 }
 

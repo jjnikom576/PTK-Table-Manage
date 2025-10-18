@@ -9,6 +9,7 @@ class ScheduleAPI {
   constructor() {
     this.cache = new Map();
     this.cacheTimeout = 3 * 60 * 1000; // 3 minutes
+    this.periodsUnauthorizedUntil = 0;
   }
 
   /**
@@ -39,6 +40,8 @@ class ScheduleAPI {
       if (result.success) {
         this.cache.set(cacheKey, result.data);
         this.updateCacheTimestamp(cacheKey);
+        this.periodsUnauthorizedUntil = 0;
+        this.periodsUnauthorizedUntil = 0;
       }
       
       return result;
@@ -346,6 +349,17 @@ class ScheduleAPI {
   async getPeriods(year, semesterId) {
     const cacheKey = `periods_${year}_${semesterId}`;
 
+    const now = Date.now();
+    if (this.periodsUnauthorizedUntil && now < this.periodsUnauthorizedUntil) {
+      return {
+        success: true,
+        data: [],
+        fallback: true,
+        reason: 'unauthorized-cache',
+        status: 401
+      };
+    }
+
     if (this.isCacheValid(cacheKey)) {
       return {
         success: true,
@@ -361,9 +375,13 @@ class ScheduleAPI {
         this.cache.set(cacheKey, result.data);
         this.updateCacheTimestamp(cacheKey);
       }
+      if (!result.success && result.status === 401) {
+        this.periodsUnauthorizedUntil = Date.now() + this.cacheTimeout;
+      }
 
       return result;
     } catch (error) {
+      this.periodsUnauthorizedUntil = 0;
       return {
         success: false,
         error: `ไม่สามารถโหลดข้อมูลคาบเรียนปี ${year} ได้`

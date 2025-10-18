@@ -146,7 +146,8 @@ app.use('/api/*', async (c, next) => {
     '/api/core/context',
     '/api/core/academic-years',
     '/api/core/semesters',
-    '/api/schedule/timetable'
+    '/api/schedule/timetable',
+    '/api/schedule/periods'
   ]);
   if (method === 'GET' && publicGetPaths.has(path)) {
     return await next();
