@@ -278,6 +278,7 @@ export interface CreateSubjectRequest {
 export interface CreateScheduleRequest {
   semester_id: number;
   subject_id: number;
+  class_id?: number;
   day_of_week: number;
   period_no: number;
   room_id?: number;
