@@ -479,27 +479,40 @@ function renderTeacherDetails(teacherId) {
     return;
   }
 
-  const data = pageState.substitutionData[teacherId];
-  if (!data || !data.dates) {
-    console.error('[SubstitutionSchedule] No substitution data for teacher:', teacherId);
-    return;
-  }
-
   // Create modal or expand section to show details
   const container = document.getElementById('substitute-ranking');
   if (!container) return;
 
+  // Remove all previously rendered detail sections so we always start clean
+  container.querySelectorAll('.teacher-details-section').forEach(section => section.remove());
+
+  const data = pageState.substitutionData[teacherId];
+  if (!data || !Array.isArray(data.dates) || data.dates.length === 0) {
+    console.warn('[SubstitutionSchedule] No substitution data for teacher:', teacherId);
+
+    const placeholder = `
+      <div class="teacher-details-section" data-teacher-id="${teacherId}">
+        <div class="details-header">
+          <h4>📅 รายละเอียดการสอนแทนของ ${teacher.full_name}</h4>
+          <button class="btn btn--ghost btn--sm close-details" data-teacher-id="${teacherId}">✖️ ปิด</button>
+        </div>
+        <div class="details-body">
+          <p class="hint-text">ไม่มีประวัติการสอนแทน</p>
+        </div>
+      </div>
+    `;
+
+    const rankingItem = container.querySelector(`[data-teacher-id="${teacherId}"]`);
+    if (rankingItem) {
+      rankingItem.insertAdjacentHTML('afterend', placeholder);
+      bindDateButtonClicks(teacherId);
+    }
+    return;
+  }
+
   // Find the clicked ranking item
   const rankingItem = container.querySelector(`[data-teacher-id="${teacherId}"]`);
   if (!rankingItem) return;
-
-  // Check if details already shown
-  let detailsSection = rankingItem.nextElementSibling;
-  if (detailsSection && detailsSection.classList.contains('teacher-details-section')) {
-    // Toggle visibility
-    detailsSection.classList.toggle('hidden');
-    return;
-  }
 
   // Build details HTML
   let html = `

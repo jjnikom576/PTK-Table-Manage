@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A school schedule management system for secondary schools built with Cloudflare Workers (Hono framework), D1 Database, and vanilla JavaScript frontend. The system supports multi-year academic data with a dynamic database architecture where tables are created per academic year (e.g., `teachers_2567`, `teachers_2568`).
 
-> **Status Note (2025-10-17):** Frontend refactor is mid-progress. The new `frontend/js/app/` and `frontend/js/context/global/` modules are only partially wired, and the legacy mock data under `frontend/js/data/` has been deleted. Expect runtime errors until the remaining imports/exports are reconnected. Either finish wiring the new modules or restore the previous structure before continuing work.
+> **Status Note (2025-10-19):** Backend route logic has been modularised and the substitution dashboard is now stable after the latest bugfix pass. The vanilla JS frontend continues to run from `frontend/` via a static server while we prepare the migration to Vite (roadmap below). Expect both legacy (`python -m http.server`) and upcoming Vite commands to be documented until the cut-over is complete.
 
 **Key Feature**: The database uses a "dynamic table" pattern where entity tables (teachers, classes, rooms, subjects, schedules) are suffixed with the academic year, allowing complete isolation of data across years while maintaining a single database.
 
@@ -52,6 +52,13 @@ npm run dev          # Vite dev server with hot reload
 npm run build        # Output production bundle to dist/
 ```
 
+## Current Frontend Status
+
+- The admin SPA is still served as vanilla ES modules via `<script type="module">` tags in `frontend/index.html`.
+- Shared bootstrap logic lives in `frontend/js/app/core.js`; individual pages (teacher schedule, substitution, etc.) are implemented under `frontend/js/pages/`.
+- Event handling has recently been refactored (see `frontend/js/pages/substitution/`) to rely on delegated listeners, preventing stale bindings when the DOM is regenerated.
+- Asset pipeline remains manual; static `css/`, `js/`, and `templates/` directories are copied verbatim. Continue using the static-server workflow above until the Vite switchover is complete.
+
 ### Initial Setup
 ```bash
 # 1. Start backend
@@ -71,30 +78,23 @@ python -m http.server 8000
 
 We are in the process of modernising the SPA build pipeline. The near-term plan is to replace the ad‑hoc static-server workflow with Vite so that hot reload, asset bundling, and production builds are all first-class.
 
-### Migration Tasks
-1. **Bootstrap Vite configuration**
-   - Add `package.json`/`package-lock.json` in `frontend/` with Vite, eslint, and basic scripts (`dev`, `build`, `preview`).
-   - Create `vite.config.js` with an appropriate base path for GitHub Pages (e.g. `/Schedule_System/`).
-2. **Restructure entry points**
-   - Ensure `frontend/index.html` references scripts via Vite (e.g. `<script type="module" src="/js/main.js"></script>`).
-   - Move any remaining template-loader HTML fragments (such as the student page) into static markup or lightweight components so they can be bundled.
-3. **Module compatibility**
-   - Audit imports for alias compatibility; configure `resolve.alias` if needed (`@app`, `@pages`, etc.).
-   - Verify dynamic imports (`import('./pages/...')`) still work under Vite’s build output.
-4. **Asset pipeline**
-   - Relocate static assets (icons, fonts, mock data) into `public/` or import them directly so Vite can fingerprint/copy them.
-   - Confirm CSS is imported via JS or referenced from `index.html` with Vite-friendly paths.
-5. **Environment configuration**
-   - Define `.env`, `.env.development`, `.env.production` for API base URLs (Cloudflare Worker endpoints, D1).
-   - Update fetch helpers to read from `import.meta.env`.
-6. **Deployment workflow**
-   - Update docs/scripts to publish the Vite `dist/` directory to GitHub Pages.
-   - Adjust CI/CD (if any) to run `npm run build` and push artifacts.
-7. **Cleanup**
-   - Remove the old template-loader code path once all sections use the bundled markup.
-   - Retire references to `python -m http.server` in scripts once the Vite flow is stable.
+### Migration Roadmap
 
-Until these steps are complete, the project still works with the legacy static-server approach; keep both sets of commands in README so collaborators can choose the appropriate workflow.
+| Phase | Goal | Key Deliverables | Status |
+| --- | --- | --- | --- |
+| 0. Discovery & Audit | Capture current entry points, templates, and global context wiring | Module inventory (`frontend/js/app/`, `frontend/js/pages/`), template map, substitution workflow notes | ✅ Completed (2025‑10‑19) |
+| 1. Vite Bootstrap | Run Vite alongside the existing static server | `frontend/package.json`, `vite.config.ts`, ESLint/Prettier config, npm scripts (`dev`, `build`, `preview`) | 🟡 In progress |
+| 2. Module Alignment | Load all ES modules via Vite with consistent aliases/env | Configure `resolve.alias`, route global context through Vite entry, migrate config reads to `import.meta.env` | ⬜ Planned |
+| 3. Asset & Style Pipeline | Let Vite fingerprint assets and bundle CSS | Move icons/fonts to `public/`, import CSS in modules, convert HTML partial loading (e.g. `import.meta.glob`) | ⬜ Planned |
+| 4. Build & Deploy Flow | Produce production bundle & wire CI/CD | Successful `npm run build`, GitHub Pages (or equivalent) deployment workflow, smoke tests | ⬜ Planned |
+| 5. Cut-over & Cleanup | Retire legacy static server | Remove `python -m http.server` instructions, delete obsolete template loader, final regression pass | ⬜ Planned |
+
+#### Next Actions
+- Finish Phase 1 scaffolding (Vite config + dual `package.json` scripts) without breaking the static workflow.
+- Add a mirrored `index.html`/entry module for Vite so we can toggle between legacy and Vite builds during Phase 3.
+- Draft a manual regression checklist (auth, global context switching, substitution interactions) to execute in Phases 3–5.
+
+Until the cut-over is complete, keep both the legacy static-server commands and the upcoming Vite commands documented so collaborators can choose the appropriate workflow.
 
 ## Architecture & Key Concepts
 

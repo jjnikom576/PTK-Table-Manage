@@ -20,7 +20,8 @@ let moduleState = {
   substitutionsByTeacher: {},
   isLoading: false,
   error: null,
-  initialized: false
+  initialized: false,
+  globalClickHandler: null
 };
 
 // =============================================================================
@@ -68,8 +69,12 @@ export async function initSubstitutionDetails(context = null, preSelectedTeacher
         teacherTab.classList.add('active');
         teacherTab.setAttribute('aria-selected', 'true');
 
-        // Scroll into view
-        teacherTab.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Keep selected tab visible if it is outside viewport
+        const tabRect = teacherTab.getBoundingClientRect();
+        const inView = tabRect.top >= 0 && tabRect.bottom <= (window.innerHeight || document.documentElement.clientHeight);
+        if (!inView) {
+          teacherTab.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+        }
 
         // Load teacher data
         await loadTeacherSubstitutions(preSelectedTeacherId);
@@ -343,6 +348,8 @@ function renderTeacherDetails(teacherId) {
     return;
   }
 
+  moduleState.selectedDate = null;
+
   // Show containers
   const contentContainer = document.getElementById('substitution-details-content');
   const emptyState = document.getElementById('substitution-details-empty');
@@ -373,6 +380,11 @@ function renderTeacherDetails(teacherId) {
   console.log('[SubstitutionDetails] Teacher details rendered for:', teacher.full_name);
 
   scrollToDetailsSection('#substitution-details-content');
+
+  const detailTable = document.getElementById('substitution-detail-table');
+  if (detailTable) {
+    detailTable.innerHTML = '<p class="hint-text">คลิกวันที่เพื่อดูรายละเอียด</p>';
+  }
 }
 
 /**
@@ -386,6 +398,15 @@ function renderDateButtons(teacherId, dates) {
 
   // Sort dates descending (newest first)
   const sortedDates = [...dates].sort((a, b) => new Date(b) - new Date(a));
+
+  if (sortedDates.length === 0) {
+    container.innerHTML = '<p class="hint-text">ไม่มีประวัติการสอนแทน</p>';
+    const detailTable = document.getElementById('substitution-detail-table');
+    if (detailTable) {
+      detailTable.innerHTML = '<p class="hint-text">ไม่มีข้อมูลการสอนแทน</p>';
+    }
+    return;
+  }
 
   let html = '<h4>📅 เลือกวันที่เพื่อดูรายละเอียด:</h4>';
   html += '<div class="date-buttons-grid">';
@@ -487,7 +508,7 @@ function renderDateDetailsTable(teacherId, date, data) {
 function setupEventListeners() {
   console.log('[SubstitutionDetails] Setting up event listeners');
 
-  // Event listeners will be bound dynamically after rendering
+  ensureGlobalDelegatedEvents();
 
   console.log('[SubstitutionDetails] Event listeners setup complete');
 }
@@ -496,102 +517,21 @@ function setupEventListeners() {
  * Bind teacher tab click events
  */
 function bindTeacherTabClicks() {
-  const container = document.getElementById('substitution-teacher-tabs');
-  if (!container) return;
-
-  // Remove existing listener to prevent duplicate bindings
-  const newContainer = container.cloneNode(true);
-  container.parentNode.replaceChild(newContainer, container);
-
-  // Use event delegation for better performance
-  newContainer.addEventListener('click', async (e) => {
-    const teacherTab = e.target.closest('.teacher-tab');
-    if (!teacherTab) return;
-
-    const teacherId = parseInt(teacherTab.dataset.teacherId);
-    console.log('[SubstitutionDetails] Teacher tab clicked:', teacherId);
-
-    // Update active state
-    document.querySelectorAll('#substitution-teacher-tabs .teacher-tab').forEach(t => {
-      t.classList.remove('active');
-      t.setAttribute('aria-selected', 'false');
-    });
-    teacherTab.classList.add('active');
-    teacherTab.setAttribute('aria-selected', 'true');
-
-    // Load teacher data
-    await loadTeacherSubstitutions(teacherId);
-  });
+  ensureGlobalDelegatedEvents();
 }
 
 /**
  * Bind group filter click events
  */
 function bindGroupFilterClicks() {
-  const filterContainer = document.getElementById('teacher-group-filter');
-  if (!filterContainer) return;
-
-  // Remove existing listener to prevent duplicate bindings
-  const newFilterContainer = filterContainer.cloneNode(true);
-  filterContainer.parentNode.replaceChild(newFilterContainer, filterContainer);
-
-  newFilterContainer.addEventListener('click', async (e) => {
-    const chip = e.target.closest('.group-chip');
-    if (!chip) return;
-
-    const selectedGroup = chip.dataset.group;
-    console.log('[SubstitutionDetails] Group filter clicked:', selectedGroup);
-
-    // Update active chip
-    document.querySelectorAll('.group-chip').forEach(c => c.classList.remove('active'));
-    chip.classList.add('active');
-
-    // Filter groups display
-    const allSections = document.querySelectorAll('.teacher-groups .group-section');
-
-    if (selectedGroup === 'ALL') {
-      // Show all groups
-      allSections.forEach(section => section.style.display = 'block');
-      const groupsContainer = document.querySelector('.teacher-groups');
-      if (groupsContainer) groupsContainer.classList.remove('single');
-    } else {
-      // Show only selected group
-      allSections.forEach(section => {
-        const groupTitle = section.querySelector('.group-title');
-        if (groupTitle && groupTitle.textContent === selectedGroup) {
-          section.style.display = 'block';
-        } else {
-          section.style.display = 'none';
-        }
-      });
-      const groupsContainer = document.querySelector('.teacher-groups');
-      if (groupsContainer) groupsContainer.classList.add('single');
-    }
-  });
+  ensureGlobalDelegatedEvents();
 }
 
 /**
  * Bind date button click events
  */
 function bindDateButtonClicks() {
-  const buttons = document.querySelectorAll('.date-btn');
-  buttons.forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const teacherId = parseInt(btn.dataset.teacherId);
-      const date = btn.dataset.date;
-
-      console.log('[SubstitutionDetails] Date button clicked:', date);
-
-      // Update active state
-      document.querySelectorAll('.date-btn').forEach(b => {
-        b.classList.remove('active');
-      });
-      btn.classList.add('active');
-
-      // Load date details
-      await loadDateDetails(teacherId, date);
-    });
-  });
+  ensureGlobalDelegatedEvents();
 }
 
 // =============================================================================
@@ -627,6 +567,110 @@ function showError(message) {
     errorEl.classList.remove('hidden');
   }
   console.error('[SubstitutionDetails] Error:', message);
+}
+
+function ensureGlobalDelegatedEvents() {
+  if (moduleState.globalClickHandler) {
+    return;
+  }
+
+  moduleState.globalClickHandler = async (event) => {
+    if (!isSubstitutionPageActive()) return;
+
+    const teacherTab = event.target.closest('#substitution-teacher-tabs .teacher-tab');
+    if (teacherTab) {
+      event.preventDefault();
+      await handleTeacherTabElement(teacherTab);
+      return;
+    }
+
+    const groupChip = event.target.closest('#teacher-group-filter .group-chip');
+    if (groupChip) {
+      event.preventDefault();
+      handleGroupChipClick(groupChip);
+      return;
+    }
+
+    const dateBtn = event.target.closest('#substitution-dates-container .date-btn');
+    if (dateBtn) {
+      event.preventDefault();
+      await handleDateButtonClick(dateBtn);
+    }
+  };
+
+  document.addEventListener('click', moduleState.globalClickHandler);
+}
+
+function isSubstitutionPageActive() {
+  const page = document.getElementById('page-substitution');
+  return !!(page && !page.classList.contains('hidden'));
+}
+
+async function handleTeacherTabElement(teacherTab) {
+  const teacherId = parseInt(teacherTab.dataset.teacherId);
+  if (Number.isNaN(teacherId)) return;
+
+  const alreadySelected = moduleState.selectedTeacher === teacherId;
+
+  console.log('[SubstitutionDetails] Teacher tab clicked:', teacherId);
+
+  document.querySelectorAll('#substitution-teacher-tabs .teacher-tab').forEach(t => {
+    t.classList.remove('active');
+    t.setAttribute('aria-selected', 'false');
+  });
+  teacherTab.classList.add('active');
+  teacherTab.setAttribute('aria-selected', 'true');
+
+  if (alreadySelected) {
+    return;
+  }
+
+  await loadTeacherSubstitutions(teacherId);
+}
+
+function handleGroupChipClick(chip) {
+  const selectedGroup = chip.dataset.group;
+  console.log('[SubstitutionDetails] Group filter clicked:', selectedGroup);
+
+  document.querySelectorAll('.group-chip').forEach(c => c.classList.remove('active'));
+  chip.classList.add('active');
+
+  const allSections = document.querySelectorAll('.teacher-groups .group-section');
+
+  if (selectedGroup === 'ALL') {
+    allSections.forEach(section => section.style.display = 'block');
+    const groupsContainer = document.querySelector('.teacher-groups');
+    if (groupsContainer) groupsContainer.classList.remove('single');
+  } else {
+    allSections.forEach(section => {
+      const groupTitle = section.querySelector('.group-title');
+      if (groupTitle && groupTitle.textContent === selectedGroup) {
+        section.style.display = 'block';
+      } else {
+        section.style.display = 'none';
+      }
+    });
+    const groupsContainer = document.querySelector('.teacher-groups');
+    if (groupsContainer) groupsContainer.classList.add('single');
+  }
+
+  const visibleTeacher = document.querySelector('.group-section:not([style*="display: none"]) .teacher-tab');
+  if (visibleTeacher) {
+    handleTeacherTabElement(visibleTeacher);
+  }
+}
+
+async function handleDateButtonClick(btn) {
+  const teacherId = parseInt(btn.dataset.teacherId);
+  const date = btn.dataset.date;
+  if (Number.isNaN(teacherId) || !date) return;
+
+  console.log('[SubstitutionDetails] Date button clicked:', date);
+
+  document.querySelectorAll('.date-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  await loadDateDetails(teacherId, date);
 }
 
 function scrollToDetailsSection(targetSelector, offset = 180) {
