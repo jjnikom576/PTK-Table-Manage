@@ -175,9 +175,8 @@ async function loadTeacherSubstitutions(teacherId) {
 
       console.log('[SubstitutionDetails] Teacher substitutions loaded:', response.data);
 
-      // Render teacher details
+      // Render teacher details (renderTeacherDetails will handle scrolling into view)
       renderTeacherDetails(teacherId);
-      scrollToDetailsSection('#substitution-details');
 
     } else {
       throw new Error(response.message || 'ไม่สามารถโหลดข้อมูลการสอนแทนได้');
